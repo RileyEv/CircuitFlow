@@ -8,27 +8,31 @@ module Pipeline.Core.Task (
   functionTask
 ) where
 
+import Data.Typeable (Typeable(..))
+
 
 class Monad m => DataSource m a i where
   fetch :: a i -> m i
 
 class Monad m => DataSink m a i where
-  save :: i -> m (a i)
+  save :: a i -> i -> m (a i)
 
-type Task i j = forall m a b. (Monad m, DataSource m a i, DataSink m b j) => a i -> m (b j)
+type Task i b j = forall m a. (
+  Monad m, DataSource m a i, DataSink m b j,
+  Typeable i, Typeable j, Typeable m, Typeable b, Typeable a) => a i -> b j -> m (b j)
 
 
 -- Some Basic DataSources and DataSinks
 
 -- VariableStore will store a value that is passed to another task.
-data VariableStore a = Var a | Empty
+data VariableStore a = Var a | Empty deriving Typeable
 
 instance Monad m => DataSource m VariableStore a where
   fetch (Var x) = return x
   fetch Empty = error "empty source"
 
 instance Monad m => DataSink m VariableStore a where
-  save x = return (Var x)
+  save _ x = return (Var x)
 
 
 -- IOStore is able to interact with the world.
@@ -43,12 +47,12 @@ instance DataSource IO IOStore String where
 
 -- The DataSink is able to print the result to the console as long as a Show instance exists
 instance Show a => DataSink IO IOStore a where
-  save x = do
+  save _ x = do
     print x
     return IOOut
 
 
-functionTask :: (a -> b) -> Task a b
-functionTask f source = do
+functionTask :: (i -> j) -> Task i b j 
+functionTask f source sink = do
   input <- fetch source
-  save (f input)
+  save sink (f input)
