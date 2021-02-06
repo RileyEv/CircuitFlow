@@ -1,58 +1,76 @@
-{-# LANGUAGE RankNTypes, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE RankNTypes, MultiParamTypeClasses, FlexibleInstances, GADTs, KindSignatures, DataKinds, FlexibleContexts #-}
 module Pipeline.Core.Task (
-  Task,
-  DataSource(..),
-  DataSink(..),
-  VariableStore(..),
-  IOStore(..),
-  functionTask
+  Task(..)
 ) where
 
-import Data.Typeable (Typeable(..))
+import Data.Typeable (Typeable(..), cast, gcast)
 
 
-class Monad m => DataSource m a i where
-  fetch :: a i -> m i
+-- a i only has to be a source as it is never saved to
+-- b j has to be both as this task saves to it and the next task will read
 
-class Monad m => DataSink m a i where
-  save :: a i -> i -> m (a i)
-
-type Task i b j = forall m a. (
-  Monad m, DataSource m a i, DataSink m b j,
-  Typeable i, Typeable j, Typeable m, Typeable b, Typeable a) => a i -> b j -> m (b j)
+data Task a b = (DataSource VariableStore a, DataSink VariableStore b, DataSource VariableStore b, Typeable a, Typeable b) => Task (VariableStore a -> VariableStore b -> IO (VariableStore b))
 
 
--- Some Basic DataSources and DataSinks
 
--- VariableStore will store a value that is passed to another task.
+class (Typeable a, Typeable f) => DataSource f a where
+  fetch :: f a -> IO a
+
+class (Typeable a, Typeable f) => DataSink f a where
+  -- First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
+  save :: f a -> a -> IO (f a) 
+
+
+-- Basic DataSource/Sink
+
 data VariableStore a = Var a | Empty deriving Typeable
 
-instance Monad m => DataSource m VariableStore a where
+instance Typeable a => DataSource VariableStore a where
   fetch (Var x) = return x
-  fetch Empty = error "empty source"
+  fetch Empty   = error "empty source"
 
-instance Monad m => DataSink m VariableStore a where
+instance Typeable a => DataSink VariableStore a where
   save _ x = return (Var x)
 
 
--- IOStore is able to interact with the world.
-data IOStore a = IOIn | IOOut
-
--- The DataSource will read in a line of text from input
-instance DataSource IO IOStore String where
-  fetch IOIn = do
-    putStr "Input: "
-    getLine
-  fetch IOOut = error "cant fetch from sink"
-
--- The DataSink is able to print the result to the console as long as a Show instance exists
-instance Show a => DataSink IO IOStore a where
-  save _ x = do
-    print x
-    return IOOut
 
 
-functionTask :: (i -> j) -> Task i b j 
-functionTask f source sink = do
-  input <- fetch source
-  save sink (f input)
+data Node = forall a b. (Typeable a, Typeable b) =>  TaskNode (Task a b)
+          | forall a. (DataSource VariableStore a, Typeable a) => DataNode (VariableStore a)
+-- data Node = forall i b j. (Typeable b, Typeable i, Typeable j) =>  TaskNode (Task i b j)
+--           | forall a i. (DataSource a i, Typeable a, Typeable i) => DataNode (a i)
+
+
+-- Lets start with a simple graph represented with a list. ie a -> b -> .. -> x
+processGraph :: (DataSource VariableStore a, Typeable a) => [Node] -> VariableStore a -> IO [Node]
+processGraph ns firstD = foldl f (return [DataNode firstD]) ns
+  where
+    f :: IO [Node] -> Node -> IO [Node]
+    f ds' (TaskNode (Task t)) = do
+      ds <- ds'
+      let dn@(DataNode d) = last ds
+          nextd' = case gcast d of
+            Just d1 -> t d1 Empty
+            Nothing -> error "problem"
+      nextd <- nextd'
+      return (ds ++ [dn, DataNode nextd])
+
+    f _ _ = error "How did it get here..."
+
+
+
+
+-- Example typeable with existential types
+
+data Currency = IGBP | USD | AUD
+data Money (currency :: Currency) = Money Int
+data MoneyEx = forall x . Typeable x => MoneyEx (Money x)
+
+
+moneyAdd :: Money c -> Money c -> Money c
+moneyAdd (Money a) (Money b) = Money (a + b)
+
+moneyExAdd :: MoneyEx -> MoneyEx -> MoneyEx
+moneyExAdd (MoneyEx a) (MoneyEx b) = case cast a of
+  Just a1 -> MoneyEx (moneyAdd a1 b)
+  Nothing -> error ""
