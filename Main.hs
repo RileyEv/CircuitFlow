@@ -1,10 +1,10 @@
-{-# LANGUAGE RankNTypes, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, FlexibleContexts, ScopedTypeVariables, TypeOperators, GADTs #-}
 
 module Main where
 
-import Pipeline.Core.Task (Task, DataSource(..), DataSink(..), VariableStore(..), Node(..), functionTask, processGraph, testGraph)
+import Pipeline.Core.Task (Task, DataSource(..), VariableStore(..), IOStore(..), Node(..), functionTask, processGraph, testGraph)
 
-import Data.Typeable (Typeable, cast, typeOf )
+import Data.Typeable (Typeable, cast, typeOf, eqT, (:~:)(..) )
 
     
 -- identityTask :: Task String String
@@ -34,15 +34,21 @@ import Data.Typeable (Typeable, cast, typeOf )
 
 main :: IO ()
 main = do
-  graph <- processGraph testGraph (Var ("100" :: String))
-  let dn = last graph
-  y <- test dn
-  print (typeOf y)
-  print y
-  print (length graph)
+  graph <- processGraph testGraph (IOEmpty :: IOStore String)
+  return ()
+  -- let dn = last graph
+  -- y <- test dn
+  -- print (typeOf y)
+  -- print y
+  -- print (length graph)
 
 test :: Node -> IO Int
-test (DataNode d) = test' d
+test (DataNode d) = test'' d
+
+test'' :: forall f a. (Typeable f, Typeable a) => f a -> IO Int
+test'' d = case eqT :: Maybe (VariableStore :~: f) of
+  Just Refl -> test' d
+  Nothing -> error ""
 
 test' :: Typeable a => VariableStore a -> IO Int
 test' (Var x) = case cast x of
@@ -53,3 +59,4 @@ getInt :: Typeable a => a -> Int
 getInt x = case cast x of
   Just x1 -> x1
   Nothing -> error "error"
+  
