@@ -20,6 +20,14 @@ extra-source-files:  CHANGELOG.md, README.md
 library
   exposed-modules: Pipeline.Core.Task,
                    Pipeline.Backend.GraphMachine
+
+  default-extensions:  GADTs,
+                       FlexibleContexts,
+                       FlexibleInstances,
+                       KindSignatures,
+                       RankNTypes,
+                       TypeOperators
+
   build-depends:
     base >=4.13 && <4.14,
     fgl >=5.7.0.0
