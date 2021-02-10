@@ -38,14 +38,24 @@ testTree = Tree
         (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
         [Tree
           (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-          [Tree
-            (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String))
-            []]]]]]
+          [Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]]]]
+
+-- read in a string add two 0s to the end and then print it out 3 times.
+testTree2 :: Tree Node
+testTree2 = Tree
+  (TaskNode (functionTask (++ ("00" :: String)) Empty :: Task IOStore String VariableStore String))
+  [Tree
+    (TaskNode (functionTask (read :: String -> Int) Empty :: Task VariableStore String VariableStore Int))
+    [Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
+     Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
+     Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]
+
 
 main :: IO ()
 main = do
-  _ <- processList testList (IOEmpty :: IOStore String)
-  _ <- processTree testTree (IOEmpty :: IOStore String)
+  _ <- processList testList  (IOEmpty :: IOStore String)
+  _ <- processTree testTree  (IOEmpty :: IOStore String)
+  _ <- processTree testTree2 (IOEmpty :: IOStore String)
   return ()
 
 test :: Node -> IO Int
