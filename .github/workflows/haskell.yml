@@ -17,5 +17,5 @@ jobs:
      # You may pin to the exact commit or the version.
      # uses: domdere/haskell-lint-action@f865aa0bfb6db9632e0f905dee4b0716a76a5494
       uses: domdere/haskell-lint-action@v1.0.2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
