@@ -28,18 +28,15 @@ class Typeable a => DataSource f a where
 data VariableStore a = Var a | Empty deriving Typeable
 
 instance Typeable a => DataSource VariableStore a where
-  fetch (Var x) = do
-    return x
+  fetch (Var x) = return x
   fetch Empty   = error "empty source"
-  save _ x = do
-    return (Var x)
+  save _ x = return (Var x)
 
 
 data IOStore a = IOVar a | IOEmpty deriving Typeable
 
 instance Typeable String => DataSource IOStore String where
-  fetch (IOVar x) = do
-    return x
+  fetch (IOVar x) = return x
   fetch IOEmpty   = do
     putStr "Input: "
     getLine
