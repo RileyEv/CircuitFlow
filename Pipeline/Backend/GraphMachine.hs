@@ -7,9 +7,8 @@ module Pipeline.Backend.GraphMachine (
   processTree,
 ) where
 
-import Pipeline.Core.Task (
-  Task(..),
-  DataSource(..))
+import Pipeline.Core.Task (Task(..))
+import Pipeline.Core.DataStore (DataSource(..))
 
 import Data.Typeable (Typeable, gcast, eqT, (:~:)(..))
 
