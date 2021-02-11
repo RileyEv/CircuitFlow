@@ -9,6 +9,9 @@ module Pipeline.Core.DataStore (
 ) where
 
 import Data.Typeable (Typeable)
+import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
+import qualified Data.ByteString.Lazy as B (readFile, writeFile)
+import qualified Data.Vector as V (toList)
 
 class Typeable a => DataSource f a where
   -- | Fetch the value stored in the 'DataSource'
@@ -56,18 +59,36 @@ instance Typeable String => DataSource IOStore String where
 newtype FileStore a = FileStore String deriving Typeable
 
 instance Typeable String => DataSource FileStore String where
-  fetch (FileStore fname) = do
-    return ""
-
+  fetch (FileStore fname) = readFile fname
   save f@(FileStore fname) x = do
+    writeFile fname x
     return f
 
+-- splits file into lines
+instance Typeable [String] => DataSource FileStore [String] where
+  fetch (FileStore fname) = do
+    f <- readFile fname
+    return (lines f)
+  save f@(FileStore fname) x = do
+    let x' = unlines x
+    writeFile fname x'
+    return f
 
 
 -- CSV Store
 
 newtype CSVStore a = CSVStore String deriving Typeable
 
-instance Typeable a => DataSource CSVStore a where
-  fetch (CSVStore fname) = undefined
-  save f@(CSVStore fname) = undefined
+instance (Typeable [a], ToRecord a, FromRecord a) => DataSource CSVStore [a] where
+  fetch (CSVStore fname) = do
+    f <- B.readFile fname
+    let dec = decode NoHeader f
+        x' = case dec of
+          Right x -> x
+          Left err -> error err
+    return (V.toList x')
+    
+  save f@(CSVStore fname) x = do
+    let enc = encode x
+    B.writeFile fname enc
+    return f
