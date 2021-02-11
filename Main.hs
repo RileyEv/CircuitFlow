@@ -15,6 +15,7 @@ import Pipeline.Backend.GraphMachine (
   processTree)
 
 import Data.Typeable (Typeable, cast, eqT, (:~:)(..) )
+import Data.Maybe (fromMaybe)
 
     
 testList :: [Node]
@@ -74,7 +75,5 @@ test' (Var x) = case cast x of
 test' _ = error ""
 
 getInt :: Typeable a => a -> Int
-getInt x = case cast x of
-  Just x1 -> x1
-  Nothing -> error "error"
-  
+getInt x = fromMaybe (error "error") (cast x)
+
