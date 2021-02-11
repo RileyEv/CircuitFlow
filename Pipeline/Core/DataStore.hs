@@ -55,7 +55,10 @@ instance Typeable String => DataSource IOStore String where
     print x
     return (IOVar x)
 
-
+{-|
+  A 'FileStore' is able to write a string to a file for intermediate
+  between tasks
+-}
 newtype FileStore a = FileStore String deriving Typeable
 
 instance Typeable String => DataSource FileStore String where

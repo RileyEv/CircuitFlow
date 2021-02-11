@@ -4,8 +4,6 @@ module Main where
 
 import Pipeline.Core.Task (
   Task,
-  VariableStore(..),
-  IOStore(..),
   functionTask)
 
 import Pipeline.Backend.GraphMachine (
@@ -13,6 +11,12 @@ import Pipeline.Backend.GraphMachine (
   Tree(..),
   processList,
   processTree)
+
+import Pipeline.Core.DataStore (
+  VariableStore(..),
+  IOStore(..),
+  FileStore(..),
+  CSVStore(..))
 
 import Data.Typeable (Typeable, cast, eqT, (:~:)(..) )
 import Data.Maybe (fromMaybe)
@@ -51,12 +55,24 @@ testTree2 = Tree
      Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
      Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]
 
+-- same as 'testTree', but uses a file instead of stdin/out.
+testTree3 :: Tree Node
+testTree3 = Tree 
+    (TaskNode (functionTask (read :: String -> Int) Empty :: Task FileStore String VariableStore Int))
+    [Tree
+      (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
+      [Tree
+        (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
+        [Tree
+          (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
+          [Tree (TaskNode (functionTask (show :: Int -> String) (FileStore "testfiles/testTree3.out") :: Task VariableStore Int FileStore String)) []]]]]
 
 main :: IO ()
 main = do
-  _ <- processList testList  (IOEmpty :: IOStore String)
-  _ <- processTree testTree  (IOEmpty :: IOStore String)
-  _ <- processTree testTree2 (IOEmpty :: IOStore String)
+  -- _ <- processList testList  (IOEmpty :: IOStore String)
+  -- _ <- processTree testTree  (IOEmpty :: IOStore String)
+  -- _ <- processTree testTree2 (IOEmpty :: IOStore String)
+  _ <- processTree testTree3 (FileStore "testfiles/testTree3.in" :: FileStore String)
   return ()
 
 test :: Node -> IO Int
