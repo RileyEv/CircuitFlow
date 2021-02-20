@@ -2,17 +2,28 @@
 
 module Pipeline.Backend.GraphMachine (
   Node(..),
-  Tree(..),
+  Tree,
+  TreeF(..),
+  TreeAlg,
   processList,
   processTree,
 ) where
 
 import Pipeline.Core.Task (Task(..))
 import Pipeline.Core.DataStore (DataSource(..))
+import Pipeline.Core.IFunctor (Fix(..), IFunctor(..))
 
 import Data.Typeable (Typeable, gcast, eqT, (:~:)(..))
 
-data Tree a = Tree a [Tree a]
+-- data Tree a = Tree a [Tree a]
+data TreeF f a = TreeF a [f a]
+
+instance IFunctor TreeF where
+  imap f (TreeF x ts) = TreeF x (map f ts)
+
+type Tree a = Fix TreeF a
+type TreeAlg f a = TreeF f a -> f a
+
 
 
 data Node = forall f a g b. (Typeable f, Typeable g, Typeable a, Typeable b, DataSource f a, DataSource g b) => TaskNode (Task f a g b)
@@ -37,10 +48,10 @@ processList ns firstD = do
 
 
 processTree :: (DataSource f a, Typeable f, Typeable a) => Tree Node -> f a -> IO (Tree Node)
-processTree (Tree n cs) firstD = do
+processTree (In (TreeF n cs)) firstD = do
   n'@(DataNode d) <- processNode (DataNode firstD) n
   cs' <- mapM (`processTree` d) cs
-  return (Tree n' cs')
+  return (In (TreeF n' cs'))
 
 processNode :: Node -> Node -> IO Node
 processNode (DataNode d) (TaskNode t) = do
