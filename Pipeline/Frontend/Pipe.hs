@@ -5,11 +5,11 @@ import Prelude hiding ((>>))
 
 import Pipeline.Core.Task (Task, functionTask)
 import Pipeline.Core.DataStore (DataSource, VariableStore(..), IOStore(..), FileStore(..))
-import Pipeline.Backend.GraphMachine (Node(..), Tree, TreeF(..), TreeAlg, processTree)
-import Pipeline.Core.IFunctor (IFunctor4(..), Fix4(..), cata4, C4(..), Fix(..), cata)
+import Pipeline.Backend.GraphMachine (Node(..), TreeF(..), processTree)
+import Pipeline.Core.IFunctor (IFunctor4(..), IFix4(..), icata4, C4(..), IFix(..))
 
 
-import qualified Data.Map as M (Map, insert, empty)
+import qualified Data.Map as M (Map, insert, empty, lookup)
 import Control.Monad.State (State, runState, get, put)
 import Data.Typeable (Typeable)
 
@@ -26,7 +26,7 @@ instance IFunctor4 ChainF where
   imap4 _ (ProcessF pid) = ProcessF pid
   imap4 f (JoinF x y) = JoinF (f x) (f y)
 
-type Chain f a g b = Fix4 ChainF f a g b
+type Chain f a g b = IFix4 ChainF f a g b
 type ChainAlg f a b c d = ChainF f a b c d -> f a b c d
 
 data Pipe where
@@ -39,7 +39,7 @@ x & y = And (Pipe x) (Pipe y)
 -- Look at Control.Arrow? Does this apply?
 
 (>>) :: (DataSource f a, DataSource g b, DataSource h c) => Chain f a g b -> Chain g b h c -> Chain f a h c
-x >> y = In4 (JoinF x y)
+x >> y = IIn4 (JoinF x y)
 
 
 infixr >>
@@ -71,7 +71,7 @@ showFileTask f = functionTask (show :: Int -> String) (FileStore f)
 
 type PID = Int
 
-data TaskWrap = forall f a g b. (DataSource f a, DataSource g b) => TaskWrap (Task f a g b)
+data TaskWrap = forall f a g b. (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b) => TaskWrap (Task f a g b)
 
 data WorkflowState = WorkflowState {
   pidCounter :: PID,
@@ -81,7 +81,7 @@ data WorkflowState = WorkflowState {
 type Workflow = State WorkflowState
 
 
-insertTask :: (DataSource f a, DataSource g b) => PID -> Task f a g b -> Workflow ()
+insertTask :: (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b) => PID -> Task f a g b -> Workflow ()
 insertTask pid t = do
   s <- get
   let s' = WorkflowState (pidCounter s) (M.insert pid (TaskWrap t) (tasks s))
@@ -95,11 +95,11 @@ nextPID = do
   put (WorkflowState newPID (tasks s))
   return newPID
 
-registerTask :: (DataSource f a, DataSource g b) => Task f a g b -> Workflow (Chain f a g b)
+registerTask :: (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b) => Task f a g b -> Workflow (Chain f a g b)
 registerTask t = do
   pid <- nextPID
   insertTask pid t
-  return $ In4 (ProcessF pid)
+  return $ IIn4 (ProcessF pid)
 
 
 testWorkflow1 :: Workflow Pipe
@@ -114,28 +114,23 @@ testWorkflow1 = do
     readIOTask' >> plus1Task' >> plus1Task'' >> plus1Task''' >> showFileTask' 
 
 
-pipeToTree :: Pipe -> Tree PID
+pipeToTree :: Pipe -> (IFix TreeF) PID
 -- Fold chain into a linear Tree of PIDs
-pipeToTree (Pipe c) = unConst4 (cata4 alg c)
+pipeToTree (Pipe c) = unConst4 (icata4 alg c)
   where
-    alg :: ChainAlg (C4 (Tree PID)) a b c d
-    alg (JoinF (C4 (In (TreeF n _))) (C4 y)) = C4 (In (TreeF n [y]))
-    alg (ProcessF pid) = C4 (In (TreeF pid []))
+    alg :: ChainAlg (C4 ((IFix TreeF) PID)) a b c d
+    alg (JoinF (C4 (IIn (TreeF n _))) (C4 y)) = C4 (IIn (TreeF n [y]))
+    alg (ProcessF pid) = C4 (IIn (TreeF pid []))
 pipeToTree (And _ _) = error "Not defined yet."
 
-pidTreeToNodeTree :: M.Map PID TaskWrap -> Tree PID -> Tree Node
-pidTreeToNodeTree m = cata alg
-  where
-    alg :: TreeAlg Tree Node
-    alg (TreeF x cs) = case lookup x m of
-      Just (TaskWrap n) -> TreeF (TaskNode n) cs
-      Nothing -> error "Not in the map"
+pidTreeToNodeTree :: M.Map PID TaskWrap -> (IFix TreeF) PID -> (IFix TreeF) Node
+pidTreeToNodeTree m = fmap (\x -> case M.lookup x m of
+      Just (TaskWrap n) -> TaskNode n
+      Nothing -> error "Not in the map")
 
-runWorkflow :: (DataSource f a, Typeable f, Typeable a) => Workflow Pipe -> f a -> IO (Tree Node)
+runWorkflow :: (DataSource f a, Typeable f, Typeable a) => Workflow Pipe -> f a -> IO ((IFix TreeF) Node)
 runWorkflow wf inp = do
   let (p, s) = runState wf (WorkflowState (-1) M.empty)
-
-  
-  
-  let nodeTree = undefined
+  let pidTree = pipeToTree p
+  let nodeTree = pidTreeToNodeTree (tasks s) pidTree
   processTree nodeTree inp
