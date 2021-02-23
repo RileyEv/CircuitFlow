@@ -8,9 +8,11 @@ import Pipeline.Core.Task (
 
 import Pipeline.Backend.GraphMachine (
   Node(..),
-  Tree(..),
+  TreeF(..),
   processList,
   processTree)
+
+import Pipeline.Core.IFunctor (IFix(..))
 
 import Pipeline.Core.DataStore (
   VariableStore(..),
@@ -32,50 +34,49 @@ testList = [
   TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int    IOStore       String)]
 
 -- Has same semantics as `testList`
-testTree :: Tree Node
-testTree = Tree 
+testTree :: (IFix TreeF) Node
+testTree = IIn $ TreeF 
   (TaskNode (functionTask (++ ("00" :: String)) Empty :: Task IOStore String VariableStore String))
-  [Tree
+  [IIn $ TreeF
     (TaskNode (functionTask (read :: String -> Int) Empty :: Task VariableStore String VariableStore Int))
-    [Tree
+    [IIn $ TreeF
       (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-      [Tree
+      [IIn $ TreeF
         (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-        [Tree
+        [IIn $ TreeF
           (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-          [Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]]]]
+          [IIn $ TreeF (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]]]]
 
 -- read in a string add two 0s to the end and then print it out 3 times.
-testTree2 :: Tree Node
-testTree2 = Tree
+testTree2 :: (IFix TreeF) Node
+testTree2 = IIn $ TreeF
   (TaskNode (functionTask (++ ("00" :: String)) Empty :: Task IOStore String VariableStore String))
-  [Tree
+  [IIn $ TreeF
     (TaskNode (functionTask (read :: String -> Int) Empty :: Task VariableStore String VariableStore Int))
-    [Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
-     Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
-     Tree (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]
+    [IIn $ TreeF (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
+     IIn $ TreeF (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) [],
+     IIn $ TreeF (TaskNode (functionTask (show :: Int -> String) IOEmpty :: Task VariableStore Int IOStore String)) []]]
 
 -- same as 'testTree', but uses a file instead of stdin/out.
-testTree3 :: Tree Node
-testTree3 = Tree 
+testTree3 :: (IFix TreeF) Node
+testTree3 = IIn $ TreeF 
     (TaskNode (functionTask (read :: String -> Int) Empty :: Task FileStore String VariableStore Int))
-    [Tree
+    [IIn $ TreeF
       (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-      [Tree
+      [IIn $ TreeF
         (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-        [Tree
+        [IIn $ TreeF
           (TaskNode (functionTask (+ (1 :: Int)) Empty :: Task VariableStore Int VariableStore Int))
-          [Tree (TaskNode (functionTask (show :: Int -> String) (FileStore "testfiles/testTree3.out") :: Task VariableStore Int FileStore String)) []]]]]
+          [IIn $ TreeF (TaskNode (functionTask (show :: Int -> String) (FileStore "testfiles/testTree3.out") :: Task VariableStore Int FileStore String)) []]]]]
 
-testTree4 :: Tree Node
-testTree4 = Tree
+testTree4 :: (IFix TreeF) Node
+testTree4 = IIn $ TreeF
   (TaskNode (functionTask (read :: String -> Int) Empty :: Task IOStore String VariableStore Int))
-  [Tree
+  [IIn $ TreeF
     (TaskNode (functionTask (replicate 100 :: Int -> [Int]) Empty :: Task VariableStore Int VariableStore [Int]))
-    [Tree (TaskNode (functionTask ((\xs -> zip xs xs) :: [Int] -> [(Int, Int)]) (CSVStore "testfiles/testTree4.1.out") :: Task VariableStore [Int] CSVStore [(Int, Int)])) [],
-     Tree (TaskNode (functionTask (zip [1..100]       :: [Int] -> [(Int, Int)]) (CSVStore "testfiles/testTree4.2.out") :: Task VariableStore [Int] CSVStore [(Int, Int)])) [],
-     Tree (TaskNode (functionTask (zip [100, 99..1]   :: [Int] -> [(Int, Int)]) (CSVStore "testfiles/testTree4.3.out") :: Task VariableStore [Int] CSVStore [(Int, Int)])) []]]
-
+    [IIn $ TreeF (TaskNode (functionTask ((\xs -> zip xs xs) :: [Int] -> [(Int, Int)]) (CSVStore "testfiles/testTree4.1.out") :: Task VariableStore [Int] CSVStore [(Int, Int)])) [],
+     IIn $ TreeF (TaskNode (functionTask (zip [1..100]       :: [Int] -> [(Int, Int)]) (CSVStore "testfiles/testTree4.2.out") :: Task VariableStore [Int] CSVStore [(Int, Int)])) [],
+     IIn $ TreeF (TaskNode (functionTask (zip [100, 99..1]   :: [Int] -> [(Int, Int)]) (CSVStore "testfiles/testTree4.3.out") :: Task VariableStore [Int] CSVStore [(Int, Int)])) []]]
 
 main :: IO ()
 main = do

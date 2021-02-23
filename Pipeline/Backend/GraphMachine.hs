@@ -15,7 +15,7 @@ import Pipeline.Core.IFunctor (IFix(..), IFunctor(..))
 import Data.Typeable (Typeable, gcast, eqT, (:~:)(..))
 
 -- data Tree a = Tree a [Tree a]
-data TreeF f a = TreeF a [f a]
+data TreeF f a = TreeF a [f a] deriving Show
 
 instance IFunctor TreeF where
   imap f (TreeF x ts) = TreeF x (map f ts)

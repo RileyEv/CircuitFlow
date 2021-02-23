@@ -6,7 +6,7 @@ import Prelude hiding ((>>))
 import Pipeline.Core.Task (Task, functionTask)
 import Pipeline.Core.DataStore (DataSource, VariableStore(..), IOStore(..), FileStore(..))
 import Pipeline.Backend.GraphMachine (Node(..), TreeF(..), processTree)
-import Pipeline.Core.IFunctor (IFunctor4(..), IFix4(..), icata4, C4(..), IFix(..))
+import Pipeline.Core.IFunctor (IFunctor4(..), IFix4(..), icata4, C4(..), IFix(..), icata, cata)
 
 
 import qualified Data.Map as M (Map, insert, empty, lookup)
@@ -33,27 +33,17 @@ data Pipe where
   Pipe :: forall f a g b. (DataSource f a, DataSource g b) => Chain f a g b -> Pipe
   And  :: Pipe -> Pipe -> Pipe
 
-(&) :: (DataSource f a, DataSource g b, DataSource h c, DataSource i d) => Chain f a g b -> Chain h c i d -> Pipe
-x & y = And (Pipe x) (Pipe y)
+(&) :: Pipe -> Pipe -> Pipe
+x & y = And x y
+
+infixr 8 &
 
 -- Look at Control.Arrow? Does this apply?
 
-(>>) :: (DataSource f a, DataSource g b, DataSource h c) => Chain f a g b -> Chain g b h c -> Chain f a h c
-x >> y = IIn4 (JoinF x y)
+(>>>) :: (DataSource f a, DataSource g b, DataSource h c) => Chain f a g b -> Chain g b h c -> Chain f a h c
+x >>> y = IIn4 (JoinF x y)
 
-
-infixr >>
-
-
-readIOTask :: Task IOStore String VariableStore Int
-readIOTask = functionTask (read :: String -> Int) Empty
-
-plus1Task :: Task VariableStore Int VariableStore Int
-plus1Task = functionTask (+ (1 :: Int)) Empty
-
-showFileTask :: FilePath -> Task VariableStore Int FileStore String
-showFileTask f = functionTask (show :: Int -> String) (FileStore f)
-
+infixr >>> 
 
 -- testPipeline1 :: Pipe
 -- testPipeline1 =  Pipe $
@@ -102,18 +92,6 @@ registerTask t = do
   return $ IIn4 (ProcessF pid)
 
 
-testWorkflow1 :: Workflow Pipe
-testWorkflow1 = do
-  readIOTask'   <- registerTask readIOTask
-  plus1Task'    <- registerTask plus1Task
-  plus1Task''   <- registerTask plus1Task
-  plus1Task'''  <- registerTask plus1Task
-  showFileTask' <- registerTask (showFileTask "testfiles/testPipeline1.out")
-
-  return $ Pipe $ 
-    readIOTask' >> plus1Task' >> plus1Task'' >> plus1Task''' >> showFileTask' 
-
-
 pipeToTree :: Pipe -> (IFix TreeF) PID
 -- Fold chain into a linear Tree of PIDs
 pipeToTree (Pipe c) = unConst4 (icata4 alg c)
@@ -121,7 +99,14 @@ pipeToTree (Pipe c) = unConst4 (icata4 alg c)
     alg :: ChainAlg (C4 ((IFix TreeF) PID)) a b c d
     alg (JoinF (C4 (IIn (TreeF n _))) (C4 y)) = C4 (IIn (TreeF n [y]))
     alg (ProcessF pid) = C4 (IIn (TreeF pid []))
-pipeToTree (And _ _) = error "Not defined yet."
+pipeToTree (And l r) = let l' = pipeToTree l
+                           r' = pipeToTree r
+                       in insertIntoTree r' l'
+
+insertIntoTree :: (IFix TreeF) PID -> (IFix TreeF) PID -> (IFix TreeF) PID
+insertIntoTree t@(IIn (TreeF n' cs')) (IIn (TreeF n cs))
+  | n == n'   = IIn (TreeF n (cs' ++ cs))
+  | otherwise = IIn (TreeF n (map (insertIntoTree t) cs))
 
 pidTreeToNodeTree :: M.Map PID TaskWrap -> (IFix TreeF) PID -> (IFix TreeF) Node
 pidTreeToNodeTree m = fmap (\x -> case M.lookup x m of
@@ -134,3 +119,10 @@ runWorkflow wf inp = do
   let pidTree = pipeToTree p
   let nodeTree = pidTreeToNodeTree (tasks s) pidTree
   processTree nodeTree inp
+
+
+extractLeafs :: (IFix TreeF) Node -> [Node]
+extractLeafs = icata alg
+  where
+    alg (TreeF x []) = [x]
+    alg (TreeF _ xs) = concat xs
