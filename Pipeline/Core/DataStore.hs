@@ -58,13 +58,19 @@ instance Typeable String => DataSource IOStore String where
 -}
 newtype FileStore a = FileStore String deriving Typeable
 
+{-|
+  You are able to write a String to a FileStore.
+-}
 instance Typeable String => DataSource FileStore String where
   fetch (FileStore fname) = readFile fname
   save f@(FileStore fname) x = do
     writeFile fname x
     return f
 
--- splits file into lines
+{-|
+  It is possible to write a list of strings to a 'FileStore'.
+  A new line is added between each string in the list.
+-}
 instance Typeable [String] => DataSource FileStore [String] where
   fetch (FileStore fname) = do
     f <- readFile fname
@@ -75,10 +81,15 @@ instance Typeable [String] => DataSource FileStore [String] where
     return f
 
 
--- CSV Store
-
+{-|
+  A 'CSVStore' is able to write data to a csv file.
+-}
 newtype CSVStore a = CSVStore String deriving Typeable
 
+{-|
+  A list of any type can be wrote to a CSV as long as it has a 'ToRecord'
+  and 'FromRecord' instance defined.
+-}
 instance (Typeable [a], ToRecord a, FromRecord a) => DataSource CSVStore [a] where
   fetch (CSVStore fname) = do
     f <- B.readFile fname
