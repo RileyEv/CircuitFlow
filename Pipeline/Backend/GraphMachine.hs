@@ -14,7 +14,7 @@ import Pipeline.Core.IFunctor (IFix(..), IFunctor(..))
 
 import Data.Typeable (Typeable, gcast, eqT, (:~:)(..))
 
--- data Tree a = Tree a [Tree a]
+-- |Structure used to represent a pipeline
 data TreeF f a = TreeF a [f a] deriving Show
 
 instance IFunctor TreeF where
@@ -26,13 +26,15 @@ instance Functor (IFix TreeF) where
   fmap f (IIn (TreeF x ts)) = IIn (TreeF (f x) (map (fmap f) ts))
 
 
-
-
+{-|
+  Datatype to be stored in the representation of a pipeline
+-}
 data Node = forall f a g b. (Typeable f, Typeable g, Typeable a, Typeable b, DataSource f a, DataSource g b) => TaskNode (Task f a g b)
           | forall f a. (Typeable f, Typeable a, DataSource f a) => DataNode (f a)
 
 
 -- Lets start with a simple graph represented with a list. ie a -> b -> .. -> x
+-- |Evaluate a single list of sequential tasks, with a starting 'DataSource'
 processList :: (DataSource f a, Typeable a, Typeable f) => [Node] -> f a -> IO [Node]
 processList ns firstD = do
   arr <- foldl f (return [DataNode firstD]) ns
@@ -46,13 +48,14 @@ processList ns firstD = do
       nextd <- nextd'
       return (ds ++ [nextd])
 
-
+-- |Evaluate a Tree structure of tasks, with the input 'DataSource'
 processTree :: (DataSource f a, Typeable f, Typeable a) => (IFix TreeF) Node -> f a -> IO ((IFix TreeF) Node)
 processTree (IIn (TreeF n cs)) firstD = do
   n'@(DataNode d) <- processNode (DataNode firstD) n
   cs' <- mapM (`processTree` d) cs
   return (IIn (TreeF n' cs'))
 
+-- |Evaluate a single node with the input 'DataSource' for a 'Task', returning an output 'DataSource'.
 processNode :: Node -> Node -> IO Node
 processNode (DataNode d) (TaskNode t) = do
   r <- applyFCast d t 
@@ -64,8 +67,6 @@ applyFCast :: forall f g h a b c. (Typeable f, Typeable g, Typeable h, Typeable 
 applyFCast d (Task t o) = case (eqT :: Maybe (f :~: g)) of
   Just Refl -> applyTask d t o
   Nothing -> error "DataSource types do not match."
-  
-
 
 applyTask :: (Typeable f, Typeable h, Typeable a, Typeable b, Typeable c) => f a -> (f b -> h c -> IO (h c)) -> h c -> IO (h c)
 applyTask d t o = case gcast d of
