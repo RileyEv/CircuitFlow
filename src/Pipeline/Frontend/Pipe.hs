@@ -1,7 +1,4 @@
-
 module Pipeline.Frontend.Pipe where
-
-import Prelude hiding ((>>))
 
 import Pipeline.Core.Task (Task, functionTask)
 import Pipeline.Core.DataStore (DataSource, VariableStore(..), IOStore(..), FileStore(..))
