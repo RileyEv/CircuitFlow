@@ -2,42 +2,26 @@
 
 module Pipeline.Backend.GraphMachine (
   Node(..),
-  TreeF(..),
-  TreeAlg,
   processList,
   processTree,
 ) where
 
-import Pipeline.Core.Task (Task(..))
-import Pipeline.Core.DataStore (DataSource(..))
-import Pipeline.Core.IFunctor (IFix(..), IFunctor(..))
+import Pipeline.Core.DataStore (DataSource(..), DataWrap(..))
+import Pipeline.Core.Graph (TreeF(..))
+import Pipeline.Core.IFunctor (IFix(..))
+import Pipeline.Core.Task (Task(..), TaskWrap(..))
+import Pipeline.Core.Node (Node(..))
 
 import Data.Typeable (Typeable, gcast, eqT, (:~:)(..))
 
--- |Structure used to represent a pipeline
-data TreeF f a = TreeF a [f a] deriving Show
-
-instance IFunctor TreeF where
-  imap f (TreeF x ts) = TreeF x (map f ts)
-
-type TreeAlg f a = TreeF f a -> f a
-
-instance Functor (IFix TreeF) where
-  fmap f (IIn (TreeF x ts)) = IIn (TreeF (f x) (map (fmap f) ts))
-
-
-{-|
-  Datatype to be stored in the representation of a pipeline
--}
-data Node = forall f a g b. (Typeable f, Typeable g, Typeable a, Typeable b, DataSource f a, DataSource g b) => TaskNode (Task f a g b)
-          | forall f a. (Typeable f, Typeable a, DataSource f a) => DataNode (f a)
 
 
 -- Lets start with a simple graph represented with a list. ie a -> b -> .. -> x
+
 -- |Evaluate a single list of sequential tasks, with a starting 'DataSource'
 processList :: (DataSource f a, Typeable a, Typeable f) => [Node] -> f a -> IO [Node]
 processList ns firstD = do
-  arr <- foldl f (return [DataNode firstD]) ns
+  arr <- foldl f (return [DataNode (DataWrap firstD)]) ns
   return (tail arr)
   where
     f :: IO [Node] -> Node -> IO [Node]
@@ -51,15 +35,15 @@ processList ns firstD = do
 -- |Evaluate a Tree structure of tasks, with the input 'DataSource'
 processTree :: (DataSource f a, Typeable f, Typeable a) => (IFix TreeF) Node -> f a -> IO ((IFix TreeF) Node)
 processTree (IIn (TreeF n cs)) firstD = do
-  n'@(DataNode d) <- processNode (DataNode firstD) n
+  n'@(DataNode (DataWrap d)) <- processNode (DataNode (DataWrap firstD)) n
   cs' <- mapM (`processTree` d) cs
   return (IIn (TreeF n' cs'))
 
 -- |Evaluate a single node with the input 'DataSource' for a 'Task', returning an output 'DataSource'.
 processNode :: Node -> Node -> IO Node
-processNode (DataNode d) (TaskNode t) = do
+processNode (DataNode (DataWrap d)) (TaskNode (TaskWrap t)) = do
   r <- applyFCast d t 
-  return (DataNode r)
+  return (DataNode (DataWrap r))
 processNode _ _ = error "unable to process any other combination of nodes"
 
 
