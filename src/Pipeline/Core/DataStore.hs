@@ -2,6 +2,7 @@
 
 module Pipeline.Core.DataStore (
   DataSource(..),
+  DataWrap(..),
   VariableStore(..),
   IOStore(..),
   FileStore(..),
@@ -20,6 +21,7 @@ class Typeable a => DataSource f a where
   --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
   save :: f a -> a -> IO (f a)
 
+data DataWrap = forall f a. (DataSource f a, Typeable f, Typeable a) => DataWrap (f a)
 
 {-|
   A 'VariableStore' is a simple in memory 'DataStore'.

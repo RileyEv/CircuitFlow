@@ -1,7 +1,10 @@
 module Main where
 
-import Pipeline.Frontend.Pipe (Workflow, Pipe(..), registerTask, (>>>), runWorkflow, extractLeafs, (&))
+import Pipeline (runWorkflow)
+import Pipeline.Frontend.Pipe (Pipe(..), (>>>), (&))
+import Pipeline.Frontend.Workflow (Workflow, registerTask)
 import Pipeline.Core.Task (Task, functionTask)
+import Pipeline.Core.Node (extractLeafs)
 import Pipeline.Core.DataStore (IOStore(..), VariableStore(..), FileStore(..), CSVStore(..))
 
 
@@ -49,7 +52,7 @@ testWorkflow2 = do
   return $ Pipe (readIOTask' >>> replicateTask' >>> zipWithSelf')
          & Pipe (replicateTask' >>> zipWith1To100')
          & Pipe (replicateTask' >>> zipWith100To1')
-  
+
 
 main :: IO ()
 main = do

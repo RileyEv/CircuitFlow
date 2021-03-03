@@ -1,6 +1,7 @@
 
 module Pipeline.Core.Task (
   Task(..),
+  TaskWrap(..),
   functionTask,
 ) where
 
@@ -15,6 +16,12 @@ import Pipeline.Core.DataStore (DataSource(..))
   The main wrapping data type for a function. This makes working with the function type easier. 
 -}
 data Task f a g b = (DataSource f a, DataSource g b, Typeable f, Typeable g, Typeable a, Typeable b) => Task (f a -> g b -> IO (g b)) (g b)
+
+
+-- |Required to store tasks of differing types in a single 'Map'. Uses existential types.
+data TaskWrap = forall f a g b. (
+  DataSource f a, DataSource g b,
+  Typeable f, Typeable a, Typeable g, Typeable b) => TaskWrap (Task f a g b)
 
 {-|
   This allows a function to be converted into a Task. 

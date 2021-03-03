@@ -19,11 +19,17 @@ extra-source-files:  CHANGELOG.md, README.md
 
 library
   exposed-modules:
-      Pipeline.Core.Task
+      Pipeline
     , Pipeline.Core.DataStore
+    , Pipeline.Core.Graph
     , Pipeline.Core.IFunctor
+    , Pipeline.Core.Node
+    , Pipeline.Core.Task
     , Pipeline.Backend.GraphMachine
+    , Pipeline.Frontend.PID
     , Pipeline.Frontend.Pipe
+    , Pipeline.Frontend.Verify
+    , Pipeline.Frontend.Workflow
 
   default-extensions:
       GADTs
