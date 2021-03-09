@@ -14,6 +14,7 @@ import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
 import qualified Data.ByteString.Lazy as B (readFile, writeFile)
 import qualified Data.Vector as V (toList)
 
+
 class Typeable a => DataSource f a where
   -- | Fetch the value stored in the 'DataSource'
   fetch :: f a -> IO a
@@ -21,7 +22,15 @@ class Typeable a => DataSource f a where
   --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
   save :: f a -> a -> IO (f a)
 
+-- data (:&&:) (f :: * -> *) (g :: * -> *) '(a, b) where
+--   (:&&:) :: f a -> g b -> (f :&&: g) (a, b)
+
+-- instance (Typeable a, Typeable b) => DataSource (f :&&: g) (a, b) where
+--   fetch (x, y) = return (fetch x, fetch y)
+--   save (x, y) (x', y') = return (save x x', save y y')
+
 data DataWrap = forall f a. (DataSource f a, Typeable f, Typeable a) => DataWrap (f a)
+
 
 {-|
   A 'VariableStore' is a simple in memory 'DataStore'.
