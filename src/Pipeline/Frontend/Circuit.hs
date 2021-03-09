@@ -1,11 +1,13 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, PolyKinds, DataKinds, InstanceSigs, AllowAmbiguousTypes #-}
+{-# LANGUAGE MultiParamTypeClasses
+           , TypeFamilyDependencies
+           , PolyKinds
+           , DataKinds
+           , AllowAmbiguousTypes #-}
 module Pipeline.Frontend.Circuit where
 
 -- import Pipeline.Core.DataStore (VariableStore(..))
-import Pipeline.Core.Task
+-- import Pipeline.Core.Task
 
-import Prelude hiding (id)
-import Data.Functor.Identity (Identity)
 
 
 data IOList (xs :: [*]) where
@@ -13,26 +15,26 @@ data IOList (xs :: [*]) where
   IONil :: IOList '[]
 
 data HList (xs :: [*]) where
-  HCons :: x -> HList xs -> HList (x' : xs)
+  HCons :: x -> HList xs -> HList (x ': xs)
   HNil :: HList '[]
   
 -- data family HList (l :: [*])
 -- data instance HList '[] = HNil
 -- data instance HList (x ': xs) = x `HCons` HList xs
 
-type family Apply (fs :: [* -> *]) (as :: [*]) where
-  Apply '[f] '[a] = '[f a]
+type family Apply (fs :: [* -> *]) (as :: [*]) = fas | fas -> fs as where
+  Apply '[] '[] = '[]
   Apply (f ': fs) (a ': as) = f a ': Apply fs as
 
 
-class DataSource' (fs :: [* -> *]) (as :: [*]) where
+class (xs ~ Apply fs as) => DataSource' (fs :: [* -> *]) (as :: [*]) (xs :: [*]) where
   -- | Fetch the value stored in the 'DataSource'
   -- fetch :: f a -> IO a
-  fetch' :: (xs ~ Apply fs as) => HList xs -> IOList as
+  fetch' :: HList xs -> IOList as
   -- | Save a value into the 'DataStore'
   --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
   -- save :: f a -> a -> IO (f a)
-  save' :: (xs ~ Apply fs as) => HList xs -> HList as -> IOList xs
+  save' :: HList xs -> HList as -> IOList xs
 
 -- for the user to define.
 class DataSource f a where
@@ -40,11 +42,13 @@ class DataSource f a where
   save :: f a -> a -> IO (f a)
 
 
-instance DataSource f a => DataSource' '[f] '[a] where
+instance (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
   fetch' (HCons x HNil) = IOCons (fetch x) IONil
+  save' = undefined
 
-instance DataSource f a => DataSource' (f ': fs) (a ': as) where
+instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs) (a ': as) (x ': xs) where
   fetch' (HCons x xs) = IOCons (fetch x) (fetch' xs)
+  save' = undefined
 
 
 
