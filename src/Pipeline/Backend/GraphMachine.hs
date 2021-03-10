@@ -48,9 +48,10 @@ processNode _ _ = error "unable to process any other combination of nodes"
 
 
 applyFCast :: forall f g h a b c. (Typeable f, Typeable g, Typeable h, Typeable a, Typeable b, Typeable c) => f a -> Task g b h c -> IO (h c)
-applyFCast d (Task t o) = case (eqT :: Maybe (f :~: g)) of
-  Just Refl -> applyTask d t o
-  Nothing -> error "DataSource types do not match."
+applyFCast = undefined
+-- applyFCast d (Task t o) = case (eqT :: Maybe (f :~: g)) of
+--   Just Refl -> applyTask d t o
+--   Nothing -> error "DataSource types do not match."
 
 applyTask :: (Typeable f, Typeable h, Typeable a, Typeable b, Typeable c) => f a -> (f b -> h c -> IO (h c)) -> h c -> IO (h c)
 applyTask d t o = case gcast d of

@@ -1,7 +1,12 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, DataKinds, PolyKinds, TypeFamilyDependencies #-}
 
 module Pipeline.Core.DataStore (
   DataSource(..),
+  DataSource'(..),
+  IOList(..),
+  HList(..),
+  HAppendListR,
+  Apply,
   DataWrap(..),
   VariableStore(..),
   IOStore(..),
@@ -14,7 +19,7 @@ import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
 import qualified Data.ByteString.Lazy as B (readFile, writeFile)
 import qualified Data.Vector as V (toList)
 
-
+-- DataSource that can be defined for each datastore to be used.
 class Typeable a => DataSource f a where
   -- | Fetch the value stored in the 'DataSource'
   fetch :: f a -> IO a
@@ -22,15 +27,60 @@ class Typeable a => DataSource f a where
   --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
   save :: f a -> a -> IO (f a)
 
--- data (:&&:) (f :: * -> *) (g :: * -> *) '(a, b) where
---   (:&&:) :: f a -> g b -> (f :&&: g) (a, b)
-
--- instance (Typeable a, Typeable b) => DataSource (f :&&: g) (a, b) where
---   fetch (x, y) = return (fetch x, fetch y)
---   save (x, y) (x', y') = return (save x x', save y y')
-
+-- Magic wrapper for a datastore
 data DataWrap = forall f a. (DataSource f a, Typeable f, Typeable a) => DataWrap (f a)
 
+data IOList (xs :: [*]) where
+  IOCons :: IO x -> IOList xs -> IOList (x ': xs)
+  IONil :: IOList '[]
+
+data HList (xs :: [*]) where
+  HCons :: x -> HList xs -> HList (x ': xs)
+  HNil :: HList '[]
+  
+
+type family HAppendListR (l1 :: [k]) (l2 :: [k]) where
+  HAppendListR '[] l = l
+  HAppendListR (e ': l) l' = e ': HAppendListR l l'
+
+
+type family Apply (fs :: [* -> *]) (as :: [*]) = fas | fas -> fs as where
+  Apply '[] '[] = '[]
+  Apply (f ': fs) (a ': as) = f a ': Apply fs as
+
+
+class (xs ~ Apply fs as) => DataSource' (fs :: [* -> *]) (as :: [*]) (xs :: [*]) where
+  -- | Fetch the value stored in the 'DataSource'
+  -- fetch :: f a -> IO a
+  fetch' :: HList xs -> IOList as
+  -- | Save a value into the 'DataStore'
+  --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
+  -- save :: f a -> a -> IO (f a)
+  save' :: HList xs -> HList as -> IOList xs
+
+-- -- for the user to define.
+-- class DataSource f a where
+--   fetch :: f a -> IO a
+--   save :: f a -> a -> IO (f a)
+
+
+instance {-# OVERLAPPING #-} (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
+  fetch' (HCons x HNil) = IOCons (fetch x) IONil
+  save' = undefined
+
+instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs) (a ': as) (x ': xs) where
+  fetch' (HCons x xs) = IOCons (fetch x) (fetch' xs)
+  save' = undefined
+
+
+
+
+
+
+
+
+
+-- Pre-defined data stores
 
 {-|
   A 'VariableStore' is a simple in memory 'DataStore'.
