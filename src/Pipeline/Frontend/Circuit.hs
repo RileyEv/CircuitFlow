@@ -5,8 +5,45 @@
            , AllowAmbiguousTypes #-}
 module Pipeline.Frontend.Circuit where
 
--- import Pipeline.Core.DataStore (VariableStore(..))
+import Pipeline.Core.DataStore
 -- import Pipeline.Core.Task
+import Data.Typeable (Typeable)
+import Prelude hiding (id, replicate)
+
+{-|
+  The main wrapping data type for a function. This makes working with the function type easier. 
+-}
+data Task fs as g b = (
+  DataSource' fs as (Apply fs as),
+  DataSource g b,
+  Typeable fs, Typeable g,
+  Typeable as, Typeable b)
+  => Task (HList (Apply fs as) -> g b -> IO (g b)) (g b)
+
+
+-- |Required to store tasks of differing types in a single 'Map'. Uses existential types.
+-- data TaskWrap = forall f a g b. (
+--   DataSource f a, DataSource g b,
+--   Typeable f, Typeable a, Typeable g, Typeable b) => TaskWrap (Task f a g b)
+
+{-|
+  This allows a function to be converted into a Task. 
+-}
+multiInputFunctionTask :: (DataSource' fs as (Apply fs as), DataSource g b, Typeable as, Typeable b, Typeable fs, Typeable g) => (HList as -> b) -> g b -> Task fs as g b 
+multiInputFunctionTask f = Task (\sources sink -> do
+  input <- (hSequence . fetch') sources
+  save sink (f input))
+
+functionTask :: (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b) => (a -> b) -> g b -> Task '[f] '[a] g b
+-- It is okay to pattern match the hlist to just one value, as the type states that it only consumes one element.
+functionTask f = multiInputFunctionTask (\(HCons inp HNil) -> f inp)
+
+hSequence :: IOList as -> IO (HList as)
+hSequence IONil = return HNil
+hSequence (IOCons x xs) = do
+  x' <- x
+  xs' <- hSequence xs
+  return $ x' `HCons` xs'
 
 
 
@@ -18,9 +55,11 @@ data HList (xs :: [*]) where
   HCons :: x -> HList xs -> HList (x ': xs)
   HNil :: HList '[]
   
--- data family HList (l :: [*])
--- data instance HList '[] = HNil
--- data instance HList (x ': xs) = x `HCons` HList xs
+
+type family HAppendListR (l1 :: [k]) (l2 :: [k]) where
+  HAppendListR '[] l = l
+  HAppendListR (e ': l) l' = e ': HAppendListR l l'
+
 
 type family Apply (fs :: [* -> *]) (as :: [*]) = fas | fas -> fs as where
   Apply '[] '[] = '[]
@@ -36,13 +75,13 @@ class (xs ~ Apply fs as) => DataSource' (fs :: [* -> *]) (as :: [*]) (xs :: [*])
   -- save :: f a -> a -> IO (f a)
   save' :: HList xs -> HList as -> IOList xs
 
--- for the user to define.
-class DataSource f a where
-  fetch :: f a -> IO a
-  save :: f a -> a -> IO (f a)
+-- -- for the user to define.
+-- class DataSource f a where
+--   fetch :: f a -> IO a
+--   save :: f a -> a -> IO (f a)
 
 
-instance (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
+instance {-# OVERLAPPING #-} (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
   fetch' (HCons x HNil) = IOCons (fetch x) IONil
   save' = undefined
 
@@ -52,21 +91,133 @@ instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs
 
 
 
+data Circuit i o where
+  Id        :: (DataSource' '[f] '[a] '[f a]) => Circuit (Apply '[f] '[a]) (Apply '[f] '[a])
+  Apply     :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b] ) => Task fs as g b -> Circuit (Apply fs as) (Apply '[g] '[b])
+  Replicate :: (DataSource' '[f] '[a] '[f a]) => Circuit (Apply '[f] '[a]) (Apply '[f, f] '[a, a])
+  Then      :: (DataSource' fs as (Apply fs as), DataSource' gs bs (Apply gs bs), DataSource' hs cs (Apply hs cs))
+    => Circuit (Apply fs as) (Apply gs bs)
+    -> Circuit (Apply gs bs) (Apply hs cs)
+    -> Circuit (Apply fs as) (Apply hs cs)
+  Beside    :: (DataSource' fs as (Apply fs as), DataSource' gs bs (Apply gs bs), DataSource' hs cs (Apply hs cs), DataSource' is ds (Apply is ds))
+    => Circuit (Apply fs as) (Apply gs bs)
+    -> Circuit (Apply hs cs) (Apply is ds)
+    -> Circuit (Apply (HAppendListR fs hs) (HAppendListR as cs)) (Apply (HAppendListR gs is) (HAppendListR bs ds))
+  Swap      :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Circuit (Apply '[f, g] '[a, b]) (Apply '[g, f] '[b, a])
+  DropL     :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Circuit (Apply '[f, g] '[a, b]) (Apply '[g] '[b])
+  DropR     :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Circuit (Apply '[f, g] '[a, b]) (Apply '[f] '[a])
+  
 
--- instance DataStore '[f] '[a] where
+
+-- Smart Constructors
+
+id        :: (DataSource' '[f] '[a] '[f a]) => Circuit (Apply '[f] '[a]) (Apply '[f] '[a])
+apply     :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b] ) => Task fs as g b -> Circuit (Apply fs as) (Apply '[g] '[b])
+replicate :: (DataSource' '[f] '[a] '[f a]) => Circuit (Apply '[f] '[a]) (Apply '[f, f] '[a, a])
+(<->)     :: (DataSource' fs as (Apply fs as), DataSource' gs bs (Apply gs bs), DataSource' hs cs (Apply hs cs))
+             => Circuit (Apply fs as) (Apply gs bs)
+             -> Circuit (Apply gs bs) (Apply hs cs)
+             -> Circuit (Apply fs as) (Apply hs cs)
+(<|>)     :: (DataSource' fs as (Apply fs as), DataSource' gs bs (Apply gs bs), DataSource' hs cs (Apply hs cs), DataSource' is ds (Apply is ds))
+             => Circuit (Apply fs as) (Apply gs bs)
+             -> Circuit (Apply hs cs) (Apply is ds)
+             -> Circuit (Apply (HAppendListR fs hs) (HAppendListR as cs)) (Apply (HAppendListR gs is) (HAppendListR bs ds))
+swap      :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Circuit (Apply '[f, g] '[a, b]) (Apply '[g, f] '[b, a])
+dropL     :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Circuit (Apply '[f, g] '[a, b]) (Apply '[g] '[b])
+dropR     :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Circuit (Apply '[f, g] '[a, b]) (Apply '[f] '[a])
+id        = Id
+apply     = Apply
+replicate = Replicate
+(<->)     = Then
+(<|>)     = Beside
+swap      = Swap
+dropL     = DropL
+dropR     = DropR
+
+infixr 4 <->
+infixr 5 <|>
+  
+
+
+-- This stuff is what I want
+
+
+plus1Task :: Task '[VariableStore] '[Int] VariableStore Int
+plus1Task = functionTask (+1) Empty
+
+showTask :: Task '[VariableStore] '[Int] VariableStore String
+showTask = functionTask show Empty
+
+appendTask :: Task '[VariableStore, VariableStore] '[String, String] VariableStore String
+appendTask = multiInputFunctionTask (\(HCons x (HCons y HNil)) -> x ++ y ) Empty
+
+
+-- Example1
+--   a  
+--   |  
+--  +1  
+--  show
+--   |  
+--   b
+example1 :: Circuit '[VariableStore Int] '[VariableStore String]
+-- example = Then (Then Id (Apply plus1Task)) (Apply showTask)
+example1 = id
+          <->
+          apply plus1Task
+          <->
+          apply showTask
+
+
+-- Example 2
+--     a
+--    / \
+--   +1 show
+--    \ /
+--     /
+--    / \
+--    | |
+--    b c
+example2 :: Circuit '[VariableStore Int] '[VariableStore String, VariableStore Int]
+-- example2 = Then (Then Replicate (Beside (Apply plus1Task) (Apply showTask))) Swap
+example2 = replicate
+           <->
+           apply plus1Task <|> apply showTask
+           <->
+           swap
+
+-- Example 3
+--   a      b
+--   |     / \
+--  +1    +1 show
+--  show   \ /
+--   |      /
+--   |     / \
+--   |    /  |
+--   |   /   |
+--   |  /    |
+--   \ /     | 
+--    /      |
+--   / \     |
+--   \ /     |
+--   ++      |
+--    |      |
+--    c      d
+example3 :: Circuit '[VariableStore Int, VariableStore Int] '[VariableStore String, VariableStore Int]
+example3 = example1         <|> example2
+           -- VariableStore String (1), VariableStore String (2), VariableStore Int
+           <-> 
+           swap             <|> id
+           -- VariableStore String (2), VariableStore String (1), VariableStore Int
+           <->
+           apply appendTask <|> id
+           -- VariableStore String (2 ++ 1), VariableStore Int
+
+
+           
 
 
 
 
--- data Circuit i o where
---   ID     :: DataSource f a => Circuit (f a) (f a)
---   Apply  :: (DataSource f a, DataSource g b) => Task f a g b -> Circuit (f a) (g b)
---   Branch :: DataSource f a => Circuit (f a) (f a, f a)
---   Then   :: (DataSource f a, DataSource g b, DataSource h c) => Circuit (f a) (g b) -> Circuit (g b) (h c) -> Circuit (f a) (h c)
---   Beside :: (DataSource f a, DataSource g b, DataSource h c, DataSource i d) => Circuit (f a) (g b) -> Circuit (h c) (i d) -> Circuit (f a, h c) (g b, i d)
---   Swap   :: (DataSource f a, DataSource g b) => Circuit (f a, g b)  (g b, f a)
---   DropL  :: (DataSource f a, DataSource g b) => Circuit (f a, g b) (g b)
---   DropR  :: (DataSource f a, DataSource g b) => Circuit (f a, g b) (f a)
 
 -- id :: DataSource f a => Circuit (f a) (f a)
 -- id = ID
@@ -92,11 +243,9 @@ instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs
 -- swap = Swap
 
 
--- plus1Task :: Task VariableStore Int VariableStore Int
--- plus1Task = functionTask (+1) Empty
 
--- showTask :: Task VariableStore Int VariableStore String
--- showTask = functionTask (show) Empty
+
+
 
 -- example :: Circuit (VariableStore Int) (VariableStore String, VariableStore Int)
 -- example = branch
@@ -107,17 +256,12 @@ instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs
 --           <..>
 --           swap
 
+-- data VariableStore a = Var a | VEmpty
 
-
-
-
-
-data VariableStore a = Var a | VEmpty
-
--- instance DataSource VariableStore a () where
---   fetch (Var x) = return (x, ())
---   fetch Empty   = error "empty source"
---   save _ (x, _) = return (Var x)
+-- instance DataSource VariableStore a where
+--   fetch (Var x) = return x
+--   fetch VEmpty   = error "empty source"
+--   save _ x = return (Var x)
 
 -- instance DataSource (f :&&: g) a b where
 --   fetch (x :&&: y) = do
