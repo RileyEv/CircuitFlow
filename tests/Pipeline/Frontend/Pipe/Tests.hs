@@ -71,7 +71,7 @@ nextPIDTests = testGroup "nextPID should"
 
 extractLeafsTests :: TestTree
 extractLeafsTests = testGroup "extractLeafs should"
-  [ testCase "return " $ do return ()]
+  [ testCase "return " $ return ()]
 
 
 verifyTreeTests :: TestTree
