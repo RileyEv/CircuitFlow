@@ -17,24 +17,22 @@ import Pipeline.Core.DataStore (DataSource(..), DataSource'(..), Apply, HList(..
 data Task fs as g b = (
   DataSource' fs as (Apply fs as),
   DataSource g b,
+  Typeable (Apply fs as),
   Typeable fs, Typeable g,
   Typeable as, Typeable b)
   => Task (HList (Apply fs as) -> g b -> IO (g b)) (g b)
 
--- -- |Required to store tasks of differing types in a single 'Map'. Uses existential types.
+-- |Required to store tasks of differing types in a single 'Map'. Uses existential types.
 data TaskWrap = forall fs as g b. (
   DataSource' fs as (Apply fs as), DataSource g b,
+  Typeable (Apply fs as),
   Typeable fs, Typeable as, Typeable g, Typeable b) => TaskWrap (Task fs as g b)
 
--- |Required to store tasks of differing types in a single 'Map'. Uses existential types.
--- data TaskWrap = forall f a g b. (
---   DataSource f a, DataSource g b,
---   Typeable f, Typeable a, Typeable g, Typeable b) => TaskWrap (Task f a g b)
 
 {-|
   This allows a function to be converted into a Task. 
 -}
-multiInputFunctionTask :: (DataSource' fs as (Apply fs as), DataSource g b, Typeable as, Typeable b, Typeable fs, Typeable g) => (HList as -> b) -> g b -> Task fs as g b 
+multiInputFunctionTask :: (DataSource' fs as (Apply fs as), DataSource g b, Typeable as, Typeable b, Typeable fs, Typeable g, Typeable (Apply fs as)) => (HList as -> b) -> g b -> Task fs as g b 
 multiInputFunctionTask f = Task (\sources sink -> do
   input <- (hSequence . fetch') sources
   save sink (f input))

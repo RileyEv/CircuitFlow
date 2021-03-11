@@ -28,7 +28,7 @@ class Typeable a => DataSource f a where
   save :: f a -> a -> IO (f a)
 
 -- Magic wrapper for a datastore
-data DataWrap = forall f a. (DataSource f a, Typeable f, Typeable a) => DataWrap (f a)
+data DataWrap = forall fs as. (DataSource' fs as (Apply fs as), Typeable fs, Typeable as, Typeable (Apply fs as)) => DataWrap (HList (Apply fs as))
 
 data IOList (xs :: [*]) where
   IOCons :: IO x -> IOList xs -> IOList (x ': xs)
@@ -66,11 +66,11 @@ class (xs ~ Apply fs as) => DataSource' (fs :: [* -> *]) (as :: [*]) (xs :: [*])
 
 instance {-# OVERLAPPING #-} (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
   fetch' (HCons x HNil) = IOCons (fetch x) IONil
-  save' = undefined
+  save' (HCons ref HNil) (HCons x HNil) = IOCons (save ref x) IONil
 
 instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs) (a ': as) (x ': xs) where
   fetch' (HCons x xs) = IOCons (fetch x) (fetch' xs)
-  save' = undefined
+  save' (HCons ref rs) (HCons x xs) = IOCons (save ref x) (save' rs xs) 
 
 
 

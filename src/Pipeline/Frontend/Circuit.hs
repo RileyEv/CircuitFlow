@@ -1,8 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses
-           , TypeFamilyDependencies
-           , PolyKinds
-           , DataKinds
-           , AllowAmbiguousTypes #-}
 module Pipeline.Frontend.Circuit where
 
 import Pipeline.Core.DataStore
@@ -133,3 +128,13 @@ example3 = example1         <> example2
            <->
            apply appendTask <> id
            -- VariableStore String (2 ++ 1), VariableStore Int
+
+
+-- a few rules to note...
+-- replicate <-> dropL = id
+-- replicate <-> dropR = id
+-- replicate <-> apply f <> apply g <-> swap = replicate <-> apply g <> apply f
+-- x <> y <-> swap <-> apply f = x <> y <-> apply (flip f)
+
+-- There are probably more I will notice when using this.
+-- I think example3 could be reduced so there are no swaps. Don't thing swap can be completely eliminated.
