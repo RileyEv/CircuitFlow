@@ -26,10 +26,7 @@ library
     , Pipeline.Core.Node
     , Pipeline.Core.Task
     , Pipeline.Backend.GraphMachine
-    , Pipeline.Frontend.PID
-    , Pipeline.Frontend.Pipe
-    , Pipeline.Frontend.Verify
-    , Pipeline.Frontend.Workflow
+    , Pipeline.Frontend.Circuit
 
   default-extensions:
       GADTs
@@ -38,6 +35,7 @@ library
     , KindSignatures
     , RankNTypes
     , TypeOperators
+    , DataKinds
 
   build-depends:
       base >=4.13 && <4.14
