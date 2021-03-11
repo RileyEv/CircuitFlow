@@ -49,6 +49,9 @@ swap      = Swap
 dropL     = DropL
 dropR     = DropR
 
+-- TODO
+split n   = undefined
+
 infixr 4 <->
 infixr 5 <>
   
