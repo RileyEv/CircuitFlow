@@ -23,6 +23,7 @@ library
     , Pipeline.Core.DataStore
     , Pipeline.Core.Graph
     , Pipeline.Core.IFunctor
+    , Pipeline.Core.Modular
     , Pipeline.Core.Node
     , Pipeline.Core.Task
     , Pipeline.Backend.GraphMachine

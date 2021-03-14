@@ -49,7 +49,6 @@ appendTask = multiInputFunctionTask (\(HCons x (HCons y HNil)) -> x ++ y ) Empty
 --   |  
 --   b
 example1 :: Circuit '[VariableStore Int] '[VariableStore String]
--- example = Then (Then Id (Apply plus1Task)) (Apply showTask)
 example1 = id
           <->
           apply plus1Task
@@ -67,7 +66,6 @@ example1 = id
 --    | |
 --    b c
 example2 :: Circuit '[VariableStore Int] '[VariableStore String, VariableStore Int]
--- example2 = Then (Then Replicate (Beside (Apply plus1Task) (Apply showTask))) Swap
 example2 = replicate
            <->
            apply plus1Task <> apply showTask
