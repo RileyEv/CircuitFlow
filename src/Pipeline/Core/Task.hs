@@ -3,7 +3,9 @@ module Pipeline.Core.Task (
   Task(..),
   TaskWrap(..),
   functionTask,
+  functionTaskF,
   multiInputFunctionTask,
+  multiInputFunctionTaskF,
 ) where
 
 import Data.Typeable (Typeable)
@@ -21,6 +23,18 @@ data Task fs as g b = (
   Typeable fs, Typeable g,
   Typeable as, Typeable b)
   => Task (HList (Apply fs as) -> g b -> IO (g b)) (g b)
+
+
+
+data TaskF iF fas gb = forall fs as g b. (
+  fas ~ Apply fs as,
+  gb ~ Apply '[g] '[b],
+  DataSource' fs as (Apply fs as),
+  DataSource g b,
+  Typeable (Apply fs as),
+  Typeable fs, Typeable g,
+  Typeable as, Typeable b)
+  => TaskF (HList (Apply fs as) -> g b -> IO (g b)) (g b)
 
 -- |Required to store tasks of differing types in a single 'Map'. Uses existential types.
 data TaskWrap = forall fs as g b. (
@@ -40,6 +54,19 @@ multiInputFunctionTask f = Task (\sources sink -> do
 functionTask :: (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b) => (a -> b) -> g b -> Task '[f] '[a] g b
 -- It is okay to pattern match the hlist to just one value, as the type states that it only consumes one element.
 functionTask f = multiInputFunctionTask (\(HCons inp HNil) -> f inp)
+
+multiInputFunctionTaskF :: (DataSource' fs as (Apply fs as),
+                            DataSource g b,
+                            Typeable as, Typeable b,
+                            Typeable fs, Typeable g,
+                            Typeable (Apply fs as)) => (HList as -> b) -> g b -> TaskF iF (Apply fs as) '[g b] 
+multiInputFunctionTaskF f = TaskF (\sources sink -> do
+  input <- (hSequence . fetch') sources
+  save sink (f input))
+  
+functionTaskF :: (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b) => (a -> b) -> g b -> TaskF iF '[f a] '[g b]
+-- It is okay to pattern match the hlist to just one value, as the type states that it only consumes one element.
+functionTaskF f = multiInputFunctionTaskF (\(HCons inp HNil) -> f inp)
 
 hSequence :: IOList as -> IO (HList as)
 hSequence IONil = return HNil

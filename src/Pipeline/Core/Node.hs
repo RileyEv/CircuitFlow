@@ -10,7 +10,6 @@ import Pipeline.Core.IFunctor (IFix(..), icata)
 -}
 data Node = TaskNode    TaskWrap
           | DataNode    DataWrap
-          -- | PointerNode Pointer
 
 -- |Used to extract leafs in a tree after the execution of the pipeline is complete.
 extractLeafs :: (IFix TreeF) Node -> [Node]
