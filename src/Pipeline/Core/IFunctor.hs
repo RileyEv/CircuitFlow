@@ -6,7 +6,7 @@ class IFunctor iF where
   imap :: (forall a. f a -> g a) -> iF f a -> iF g a
 
 class IFunctor2 iF where
-  imap2 :: (forall a. f a b -> g a b) -> iF f a b -> iF g a b
+  imap2 :: (forall a b. f a b -> g a b) -> iF f a b -> iF g a b
   
 class IFunctor4 iF where
   imap4 :: (forall a b c d. f a b c d -> g a b c d) -> iF f a b c d -> iF g a b c d
@@ -30,4 +30,5 @@ newtype C4 a i j k l = C4 {unConst4 :: a}
 
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata alg (In x) = alg (fmap (cata alg) x)
+
 
