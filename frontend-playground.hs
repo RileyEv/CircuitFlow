@@ -2,40 +2,42 @@ module Main where
 
 import Pipeline.Frontend.Circuit
 
-import Pipeline.Core.Task (Task, functionTask, multiInputFunctionTask)
+import Pipeline.Core.Task (TaskF, functionTaskF, multiInputFunctionTaskF)
 import Pipeline.Core.DataStore (IOStore(..), VariableStore(..), FileStore(..), CSVStore(..), HList(..))
+import Pipeline.Core.Modular ((:<:)(..))
+import Pipeline.Core.IFunctor (IFix2) 
 
 import Prelude hiding (id, replicate, (<>))
 
 
-readIOTask :: Task '[IOStore] '[String] VariableStore Int
-readIOTask = functionTask (read :: String -> Int) Empty
+readIOTask :: (TaskF :<: iF) => IFix2 iF '[IOStore String] '[VariableStore Int]
+readIOTask = functionTaskF (read :: String -> Int) Empty
 
-showFileTask :: FilePath -> Task '[VariableStore] '[Int] FileStore String
-showFileTask f = functionTask (show :: Int -> String) (FileStore f)
+showFileTask :: (TaskF :<: iF) => FilePath -> IFix2 iF '[VariableStore Int] '[FileStore String]
+showFileTask f = functionTaskF (show :: Int -> String) (FileStore f)
 
 -- replicateTask :: Task '[VariableStore] '[Int] VariableStore [Int]
 -- replicateTask = functionTask (replicate 100) Empty
 
-zipWithSelf :: FilePath -> Task '[VariableStore] '[[Int]] CSVStore [(Int, Int)]
-zipWithSelf f = functionTask (\xs -> zip xs xs) (CSVStore f)
+zipWithSelf :: (TaskF :<: iF) => FilePath -> IFix2 iF '[VariableStore [Int]] '[CSVStore [(Int, Int)]]
+zipWithSelf f = functionTaskF (\xs -> zip xs xs) (CSVStore f)
 
-zipWith1To100 :: FilePath -> Task '[VariableStore] '[[Int]] CSVStore [(Int, Int)]
-zipWith1To100 f = functionTask (zip [1..100]) (CSVStore f)
+zipWith1To100 :: (TaskF :<: iF) => FilePath -> IFix2 iF '[VariableStore [Int]] '[CSVStore [(Int, Int)]]
+zipWith1To100 f = functionTaskF (zip [1..100]) (CSVStore f)
 
-zipWith100To1 :: FilePath -> Task '[VariableStore] '[[Int]] CSVStore [(Int, Int)]
-zipWith100To1 f = functionTask (zip [100, 99..1]) (CSVStore f)
+zipWith100To1 :: (TaskF :<: iF) => FilePath -> IFix2 iF '[VariableStore [Int]] '[CSVStore [(Int, Int)]]
+zipWith100To1 f = functionTaskF (zip [100, 99..1]) (CSVStore f)
 
 
 -- Some example tasks
-plus1Task :: Task '[VariableStore] '[Int] VariableStore Int
-plus1Task = functionTask (+1) Empty
+plus1Task :: (TaskF :<: iF) => IFix2 iF '[VariableStore Int] '[VariableStore Int]
+plus1Task = functionTaskF (+1) Empty
 
-showTask :: Task '[VariableStore] '[Int] VariableStore String
-showTask = functionTask show Empty
+showTask :: (TaskF :<: iF) => IFix2 iF '[VariableStore Int] '[VariableStore String]
+showTask = functionTaskF show Empty
 
-appendTask :: Task '[VariableStore, VariableStore] '[String, String] VariableStore String
-appendTask = multiInputFunctionTask (\(HCons x (HCons y HNil)) -> x ++ y ) Empty
+appendTask :: (TaskF :<: iF) => IFix2 iF '[VariableStore String, VariableStore String] '[VariableStore String]
+appendTask = multiInputFunctionTaskF (\(HCons x (HCons y HNil)) -> x ++ y ) Empty
 
 
 -- Example Circuits
@@ -51,9 +53,9 @@ appendTask = multiInputFunctionTask (\(HCons x (HCons y HNil)) -> x ++ y ) Empty
 example1 :: Circuit '[VariableStore Int] '[VariableStore String]
 example1 = id
           <->
-          apply plus1Task
+          plus1Task
           <->
-          apply showTask
+          showTask
 
 
 -- Example 2
@@ -68,7 +70,7 @@ example1 = id
 example2 :: Circuit '[VariableStore Int] '[VariableStore String, VariableStore Int]
 example2 = replicate
            <->
-           apply plus1Task <> apply showTask
+           plus1Task <> showTask
            <->
            swap
 
@@ -90,13 +92,13 @@ example2 = replicate
 --    |      |
 --    c      d
 example3 :: Circuit '[VariableStore Int, VariableStore Int] '[VariableStore String, VariableStore Int]
-example3 = example1         <> example2
+example3 = example1   <> example2
            -- VariableStore String (1), VariableStore String (2), VariableStore Int
            <-> 
-           swap             <> id
+           swap       <> id
            -- VariableStore String (2), VariableStore String (1), VariableStore Int
            <->
-           apply appendTask <> id
+           appendTask <> id
            -- VariableStore String (2 ++ 1), VariableStore Int
 
 

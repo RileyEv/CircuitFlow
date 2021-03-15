@@ -49,8 +49,8 @@ import Prelude hiding (id, replicate, (<>))
 data Id (f :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
   Id :: (DataSource' '[inputContainer] '[inputValue] '[inputContainer inputValue]) => Id f '[inputContainer inputValue] '[inputContainer inputVlue]
 
-data Do (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
-  Do :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b] ) => Task fs as g b -> Do iF (Apply fs as) (Apply '[g] '[b])
+-- data Do (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
+--   Do :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b] ) => Task fs as g b -> Do iF (Apply fs as) (Apply '[g] '[b])
   
 data Replicate (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
   Replicate :: (DataSource' '[f] '[a] '[f a]) => Replicate iF (Apply '[f] '[a]) (Apply '[f, f] '[a, a])
@@ -81,8 +81,8 @@ data DropR (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
 instance IFunctor2 Id where
   imap2 _ Id = Id
 
-instance IFunctor2 Do where
-  imap2 _ (Do t) = Do t
+-- instance IFunctor2 Do where
+--   imap2 _ (Do t) = Do t
 
 instance IFunctor2 Replicate where
   imap2 _ Replicate = Replicate
@@ -103,7 +103,7 @@ instance IFunctor2 DropR where
   imap2 _ DropR = DropR
 
 
-type CircuitF = Id :+: Do :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR
+type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: TaskF
 
 type Circuit = IFix2 CircuitF
 
@@ -114,8 +114,8 @@ type Circuit = IFix2 CircuitF
 id :: (DataSource' '[f] '[a] '[f a], Id :<: iF) => IFix2 iF (Apply '[f] '[a]) (Apply '[f] '[a])
 id = (IIn2 . inj) Id
 
-apply :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b], Do :<: iF) => Task fs as g b -> IFix2 iF (Apply fs as) (Apply '[g] '[b])
-apply = IIn2 . inj . Do
+-- apply :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b], Do :<: iF) => Task fs as g b -> IFix2 iF (Apply fs as) (Apply '[g] '[b])
+-- apply = IIn2 . inj . Do
 
 replicate :: (DataSource' '[f] '[a] '[f a], Replicate :<: iF) => IFix2 iF (Apply '[f] '[a]) (Apply '[f, f] '[a, a])
 replicate = (IIn2 . inj) Replicate

@@ -58,11 +58,6 @@ class (xs ~ Apply fs as) => DataSource' (fs :: [* -> *]) (as :: [*]) (xs :: [*])
   -- save :: f a -> a -> IO (f a)
   save' :: HList xs -> HList as -> IOList xs
 
--- -- for the user to define.
--- class DataSource f a where
---   fetch :: f a -> IO a
---   save :: f a -> a -> IO (f a)
-
 
 instance {-# OVERLAPPING #-} (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
   fetch' (HCons x HNil) = IOCons (fetch x) IONil

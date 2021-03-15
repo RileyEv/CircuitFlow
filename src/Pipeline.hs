@@ -3,8 +3,7 @@ module Pipeline where
 import Pipeline.Core.DataStore (DataSource)
 import Pipeline.Core.IFunctor (IFix)
 import Pipeline.Core.Graph (TreeF)
-import Pipeline.Core.Node (Node)
-import Pipeline.Backend.GraphMachine (processTree)
+-- import Pipeline.Backend.GraphMachine (processTree)
 
 import Data.Typeable (Typeable)
 
