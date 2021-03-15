@@ -6,18 +6,19 @@ module Pipeline.Core.Graph (
   TreeAlg
 ) where
 
-import Pipeline.Core.IFunctor (IFunctor(..), IFix(..))
-import Pipeline.Core.Task (Task)
+import Pipeline.Core.IFunctor (IFunctor(..), IFix(..), IFix2(..))
+import Pipeline.Core.Task (TaskF)
 import Pipeline.Core.DataStore (Apply, DataSource', HAppendListR, HList)
 
 -- |Structure used to represent a pipeline
 data TreeF f a = TreeF a [f a] deriving Show
 
 data TaskTreeF f i o where
-  TBranchF :: Task fs as g b
+  TBranchF :: (fas ~ Apply fs as)
+          => IFix2 TaskF fas '[g b]
           -> FList f '[g b] hcs
           -> TaskTreeF f (Apply fs as) hcs
-  TLeafF :: (is ~ Apply fs as, DataSource' fs as is, DataSource' '[g] '[b] '[g b]) => Task fs as g b -> TaskTreeF f is (Apply '[g] '[b])
+  TLeafF :: (fas ~ Apply fs as, DataSource' fs as fas, DataSource' '[g] '[b] '[g b]) => IFix2 TaskF fas '[g b] -> TaskTreeF f fas '[g b]
 
 
 data DataTreeF f i o where
