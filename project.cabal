@@ -22,11 +22,14 @@ library
       Pipeline
     , Pipeline.Core.DataStore
     , Pipeline.Core.Graph
+    , Pipeline.Core.HList
     , Pipeline.Core.IFunctor
     , Pipeline.Core.Modular
+    , Pipeline.Core.PID
     , Pipeline.Core.Task
-    , Pipeline.Backend.GraphMachine
+    , Pipeline.Backend.ProcessNetwork
     , Pipeline.Frontend.Circuit
+    , Pipeline.Frontend.PIDTransformation
 
   default-extensions:
       GADTs

@@ -103,10 +103,11 @@ instance IFunctor2 DropR where
   imap2 _ DropR = DropR
 
 
-type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: TaskF
+type CircuitF v = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: v
 
-type Circuit = IFix2 CircuitF
+type Circuit' v = IFix2 (CircuitF v)
 
+type Circuit = Circuit' TaskF
 
 -- Smart Constructors
 -- They are able to make use of the `inj` function to add in the L's and R's

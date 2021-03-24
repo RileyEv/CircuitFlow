@@ -14,6 +14,8 @@ module Pipeline.Core.DataStore (
   CSVStore(..)
 ) where
 
+import Pipeline.Core.HList (HList(..))
+
 import Data.Typeable (Typeable)
 import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
 import qualified Data.ByteString.Lazy as B (readFile, writeFile)
@@ -33,10 +35,6 @@ data DataWrap = forall fs as. (DataSource' fs as (Apply fs as), Typeable fs, Typ
 data IOList (xs :: [*]) where
   IOCons :: IO x -> IOList xs -> IOList (x ': xs)
   IONil :: IOList '[]
-
-data HList (xs :: [*]) where
-  HCons :: x -> HList xs -> HList (x ': xs)
-  HNil :: HList '[]
   
 
 type family HAppendListR (l1 :: [k]) (l2 :: [k]) where
