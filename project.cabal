@@ -28,6 +28,7 @@ library
     , Pipeline.Core.PID
     , Pipeline.Core.Task
     , Pipeline.Backend.ProcessNetwork
+    , Pipeline.Backend.Translation
     , Pipeline.Frontend.Circuit
     , Pipeline.Frontend.PIDTransformation
 
@@ -39,6 +40,9 @@ library
     , RankNTypes
     , TypeOperators
     , DataKinds
+    , PolyKinds
+    , TypeFamilies
+    , MultiParamTypeClasses
 
   build-depends:
       base >=4.13 && <4.14

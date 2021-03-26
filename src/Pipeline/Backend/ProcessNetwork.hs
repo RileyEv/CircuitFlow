@@ -1,9 +1,11 @@
 module Pipeline.Backend.ProcessNetwork (
-    Network
+    Network(..)
+  , PipeList(..)
   , startNetwork
   , stopNetwork
   , input
   , output
+  , taskExecuter
 ) where
 
 import Pipeline.Core.HList (HList (..))
@@ -27,7 +29,7 @@ data PipeList (xs :: [*]) where
 
 
 -- | Stores details about the network.
-data Network inputs outputs where
+data Network (inputs :: [*]) (outputs :: [*]) where
   Network :: { threads :: [ThreadId], inputs :: PipeList inputs, outputs :: PipeList outputs } -> Network inputs outputs
 
 

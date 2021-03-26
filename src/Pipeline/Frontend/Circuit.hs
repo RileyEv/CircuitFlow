@@ -5,6 +5,7 @@ import Pipeline.Core.DataStore
 import Pipeline.Core.Task
 import Pipeline.Core.Modular ((:+:)(..), (:<:)(..))
 import Pipeline.Core.IFunctor (IFix2(..), IFunctor2(..))
+import Pipeline.Core.Nat (Take, Drop, Length)
 import Prelude hiding (id, replicate, (<>))
 
 
@@ -46,8 +47,8 @@ import Prelude hiding (id, replicate, (<>))
 
 
 -- Fixed modular version
-data Id (f :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
-  Id :: (DataSource' '[inputContainer] '[inputValue] '[inputContainer inputValue]) => Id f '[inputContainer inputValue] '[inputContainer inputVlue]
+data Id (f :: [*] -> [*] -> *) (inputs :: [*]) (outputs :: [*]) where
+  Id :: (DataSource' '[inputContainer] '[inputValue] '[inputContainer inputValue]) => Id f '[inputContainer inputValue] '[inputContainer inputValue]
 
 -- data Do (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
 --   Do :: (DataSource' fs as (Apply fs as), DataSource' '[g] '[b] '[g b] ) => Task fs as g b -> Do iF (Apply fs as) (Apply '[g] '[b])
@@ -62,7 +63,10 @@ data Then (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
     -> Then iF (Apply fs as) (Apply hs cs)
 
 data Beside (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
-  Beside :: (DataSource' fs as (Apply fs as), DataSource' gs bs (Apply gs bs), DataSource' hs cs (Apply hs cs), DataSource' is ds (Apply is ds))
+  Beside :: (DataSource' fs as (Apply fs as),
+             DataSource' gs bs (Apply gs bs),
+             DataSource' hs cs (Apply hs cs),
+             DataSource' is ds (Apply is ds))
     => iF (Apply fs as) (Apply gs bs)
     -> iF (Apply hs cs) (Apply is ds)
     -> Beside iF (Apply (HAppendListR fs hs) (HAppendListR as cs)) (Apply (HAppendListR gs is) (HAppendListR bs ds))
@@ -128,7 +132,11 @@ replicate = (IIn2 . inj) Replicate
 (<->) l r = IIn2 (inj (Then l r))
 infixr 4 <->
   
-(<>) :: (DataSource' fs as (Apply fs as), DataSource' gs bs (Apply gs bs), DataSource' hs cs (Apply hs cs), DataSource' is ds (Apply is ds), Beside :<: iF)
+(<>) :: (DataSource' fs as (Apply fs as),
+         DataSource' gs bs (Apply gs bs),
+         DataSource' hs cs (Apply hs cs),
+         DataSource' is ds (Apply is ds),
+         Beside :<: iF)
        => IFix2 iF (Apply fs as) (Apply gs bs)
        -> IFix2 iF (Apply hs cs) (Apply is ds)
        -> IFix2 iF (Apply (HAppendListR fs hs) (HAppendListR as cs)) (Apply (HAppendListR gs is) (HAppendListR bs ds))
