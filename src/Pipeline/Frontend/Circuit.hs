@@ -144,8 +144,12 @@ dropL = (IIn2 . inj) DropL
 dropR :: (DataSource' '[f, g] '[a, b] '[f a, g b], DropR :<: iF) => IFix2 iF (Apply '[f, g] '[a, b]) (Apply '[f] '[a])
 dropR = (IIn2 . inj) DropR
 
+
+
+
 -- TODO
-split n   = undefined
+-- replicate' :: (Replicate :<: iF) => SNat n -> IFix2 iF input (ReplicateN n input)
+-- replicate' _   = undefined
 
   
 
