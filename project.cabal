@@ -25,6 +25,7 @@ library
     , Pipeline.Core.HList
     , Pipeline.Core.IFunctor
     , Pipeline.Core.Modular
+    , Pipeline.Core.Nat
     , Pipeline.Core.PID
     , Pipeline.Core.Task
     , Pipeline.Backend.ProcessNetwork
@@ -39,6 +40,7 @@ library
     , KindSignatures
     , RankNTypes
     , TypeOperators
+    , TypeApplications
     , DataKinds
     , PolyKinds
     , TypeFamilies

@@ -5,7 +5,7 @@ import Pipeline.Core.DataStore
 import Pipeline.Core.Task
 import Pipeline.Core.Modular ((:+:)(..), (:<:)(..))
 import Pipeline.Core.IFunctor (IFix2(..), IFunctor2(..))
-import Pipeline.Core.Nat (Take, Drop, Length)
+-- import Pipeline.Core.Nat (Take, Drop, Length)
 import Prelude hiding (id, replicate, (<>))
 
 
@@ -69,7 +69,7 @@ data Beside (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
              DataSource' is ds (Apply is ds))
     => iF (Apply fs as) (Apply gs bs)
     -> iF (Apply hs cs) (Apply is ds)
-    -> Beside iF (Apply (HAppendListR fs hs) (HAppendListR as cs)) (Apply (HAppendListR gs is) (HAppendListR bs ds))
+    -> Beside iF (Apply (fs ++ hs) (as ++ cs)) (Apply (gs ++ is) (bs ++ ds))
 
 data Swap (iF :: k -> k -> *) (inputs :: [*]) (outputs :: [*]) where
   Swap :: (DataSource' '[f, g] '[a, b] '[f a, g b]) => Swap iF (Apply '[f, g] '[a, b]) (Apply '[g, f] '[b, a])
@@ -139,7 +139,7 @@ infixr 4 <->
          Beside :<: iF)
        => IFix2 iF (Apply fs as) (Apply gs bs)
        -> IFix2 iF (Apply hs cs) (Apply is ds)
-       -> IFix2 iF (Apply (HAppendListR fs hs) (HAppendListR as cs)) (Apply (HAppendListR gs is) (HAppendListR bs ds))
+       -> IFix2 iF (Apply (fs ++ hs) (as ++ cs)) (Apply (gs ++ is) (bs ++ ds))
 (<>) l r = IIn2 (inj (Beside l r))
 infixr 5 <>
 

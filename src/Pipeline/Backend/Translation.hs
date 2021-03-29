@@ -1,11 +1,11 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, AllowAmbiguousTypes #-}
 module Pipeline.Backend.Translation where
 
 import Pipeline.Core.Task (TaskF(..))
 import Pipeline.Core.IFunctor (IFunctor2, IFix2(..))
 import Pipeline.Core.Modular ((:+:)(..))
-import Pipeline.Core.DataStore (HAppendListR)
-import Pipeline.Core.Nat (SNat(..), Take, Drop, Length)
+import Pipeline.Core.DataStore (type (++), HList(..), Apply)
+import Pipeline.Core.Nat (SNat(..), Take, Drop, Length, (:<=))
 
 import Pipeline.Frontend.Circuit
 
@@ -14,7 +14,7 @@ import Pipeline.Backend.ProcessNetwork (Network(..), PipeList(..), taskExecuter)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.Chan (newChan, dupChan)
 
-import Unsafe.Coerce (unsafeCoerce)
+import Data.Type.Equality (gcastWith, (:~:)(..))
 
 -- Used to build a list of pipes from a list of types.
 class InitialPipes (inputs :: [*]) where
@@ -102,19 +102,36 @@ instance BuildNetwork Beside where
     (n1, n2) <- splitNetwork n nInL nOutL
     n1' <- buildNetwork n1 l
     n2' <- buildNetwork n2 r
-    joinNetwork n1' n2'
+    return $ gcastWith (takeDropPipeListProof _ _) (joinNetwork n1' n2')
     where
-      splitNetwork :: (HAppendListR (Take ninputs inputs)   (Drop ninputs inputs) ~ inputs,
-                       HAppendListR (Take noutputs outputs) (Drop noutputs outputs) ~ outputs)
+      splitNetwork :: ((Take ninputs inputs)   ++ (Drop ninputs inputs) ~ inputs,
+                       (Take noutputs outputs) ++ (Drop noutputs outputs) ~ outputs)
                    => Network inputs outputs
                    -> SNat ninputs
                    -> SNat noutputs
                    -> IO (Network (Take ninputs inputs) (Take noutputs outputs), Network (Drop ninputs inputs) (Drop noutputs outputs))
       splitNetwork = undefined
-      joinNetwork :: Network in1 out1 -> Network in2 out2 -> IO (Network (HAppendListR in1 in2) (HAppendListR out1 out2))
+      joinNetwork :: Network in1 out1 -> Network in2 out2 -> Network (in1 ++ in2) (out1 ++ out2)
       joinNetwork = undefined
+      -- proof :: SNat n -> PipeList xs -> Take n xs ++ Drop n xs :~: xs
+      -- proof = undefined
+
 
 circuitInputs :: (ninputs ~ Length inputs) => Circuit inputs outputs -> SNat ninputs
 circuitInputs = undefined
 circuitOutputs :: (noutputs ~ Length outputs) => Circuit input outputs -> SNat noutputs
 circuitOutputs = undefined
+
+  
+takeDropPipeListProof :: SNat n -> PipeList xs -> Take n xs ++ Drop n xs :~: xs
+takeDropPipeListProof SZero     _               = Refl
+takeDropPipeListProof (SSucc n) (PipeCons _ ps) = gcastWith (takeDropPipeListProof n ps) Refl
+
+
+takeDropHListProof :: (n :<= Length xs ~ 'True) => SNat n -> HList xs -> Take n xs ++ Drop n xs :~: xs
+takeDropHListProof SZero     _               = Refl
+takeDropHListProof (SSucc n) (HCons _ xs) = gcastWith (takeDropHListProof n xs) Refl
+
+
+applyAppendProof :: Apply fs as ++ Apply gs bs :~: Apply (fs ++ gs) (as ++ bs)
+applyAppendProof = undefined

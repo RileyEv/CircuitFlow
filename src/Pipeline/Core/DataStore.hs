@@ -1,11 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses, DataKinds, PolyKinds, TypeFamilyDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, DataKinds, PolyKinds, TypeFamilyDependencies, ExplicitNamespaces #-}
 
 module Pipeline.Core.DataStore (
   DataSource(..),
   DataSource'(..),
   IOList(..),
   HList(..),
-  HAppendListR,
+  type (++),
   Apply,
   DataWrap(..),
   VariableStore(..),
@@ -37,9 +37,9 @@ data IOList (xs :: [*]) where
   IONil :: IOList '[]
   
 
-type family HAppendListR (l1 :: [k]) (l2 :: [k]) where
-  HAppendListR '[] l = l
-  HAppendListR (e ': l) l' = e ': HAppendListR l l'
+type family (++) (l1 :: [k]) (l2 :: [k]) where
+  '[]      ++ l = l
+  (e ': l) ++ l' = e ': l ++ l'
 
 
 type family Apply (fs :: [* -> *]) (as :: [*]) = fas | fas -> fs as where

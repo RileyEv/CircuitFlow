@@ -8,7 +8,7 @@ module Pipeline.Core.Graph (
 
 import Pipeline.Core.IFunctor (IFunctor(..), IFix(..), IFix2(..))
 import Pipeline.Core.Task (TaskF)
-import Pipeline.Core.DataStore (Apply, DataSource', HAppendListR, HList)
+import Pipeline.Core.DataStore (Apply, DataSource', type (++), HList)
 
 -- |Structure used to represent a pipeline
 data TreeF f a = TreeF a [f a] deriving Show
@@ -26,7 +26,7 @@ data DataTreeF f i o where
   DLeafF :: (fas ~ Apply fs as, DataSource' fs as fas) => HList fas -> DataTreeF f fas fas
 
 data FList (f :: [*] -> [*] -> *) (is :: [*]) (xs :: [*]) where
-  FCons :: f is xs -> FList f is ys -> FList f is (HAppendListR xs ys)
+  FCons :: f is xs -> FList f is ys -> FList f is (xs ++ ys)
   FNil  :: FList f is '[]
 
 
