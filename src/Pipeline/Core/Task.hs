@@ -6,41 +6,35 @@ module Pipeline.Core.Task (
 ) where
 
 import Data.Typeable (Typeable)
-import Pipeline.Core.DataStore (DataSource(..), DataSource'(..), Apply, HList(..), IOList(..))
+import Pipeline.Core.DataStore (DataSource(..), DataSource'(..), Apply, IOList(..))
+import Pipeline.Core.HList
 import Pipeline.Core.Modular ((:<:)(..))
-import Pipeline.Core.IFunctor (IFix2(..), IFunctor2(..))
+import Pipeline.Core.IFunctor (IFix4(..), IFunctor4(..))
 
 
 {-|
   The main wrapping data type for a function. This makes working with the function type easier. 
 -}
-data TaskF (iF :: [*] -> [*] -> *) (fas :: [*]) (gb :: [*]) = forall fs as g b. (
-  fas ~ Apply fs as,
-  gb ~ Apply '[g] '[b],
-  DataSource' fs as (Apply fs as),
-  DataSource g b,
-  Typeable (Apply fs as),
-  Typeable fs, Typeable g,
-  Typeable as, Typeable b)
-  => TaskF (HList (Apply fs as) -> g b -> IO (g b)) (g b)
+data TaskF (iF :: [* -> *] -> [*] -> [* -> *] -> [*] -> *) (fs :: [* -> *]) (as :: [*]) (g :: [* -> *]) (b :: [*]) = forall g' b'. (
+  g ~ '[g'], b ~ '[b'],
+  DataSource' fs as,
+  DataSource g' b')
+  => TaskF (HList' fs as -> g' b' -> IO (g' b')) (g' b')
 
-instance IFunctor2 TaskF where
-  imap2 _ (TaskF f output) = TaskF f output
+instance IFunctor4 TaskF where
+  imap4 _ (TaskF f output) = TaskF f output
 
 
 {-|
   This allows a function to be converted into a Task. 
 -}
-multiInputFunctionTaskF :: (DataSource' fs as (Apply fs as),
-                            DataSource g b,
-                            Typeable as, Typeable b,
-                            Typeable fs, Typeable g,
-                            Typeable (Apply fs as), TaskF :<: iF) => (HList as -> b) -> g b -> IFix2 iF (Apply fs as) '[g b] 
-multiInputFunctionTaskF f output = IIn2 (inj (TaskF (\sources sink -> do
+multiInputFunctionTaskF :: (DataSource' fs as,
+                            DataSource g b, TaskF :<: iF) => (HList as -> b) -> g b -> IFix4 iF fs as '[g] '[b] 
+multiInputFunctionTaskF f output = IIn4 (inj (TaskF (\sources sink -> do
   input <- (hSequence . fetch') sources
   save sink (f input)) output))
   
-functionTaskF :: (DataSource f a, DataSource g b, Typeable f, Typeable a, Typeable g, Typeable b, TaskF :<: iF) => (a -> b) -> g b -> IFix2 iF '[f a] '[g b]
+functionTaskF :: (DataSource f a, DataSource g b, TaskF :<: iF) => (a -> b) -> g b -> IFix4 iF '[f] '[a] '[g] '[b]
 -- It is okay to pattern match the hlist to just one value, as the type states that it only consumes one element.
 functionTaskF f = multiInputFunctionTaskF (\(HCons inp HNil) -> f inp)
 

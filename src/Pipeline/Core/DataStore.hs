@@ -4,17 +4,15 @@ module Pipeline.Core.DataStore (
   DataSource(..),
   DataSource'(..),
   IOList(..),
-  HList(..),
   type (++),
   Apply,
-  DataWrap(..),
   VariableStore(..),
   IOStore(..),
   FileStore(..),
   CSVStore(..)
 ) where
 
-import Pipeline.Core.HList (HList(..))
+import Pipeline.Core.HList (HList(..), HList'(..))
 
 import Data.Typeable (Typeable)
 import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
@@ -29,8 +27,6 @@ class Typeable a => DataSource f a where
   --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
   save :: f a -> a -> IO (f a)
 
--- Magic wrapper for a datastore
-data DataWrap = forall fs as. (DataSource' fs as (Apply fs as), Typeable fs, Typeable as, Typeable (Apply fs as)) => DataWrap (HList (Apply fs as))
 
 data IOList (xs :: [*]) where
   IOCons :: IO x -> IOList xs -> IOList (x ': xs)
@@ -38,32 +34,37 @@ data IOList (xs :: [*]) where
   
 
 type family (++) (l1 :: [k]) (l2 :: [k]) where
-  '[]      ++ l = l
-  (e ': l) ++ l' = e ': l ++ l'
+  '[]      ++ '[] = '[]
+  '[]      ++ l   = l
+  '[e]     ++ l   = e ': l
+  l        ++ '[] = l
+  (e ': l) ++ l'  = e ': l ++ l'
+
+infixr 5 ++
 
 
-type family Apply (fs :: [* -> *]) (as :: [*]) = fas | fas -> fs as where
+type family Apply (fs :: [* -> *]) (as :: [*]) where
   Apply '[] '[] = '[]
   Apply (f ': fs) (a ': as) = f a ': Apply fs as
 
 
-class (xs ~ Apply fs as) => DataSource' (fs :: [* -> *]) (as :: [*]) (xs :: [*]) where
+class DataSource' (fs :: [* -> *]) (as :: [*]) where
   -- | Fetch the value stored in the 'DataSource'
   -- fetch :: f a -> IO a
-  fetch' :: HList xs -> IOList as
+  fetch' :: HList' fs as -> IOList as
   -- | Save a value into the 'DataStore'
   --   First argument depends on the instance. It may be 'empty' or it could be a pointer to a storage location.
   -- save :: f a -> a -> IO (f a)
-  save' :: HList xs -> HList as -> IOList xs
+  save' :: HList' fs as -> HList as -> IOList (Apply fs as)
 
 
-instance {-# OVERLAPPING #-} (x ~ f a, DataSource f a) => DataSource' '[f] '[a] '[x] where
-  fetch' (HCons x HNil) = IOCons (fetch x) IONil
-  save' (HCons ref HNil) (HCons x HNil) = IOCons (save ref x) IONil
+instance {-# OVERLAPPING #-} (DataSource f a) => DataSource' '[f] '[a] where
+  fetch' (HCons' x HNil') = IOCons (fetch x) IONil
+  save' (HCons' ref HNil') (HCons x HNil) = IOCons (save ref x) IONil
 
-instance (x ~ f a, DataSource f a, DataSource' fs as xs) => DataSource' (f ': fs) (a ': as) (x ': xs) where
-  fetch' (HCons x xs) = IOCons (fetch x) (fetch' xs)
-  save' (HCons ref rs) (HCons x xs) = IOCons (save ref x) (save' rs xs) 
+instance (DataSource f a, DataSource' fs as) => DataSource' (f ': fs) (a ': as)  where
+  fetch' (HCons' x xs) = IOCons (fetch x) (fetch' xs)
+  save' (HCons' ref rs) (HCons x xs) = IOCons (save ref x) (save' rs xs) 
 
 
 

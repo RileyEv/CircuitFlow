@@ -180,9 +180,11 @@ type family Length (l :: [k]) :: Nat where
   Length (e ': l) = 'Succ (Length l)
   
 type family Take (x :: Nat) (l :: [k]) :: [k] where
-  Take 'Zero l = '[]
+  Take 'Zero     l        = '[]
+  Take ('Succ n) '[]      = '[]
   Take ('Succ n) (e ': l) = e ': Take n l
   
 type family Drop (x :: Nat) (l :: [k]) :: [k] where
-  Drop 'Zero l = l
+  Drop 'Zero     l        = l
+  Drop ('Succ _) '[]      = '[]
   Drop ('Succ n) (e ': l) = Drop n l

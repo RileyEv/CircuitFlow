@@ -1,16 +1,19 @@
 module Pipeline.Backend.ProcessNetwork (
     Network(..)
   , PipeList(..)
-  , startNetwork
   , stopNetwork
   , input
   , output
   , taskExecuter
+  , takeP
+  , dropP
+  , appendP
 ) where
 
+import Pipeline.Core.DataStore (Apply, type (++))
 import Pipeline.Core.HList (HList (..))
-import Pipeline.Core.IFunctor (IFix2(..))
-import Pipeline.Core.PID (PID)
+import Pipeline.Core.IFunctor (IFix4(..))
+import Pipeline.Core.Nat (Take, Drop, SNat(..))
 import Pipeline.Core.Task (TaskF)
 
 import Control.Concurrent (ThreadId, killThread)
@@ -18,51 +21,69 @@ import Control.Concurrent.Chan (Chan, writeChan, readChan)
 
 import Control.Monad (forM_, forever)
 
-data ComputationNode where
-  ComputationNode :: forall (fas :: [*]) (gb :: [*]). IFix2 TaskF fas gb -> ComputationNode
+import Data.Type.Equality ((:~:)(..), gcastWith)
+import Unsafe.Coerce (unsafeCoerce)
 
-data Pipe = forall a. Pipe PID PID a
+data PipeList (fs :: [* -> *]) (as :: [*]) where
+  PipeCons :: Chan (f a) -> PipeList fs as -> PipeList (f ': fs) (a ': as)
+  PipeNil :: PipeList '[] '[]
 
-data PipeList (xs :: [*]) where
-  PipeCons :: Chan a -> PipeList xs -> PipeList (a ': xs)
-  PipeNil :: PipeList '[]
+
+takeP :: SNat nS -> SNat nT -> PipeList fs as -> PipeList (Take nS fs) (Take nT as)
+takeP SZero    SZero  _               = PipeNil
+takeP (SSucc _) (SSucc _) PipeNil         = PipeNil
+takeP (SSucc nS) (SSucc nT) (PipeCons x xs) = PipeCons x (takeP nS nT xs)
+
+dropP :: SNat nS -> SNat nT -> PipeList fs as -> PipeList (Drop nS fs) (Drop nT as)
+dropP SZero     SZero     l               = l
+dropP (SSucc _) (SSucc _) PipeNil         = PipeNil
+dropP (SSucc nS) (SSucc nT) (PipeCons _ xs) = dropP nS nT xs
+
+appendP :: PipeList fs as -> PipeList gs bs -> PipeList (fs ++ gs) (as ++ bs)
+appendP PipeNil ys = ys
+appendP (PipeCons x xs) ys = gcastWith (proof2 x xs ys) (gcastWith (proof1 x xs ys) $ PipeCons x (appendP xs ys))
+  where
+    proof1 :: Chan (f a) -> PipeList fs as -> PipeList gs bs -> ((f ': fs) ++ gs) :~: (f ': (fs ++ gs))
+    proof1 c PipeNil ys = Refl
+    proof1 c (PipeCons x xs) ys = unsafeCoerce Refl
+    proof2 :: Chan (f a) -> PipeList fs as -> PipeList gs bs -> ((a ': as) ++ bs) :~: (a ': (as ++ bs))
+    proof2 c PipeNil ys = Refl
+    proof2 c (PipeCons x xs) ys = unsafeCoerce Refl
+
+
 
 
 -- | Stores details about the network.
-data Network (inputs :: [*]) (outputs :: [*]) where
-  Network :: { threads :: [ThreadId], inputs :: PipeList inputs, outputs :: PipeList outputs } -> Network inputs outputs
+data Network (inputsStorage :: [* -> *]) (inputsType :: [*]) (outputsStorage :: [* -> *]) (outputsType :: [*]) where
+  Network :: {
+    threads :: [ThreadId],
+    inputs :: PipeList inputsStorage inputsTypes,
+    outputs :: PipeList outputsStorage outputsType } -> Network inputsStorage inputsTypes outputsStorage outputsType
 
 
-{-|
-Starts the network
-
-Returns the input pipes and output pipes.
--}
-startNetwork :: [ComputationNode] -> [Pipe] -> IO (Network inputs outputs)
-startNetwork = undefined
 
 {-|
 Stops the given network
 -}
-stopNetwork :: Network input outputs -> IO ()
+stopNetwork :: Network inputS inputsT outputsS outputsT -> IO ()
 stopNetwork n = forM_ (threads n) killThread
 
 
-taskExecuter :: IFix2 TaskF inputs output -> PipeList inputs -> PipeList output -> IO ()
+taskExecuter :: IFix4 TaskF inputsS inputsT outputS outputT -> PipeList inputsS inputsT -> PipeList outputS outputT -> IO ()
 taskExecuter t ins out = forever (do
   return ())
 
 
-input :: HList inputs -> Network inputs outputs -> IO ()
+input :: HList (Apply inputsS inputsT) -> Network inputsS inputsT outputsS outputsT -> IO ()
 input xs n = input' xs (inputs n)
   where
-    input' :: HList inputs -> PipeList inputs -> IO ()
+    input' :: HList (Apply inputsS inputsT) -> PipeList inputsS inputsT -> IO ()
     input' HNil PipeNil = return ()
     input' (HCons x xs) (PipeCons p ps) = writeChan p x >> input' xs ps
 
-output :: Network inputs outputs -> IO (HList outputs)
+output :: Network inputsS inputsT outputsS outputsT -> IO (HList (Apply outputsS outputsT))
 output n = output' (outputs n)
   where
-    output' :: PipeList outputs -> IO (HList outputs)
+    output' :: PipeList outputsS outputsT -> IO (HList (Apply outputsS outputsT))
     output' PipeNil = return HNil
     output' (PipeCons p ps) = readChan p >>= \x -> output' ps >>= \xs -> return (HCons x xs)
