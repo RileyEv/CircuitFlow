@@ -81,7 +81,6 @@ instance BuildNetwork Swap where
     where
       swapOutput :: PipeList '[f, g] '[a, b] -> IO (PipeList '[g, f] '[b, a])
       swapOutput (PipeCons c1 (PipeCons c2 PipeNil)) = return $ PipeCons c2 (PipeCons c1 PipeNil)
-
   
 instance BuildNetwork DropL where
   buildNetwork n DropL = do
@@ -108,10 +107,12 @@ beside n (Beside l r) = do
   let ninputsS = circuitInputsS l
       ninputsT = circuitInputsT l
   (nL, nR) <- splitNetwork ninputsS ninputsT
-  (newL, newR) <- translate ninputsS ninputsT (nL, nR) (unsafeCoerce l, unsafeCoerce r) :: IO (Network asS asT csLS csLT, Network asS asT csRS csRT)
-  unsafeCoerce $ joinNetwork (newL, newR)
+  (newL, newR) <- translate ninputsS ninputsT (nL, nR) (
+    gcastWith (takeLengthAppendProofT ninputsT l r) (gcastWith (takeLengthAppendProofS ninputsS l r) l),
+    gcastWith (dropLengthAppendProofT ninputsT l r) (gcastWith (dropLengthAppendProofS ninputsS l r) r))
+  gcastWith (applyAppendProof (outputs newL) (outputs newR)) $ joinNetwork (newL, newR)
   where
-    splitNetwork :: SNat nbsS -> SNat nbsT -> IO (Network asS asT (Take nbsS bsS) (Take nbsT bsT), Network asS asT (Drop nbsS bsS) (Drop nbsT bsT))
+    splitNetwork :: SNat nbsLS -> SNat nbsLT -> IO (Network asS asT (Take nbsLS bsS) (Take nbsLT bsT), Network asS asT (Drop nbsLS bsS) (Drop nbsLT bsT))
     splitNetwork nbsS nbsT = return (Network (threads n) (inputs n) (takeP nbsS nbsT (outputs n)), Network (threads n) (inputs n) (dropP nbsS nbsT (outputs n)))
 
     translate :: SNat nbsLS -> SNat nbsLT
@@ -144,12 +145,17 @@ circuitInputsT = undefined
 -- applyAppendLId PipeNil = Refl
 -- applyAppendLId (PipeCons x xs) = gcastWith (applyAppendLId xs) Refl
 
+takeLengthAppendProofS :: SNat (Length fs) -> Circuit fs as gs bs -> Circuit hs cs ds is -> Take (Length fs) (fs ++ hs) :~: fs
+takeLengthAppendProofS SZero = undefined
 
-dropLengthAppendProofS :: SNat (Length fs) -> PipeList fs as -> PipeList gs bs -> Drop (Length fs) (fs ++ gs) :~: gs
-dropLengthAppendProofS SZero PipeNil _ = Refl
+takeLengthAppendProofT :: SNat (Length as) -> Circuit fs as gs bs -> Circuit hs cs is ds -> Take (Length as) (as ++ cs) :~: as
+takeLengthAppendProofT SZero _ = undefined
 
-dropLengthAppendProofT :: SNat (Length as) -> PipeList fs as -> PipeList gs bs -> Drop (Length as) (as ++ bs) :~: bs
-dropLengthAppendProofT SZero PipeNil _ = Refl
+dropLengthAppendProofS :: SNat (Length fs) -> Circuit fs as gs bs -> Circuit hs cs ds is -> Drop (Length fs) (fs ++ hs) :~: hs
+dropLengthAppendProofS SZero = undefined
+
+dropLengthAppendProofT :: SNat (Length as) -> Circuit fs as gs bs -> Circuit hs cs is ds -> Drop (Length as) (as ++ cs) :~: cs
+dropLengthAppendProofT SZero _ = undefined
 
 -- dropLengthAppendProof (SSucc n) (PipeCons x xs) ys = gcastWith (dropLengthAppendProof n xs ys) Refl
 
