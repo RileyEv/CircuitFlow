@@ -11,11 +11,16 @@ class IFunctor2 iF where
 class IFunctor4 iF where
   imap4 :: (forall a b c d. f a b c d -> g a b c d) -> iF f a b c d -> iF g a b c d
 
+class IFunctor6 iF where
+  imap6 :: (forall a b c d e f. f' a b c d e f-> g' a b c d e f) -> iF f' a b c d e f-> iF g' a b c d e f
+  
 newtype Fix f = In (f (Fix f))
 newtype IFix  iF a       = IIn  (iF (IFix  iF) a)
 newtype IFix2 iF a b     = IIn2 (iF (IFix2 iF) a b)
 newtype IFix3 iF a b c   = IIn3 (iF (IFix3 iF) a b c)
 newtype IFix4 iF a b c d = IIn4 (iF (IFix4 iF) a b c d)
+newtype IFix5 iF a b c d e = IIn5 (iF (IFix5 iF) a b c d e)
+newtype IFix6 iF a b c d e f = IIn6 (iF (IFix6 iF) a b c d e f)
 
 icata :: IFunctor iF => (forall a. iF f a -> f a) -> IFix iF a -> f a
 icata alg (IIn x) = alg (imap (icata alg) x)

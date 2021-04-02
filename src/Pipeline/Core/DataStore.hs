@@ -33,12 +33,16 @@ data IOList (xs :: [*]) where
   IONil :: IOList '[]
   
 
-type family (:++) (l1 :: [k]) (l2 :: [k]) where
-  '[]      :++ '[] = '[]
-  '[]      :++ l   = l
-  -- '[e]     :++ l   = e ': l
-  l        :++ '[] = l
-  (e ': l) :++ l'  = e ': (l :++ l')
+-- type family (:++) (l1 :: [k]) (l2 :: [k]) where
+--   '[]      :++ '[] = '[]
+--   '[]      :++ l   = l
+--   (e ': l) :++ '[] = e ': l
+--   (e ': l) :++ l'  = e ': (l :++ l')
+
+
+type family (:++) (l1 :: [k]) (l2 :: [k]) :: [k]
+type instance (:++) '[] l = l
+type instance (:++) (e ': l) l' = e ': (l :++ l')
 
 infixr 5 :++
 

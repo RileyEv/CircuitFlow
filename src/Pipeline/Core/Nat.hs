@@ -169,12 +169,6 @@ append (SSucc n) m (x :> xs) ys = gcastWith (proof n m) $ x :> append n m xs ys
         p3 = gcastWith (plusComm y x) Refl
 
 
-
-
--- type family Sum (l :: [Nat]) :: Nat where
---   Sum '[]      = 'Zero
---   Sum (e ': l) = Add e (Sum l)
-  
 type family Length (l :: [k]) :: Nat where
   Length '[] = 'Zero
   Length (e ': l) = 'Succ (Length l)
