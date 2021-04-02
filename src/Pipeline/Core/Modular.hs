@@ -1,27 +1,28 @@
 {-# Language PolyKinds, MultiParamTypeClasses #-}
 module Pipeline.Core.Modular where
 
-import Pipeline.Core.IFunctor (IFunctor6(..))
+import Pipeline.Core.IFunctor (IFunctor7(..))
+import Pipeline.Core.Nat (Nat)
 
-data (iF :+: iG) (f' :: k -> j -> i -> k -> j -> i -> *) (a :: k) (b :: j) (c :: i) (d :: k) (e :: j) (f :: i) where
-  L :: iF f' a b c d e f -> (iF :+: iG) f' a b c d e f
-  R :: iG f' a b c d e f -> (iF :+: iG) f' a b c d e f
+data (iF :+: iG) (f' :: k -> j -> i -> k -> j -> i -> Nat -> *) (a :: k) (b :: j) (c :: i) (d :: k) (e :: j) (f :: i) (g :: Nat) where
+  L :: iF f' a b c d e f g -> (iF :+: iG) f' a b c d e f g
+  R :: iG f' a b c d e f g -> (iF :+: iG) f' a b c d e f g
 
 infixr :+:
 
-instance (IFunctor6 iF, IFunctor6 iG) => IFunctor6 (iF :+: iG) where
-  imap6 f (L x) = L (imap6 f x)
-  imap6 f (R y) = R (imap6 f y)
+instance (IFunctor7 iF, IFunctor7 iG) => IFunctor7 (iF :+: iG) where
+  imap7 f (L x) = L (imap7 f x)
+  imap7 f (R y) = R (imap7 f y)
   
 
-class (IFunctor6 iF, IFunctor6 iG) => iF :<: iG where
-  inj :: iF f' a b c d e f -> iG f' a b c d e f
+class (IFunctor7 iF, IFunctor7 iG) => iF :<: iG where
+  inj :: iF f' a b c d e f g -> iG f' a b c d e f g
 
-instance IFunctor6 iF => iF :<: iF where
+instance IFunctor7 iF => iF :<: iF where
   inj = id
 
-instance {-# OVERLAPPING #-} (IFunctor6 iF, IFunctor6 iG) => iF :<: (iF :+: iG) where
+instance {-# OVERLAPPING #-} (IFunctor7 iF, IFunctor7 iG) => iF :<: (iF :+: iG) where
   inj = L
 
-instance (IFunctor6 iF, IFunctor6 iG, IFunctor6 iH, iF :<: iG) => iF :<: (iH :+: iG) where
+instance (IFunctor7 iF, IFunctor7 iG, IFunctor7 iH, iF :<: iG) => iF :<: (iH :+: iG) where
   inj = R . inj

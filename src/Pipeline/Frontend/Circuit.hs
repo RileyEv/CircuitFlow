@@ -5,7 +5,7 @@ import Pipeline.Core.DataStore
 import Pipeline.Core.Nat 
 import Pipeline.Core.Task
 import Pipeline.Core.Modular ((:+:)(..), (:<:)(..))
-import Pipeline.Core.IFunctor (IFix6(..), IFunctor6(..))
+import Pipeline.Core.IFunctor (IFix7(..), IFunctor7(..))
 import Pipeline.Backend.ProcessNetwork (AppendP)
 -- import Pipeline.Core.Nat (Take, Drop, Length)
 import Prelude hiding (id, replicate, (<>))
@@ -49,31 +49,34 @@ import Prelude hiding (id, replicate, (<>))
 
 
 -- Fixed modular version
-data Id (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data Id (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
         (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-        (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
-  Id :: (DataSource' '[inputS] '[inputT]) => Id iF '[inputS] '[inputT] '[inputS inputT] '[inputS] '[inputT] '[inputS inputT]
+        (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
+  Id :: (DataSource' '[inputS] '[inputT]) => Id iF '[inputS] '[inputT] '[inputS inputT] '[inputS] '[inputT] '[inputS inputT] ('Succ 'Zero)
 
-data Replicate (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data Replicate (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
                (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-               (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
-  Replicate :: (DataSource' '[f] '[a]) => Replicate iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a]
+               (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
+  Replicate :: (DataSource' '[f] '[a]) => Replicate iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a] ('Succ 'Zero)
 
-data Then (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data Then (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
           (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-          (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
+          (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
   Then :: (DataSource' fs as, DataSource' gs bs, DataSource' hs cs)
-    => iF fs as (Apply fs as) gs bs (Apply gs bs)
-    -> iF gs bs (Apply gs bs) hs cs (Apply hs cs)
-    -> Then iF fs as (Apply fs as) hs cs (Apply hs cs)
+    => iF fs as (Apply fs as) gs bs (Apply gs bs) nfs
+    -> iF gs bs (Apply gs bs) hs cs (Apply hs cs) ngs
+    -> Then iF fs as (Apply fs as) hs cs (Apply hs cs) nfs
 
-data Beside (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data Beside (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
             (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-            (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
+            (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
   Beside :: (DataSource' fs as,
              DataSource' gs bs,
              DataSource' hs cs,
              DataSource' is ds,
+             IsNat nfs,
+             IsNat nhs,
+             nfs ~ Length fs,
              Length fs ~ Length as,
              Length fs ~ Length (Apply fs as),
              Length gs ~ Length bs,
@@ -90,75 +93,78 @@ data Beside (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
              Drop (Length as) (fs :++ hs) ~ hs,
              AppendP gs bs (Apply gs bs) is ds (Apply is ds)
              )
-    => iF fs as (Apply fs as) gs bs (Apply gs bs)
-    -> iF hs cs (Apply hs cs) is ds (Apply is ds)
-    -> Beside iF (fs :++ hs) (as :++ cs) (Apply fs as :++ Apply hs cs) (gs :++ is) (bs :++ ds) (Apply gs bs :++ Apply is ds)
+    => iF fs as (Apply fs as) gs bs (Apply gs bs) nfs
+    -> iF hs cs (Apply hs cs) is ds (Apply is ds) nhs
+    -> Beside iF (fs :++ hs) (as :++ cs) (Apply fs as :++ Apply hs cs) (gs :++ is) (bs :++ ds) (Apply gs bs :++ Apply is ds) (nfs + nhs)
 
-data Swap (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data Swap (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
           (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-          (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
-  Swap :: (DataSource' '[f, g] '[a, b]) => Swap iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a]
+          (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
+  Swap :: (DataSource' '[f, g] '[a, b]) => Swap iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a] ('Succ ('Succ 'Zero))
 
-data DropL (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data DropL (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
            (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-           (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
-  DropL :: (DataSource' '[f, g] '[a, b]) => DropL iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b]
+           (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
+  DropL :: (DataSource' '[f, g] '[a, b]) => DropL iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b] ('Succ ('Succ 'Zero))
 
-data DropR (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> *)
+data DropR (iF :: [* -> *] -> [*] -> [*] -> [* -> *] -> [*] -> [*] -> Nat -> *)
            (inputsS :: [* -> *]) (inputsT :: [*]) (inputsA :: [*])
-           (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) where
-  DropR :: (DataSource' '[f, g] '[a, b]) => DropR iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a]
+           (outputsS :: [* -> *]) (outputsT :: [*]) (outputsA :: [*]) (ninputs :: Nat) where
+  DropR :: (DataSource' '[f, g] '[a, b]) => DropR iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a] ('Succ ('Succ 'Zero))
 
 
 -- IFunctor instances
-instance IFunctor6 Id where
-  imap6 _ Id = Id
+instance IFunctor7 Id where
+  imap7 _ Id = Id
 
-instance IFunctor6 Replicate where
-  imap6 _ Replicate = Replicate
+instance IFunctor7 Replicate where
+  imap7 _ Replicate = Replicate
 
-instance IFunctor6 Then where
-  imap6 f (Then x y) = Then (f x) (f y)
+instance IFunctor7 Then where
+  imap7 f (Then x y) = Then (f x) (f y)
 
-instance IFunctor6 Beside where
-  imap6 f (Beside l r) = Beside (f l) (f r)
+instance IFunctor7 Beside where
+  imap7 f (Beside l r) = Beside (f l) (f r)
 
-instance IFunctor6 Swap where
-  imap6 _ Swap = Swap
+instance IFunctor7 Swap where
+  imap7 _ Swap = Swap
 
-instance IFunctor6 DropL where
-  imap6 _ DropL = DropL
+instance IFunctor7 DropL where
+  imap7 _ DropL = DropL
 
-instance IFunctor6 DropR where
-  imap6 _ DropR = DropR
+instance IFunctor7 DropR where
+  imap7 _ DropR = DropR
 
 
 type CircuitF v = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: v
 
-type Circuit' v = IFix6 (CircuitF v)
+type Circuit' v = IFix7 (CircuitF v)
 
 type Circuit = Circuit' TaskF
 
 -- Smart Constructors
 -- They are able to make use of the `inj` function to add in the L's and R's
 
-id :: (DataSource' '[f] '[a], Id :<: iF) => IFix6 iF '[f] '[a] '[f a] '[f] '[a] '[f a]
-id = (IIn6 . inj) Id
+id :: (DataSource' '[f] '[a], Id :<: iF) => IFix7 iF '[f] '[a] '[f a] '[f] '[a] '[f a] ('Succ 'Zero)
+id = (IIn7 . inj) Id
 
-replicate :: (DataSource' '[f] '[a], Replicate :<: iF) => IFix6 iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a]
-replicate = (IIn6 . inj) Replicate
+replicate :: (DataSource' '[f] '[a], Replicate :<: iF) => IFix7 iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a] ('Succ 'Zero)
+replicate = (IIn7 . inj) Replicate
 
 (<->) :: (DataSource' fs as, DataSource' gs bs, DataSource' hs cs, Then :<: iF)
-       => IFix6 iF fs as (Apply fs as) gs bs (Apply gs bs)
-       -> IFix6 iF gs bs (Apply gs bs) hs cs (Apply hs cs)
-       -> IFix6 iF fs as (Apply fs as) hs cs (Apply hs cs)
-(<->) l r = IIn6 (inj (Then l r))
+       => IFix7 iF fs as (Apply fs as) gs bs (Apply gs bs) nfs
+       -> IFix7 iF gs bs (Apply gs bs) hs cs (Apply hs cs) ngs
+       -> IFix7 iF fs as (Apply fs as) hs cs (Apply hs cs) nfs
+(<->) l r = IIn7 (inj (Then l r))
 infixr 4 <->
   
 (<>) :: (DataSource' fs as,
          DataSource' gs bs,
          DataSource' hs cs,
          DataSource' is ds,
+         nfs ~ Length fs,
+         IsNat nfs,
+         IsNat nhs,
          Length fs ~ Length as,
          Length fs ~ Length (Apply fs as),
          Length gs ~ Length bs,
@@ -175,20 +181,20 @@ infixr 4 <->
          Drop (Length as) (fs :++ hs) ~ hs,
          AppendP gs bs (Apply gs bs) is ds (Apply is ds),
          Beside :<: iF)
-       => IFix6 iF fs as (Apply fs as) gs bs (Apply gs bs)
-       -> IFix6 iF hs cs (Apply hs cs) is ds (Apply is ds)
-       -> IFix6 iF (fs :++ hs) (as :++ cs) (Apply fs as :++ Apply hs cs) (gs :++ is) (bs :++ ds) (Apply gs bs :++ Apply is ds)
-(<>) l r = IIn6 (inj (Beside l r))
+       => IFix7 iF fs as (Apply fs as) gs bs (Apply gs bs) nfs
+       -> IFix7 iF hs cs (Apply hs cs) is ds (Apply is ds) nhs
+       -> IFix7 iF (fs :++ hs) (as :++ cs) (Apply fs as :++ Apply hs cs) (gs :++ is) (bs :++ ds) (Apply gs bs :++ Apply is ds) (nfs + nhs)
+(<>) l r = IIn7 (inj (Beside l r))
 infixr 5 <>
 
-swap :: (DataSource' '[f, g] '[a, b], Swap :<: iF) => IFix6 iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a]
-swap = (IIn6 . inj) Swap
+swap :: (DataSource' '[f, g] '[a, b], Swap :<: iF) => IFix7 iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a] ('Succ ('Succ 'Zero))
+swap = (IIn7 . inj) Swap
 
-dropL :: (DataSource' '[f, g] '[a, b], DropL :<: iF) => IFix6 iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b]
-dropL = (IIn6 . inj) DropL
+dropL :: (DataSource' '[f, g] '[a, b], DropL :<: iF) => IFix7 iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b] ('Succ ('Succ 'Zero))
+dropL = (IIn7 . inj) DropL
 
-dropR :: (DataSource' '[f, g] '[a, b], DropR :<: iF) => IFix6 iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a]
-dropR = (IIn6 . inj) DropR
+dropR :: (DataSource' '[f, g] '[a, b], DropR :<: iF) => IFix7 iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a] ('Succ ('Succ 'Zero))
+dropR = (IIn7 . inj) DropR
 
 
 

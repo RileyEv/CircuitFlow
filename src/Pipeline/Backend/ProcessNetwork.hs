@@ -13,10 +13,10 @@ module Pipeline.Backend.ProcessNetwork (
 ) where
 
 import Pipeline.Core.DataStore (Apply, (:++))
-import Pipeline.Core.HList (HList (..))
+import Pipeline.Core.HList (HList(..), HList'(..))
 import Pipeline.Core.IFunctor (IFix6(..))
 import Pipeline.Core.Nat (Take, Drop, SNat(..))
-import Pipeline.Core.Task (TaskF)
+import Pipeline.Core.Task (TaskF(..))
 
 import Control.Concurrent (ThreadId, killThread)
 import Control.Concurrent.Chan (Chan, writeChan, readChan)
@@ -24,7 +24,9 @@ import Control.Concurrent.Chan (Chan, writeChan, readChan)
 import Control.Monad (forM_, forever)
 
 import Data.Type.Equality ((:~:)(..), gcastWith)
-import Unsafe.Coerce (unsafeCoerce)
+
+import Prelude hiding (read)
+
 
 data PipeList (fs :: [* -> *]) (as :: [*]) (xs :: [*]) where
   PipeCons :: Chan (f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
@@ -82,24 +84,27 @@ stopNetwork :: Network inputS inputsT inputsA outputsS outputsT outputsA -> IO (
 stopNetwork n = forM_ (threads n) killThread
 
 
-taskExecuter :: IFix6 TaskF inputsS inputsT inputsA outputS outputT outputsA
+taskExecuter :: TaskF iF inputsS inputsT inputsA outputS outputT outputsA ninputs
   -> PipeList inputsS inputsT inputsA
   -> PipeList outputS outputT outputA
   -> IO ()
-taskExecuter t ins out = forever (do
-  return ())
+taskExecuter (TaskF f outStore) inPipes outPipes = forever (do
+  input <- read inPipes
+  r <- f input outStore
+  write (HCons' r HNil') outPipes)
+ 
 
 
-input :: HList inputsA -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
-input xs n = input' xs (inputs n)
-  where
-    input' :: HList inputsA -> PipeList inputsS inputsT inputsA -> IO ()
-    input' HNil PipeNil = return ()
-    input' (HCons x xs) (PipeCons p ps) = writeChan p x >> input' xs ps
+write :: HList' inputsS inputsT -> PipeList inputsS inputsT inputsA -> IO ()
+write HNil' PipeNil = return ()
+write (HCons' x xs) (PipeCons p ps) = writeChan p x >> write xs ps
 
-output :: Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO (HList outputsA)
-output n = output' (outputs n)
-  where
-    output' :: PipeList outputsS outputsT outputsA -> IO (HList outputsA)
-    output' PipeNil = return HNil
-    output' (PipeCons p ps) = readChan p >>= \x -> output' ps >>= \xs -> return (HCons x xs)
+read :: PipeList outputsS outputsT outputsA -> IO (HList' outputsS outputsT)
+read PipeNil = return HNil'
+read (PipeCons p ps) = readChan p >>= \x -> read ps >>= \xs -> return (HCons' x xs)
+
+input :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
+input xs n = write xs (inputs n)
+
+output :: Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO (HList' outputsS outputsT)
+output n = read (outputs n)

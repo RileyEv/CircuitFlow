@@ -169,6 +169,16 @@ append (SSucc n) m (x :> xs) ys = gcastWith (proof n m) $ x :> append n m xs ys
         p3 = gcastWith (plusComm y x) Refl
 
 
+class IsNat (n :: Nat) where nat :: SNat n
+
+instance IsNat Zero where
+  nat = SZero
+
+instance IsNat n => IsNat (Succ n) where
+  nat = SSucc nat
+
+
+
 type family Length (l :: [k]) :: Nat where
   Length '[] = 'Zero
   Length (e ': l) = 'Succ (Length l)

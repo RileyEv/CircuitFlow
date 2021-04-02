@@ -2,11 +2,11 @@
 module Pipeline.Backend.Translation where
 
 import Pipeline.Core.Task (TaskF(..))
-import Pipeline.Core.IFunctor (IFunctor6, IFix6(..))
+import Pipeline.Core.IFunctor (IFunctor7, IFix7(..))
 import Pipeline.Core.Modular ((:+:)(..))
 import Pipeline.Core.HList
 import Pipeline.Core.DataStore ((:++), Apply, DataSource')
-import Pipeline.Core.Nat (SNat(..), Take, Drop, Length, (:<=), (==>))
+import Pipeline.Core.Nat (SNat(..), Take, Drop, Length, (:<=), (==>), (!+), nat, IsNat)
 
 import Pipeline.Frontend.Circuit
 
@@ -40,9 +40,9 @@ initialNetwork = do
 
 
 -- | The accumulating fold to build the network.
-class IFunctor6 iF => BuildNetwork iF where
+class IFunctor7 iF => BuildNetwork iF where
   buildNetwork :: Network asS asT asA bsS bsT bsA
-    -> iF (Circuit' TaskF) bsS bsT bsA csS csT csA
+    -> iF (Circuit' TaskF) bsS bsT bsA csS csT csA nbs
     -> IO (Network asS asT asA csS csT csA)
 
 instance (BuildNetwork iF, BuildNetwork iG) => BuildNetwork (iF :+: iG) where
@@ -56,11 +56,11 @@ instance BuildNetwork TaskF where
   buildNetwork n (TaskF t out) = do
     c <- newChan
     let output = PipeCons c PipeNil
-    threadId <- forkIO (taskExecuter (IIn6 $ TaskF t out) (outputs n) output)
+    threadId <- forkIO (taskExecuter (TaskF t out) (outputs n) output)
     return $ Network (threadId : threads n) (inputs n) output
 
 instance BuildNetwork Then where
-  buildNetwork n (Then (IIn6 x) (IIn6 y)) = do
+  buildNetwork n (Then (IIn7 x) (IIn7 y)) = do
     nx <- buildNetwork n x
     buildNetwork nx y
 
@@ -101,9 +101,9 @@ instance BuildNetwork DropR where
 instance BuildNetwork Beside where
   buildNetwork = beside
 
-beside :: forall asS asT asA bsS bsT bsA csS csT csA.
-  Network asS asT asA bsS bsT bsA -> Beside Circuit bsS bsT bsA csS csT csA -> IO (Network asS asT asA csS csT csA)
-beside n (Beside l r) = do
+beside :: forall asS asT asA bsS bsT bsA csS csT csA nbs.
+  Network asS asT asA bsS bsT bsA -> Beside Circuit bsS bsT bsA csS csT csA nbs -> IO (Network asS asT asA csS csT csA)
+beside n (Beside l@(IIn7 l') r) = do
   let ninputs = circuitInputs l
   (nL, nR) <- splitNetwork ninputs
   (newL, newR) <- translate ninputs (nL, nR) (l, r)
@@ -116,9 +116,10 @@ beside n (Beside l r) = do
 
     translate :: SNat nbsL
       -> (Network asS asT asA (Take nbsL bsS) (Take nbsL bsT) (Take nbsL bsA), Network asS asT asA (Drop nbsL bsS) (Drop nbsL bsT) (Drop nbsL bsA))
-      -> (Circuit (Take nbsL bsS) (Take nbsL bsT) (Take nbsL bsA) csLS csLT csLA, Circuit (Drop nbsL bsS) (Drop nbsL bsT) (Drop nbsL bsA) csRS csRT csRA)
+      -> (Circuit (Take nbsL bsS) (Take nbsL bsT) (Take nbsL bsA) csLS csLT csLA nbsL,
+          Circuit (Drop nbsL bsS) (Drop nbsL bsT) (Drop nbsL bsA) csRS csRT csRA nbsR)
       -> IO (Network asS asT asA csLS csLT csLA, Network asS asT asA csRS csRT csRA)
-    translate _ (nL, nR) (IIn6 cL, IIn6 cR) = do
+    translate _ (nL, nR) (IIn7 cL, IIn7 cR) = do
       nL' <- buildNetwork nL cL
       nR' <- buildNetwork nR cR
       return (nL', nR')
@@ -135,11 +136,48 @@ beside n (Beside l r) = do
 
 -- Network as cs  = Network as  csL ` join ` Network as  csR
 
+
 circuitInputs :: (Length inputsS ~ Length inputsT,
                   Length inputsT ~ Length inputsA,
-                  Length inputsA ~ Length inputsS) => Circuit inputsS inputsT inputsA outputsS outputsT outputsA -> (SNat (Length inputsS))
-circuitInputs = undefined
+                  Length inputsA ~ Length inputsS,
+                  ninputs ~ Length inputsS, IsNat ninputs) => Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs -> (SNat (Length inputsS))
+circuitInputs c = nat
 
+
+-- class IFunctor7 iF => CircuitInputs iF where
+--   circuitInputs :: (Length inputsS ~ Length inputsT,
+--                     Length inputsT ~ Length inputsA,
+--                     Length inputsA ~ Length inputsS,
+--                     Length inputsS ~ ninputs)
+--     => iF Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs -> SNat (Length inputsS)
+
+-- instance  (CircuitInputs iF, CircuitInputs iG) => CircuitInputs (iF :+: iG) where
+--   circuitInputs (L x) = circuitInputs x
+--   circuitInputs (R y) = circuitInputs y
+
+-- instance CircuitInputs Id where
+--   circuitInputs _ = SSucc SZero
+
+-- instance CircuitInputs TaskF where
+--   circuitInputs (TaskF _ _) = undefined
+
+-- instance CircuitInputs Then where
+--   circuitInputs (Then (IIn7 t) _) = circuitInputs t
+
+-- instance CircuitInputs Beside where
+--   circuitInputs (Beside (IIn7 l) (IIn7 r)) = circuitInputs l !+ circuitInputs r
+
+-- instance CircuitInputs Replicate where
+--   circuitInputs _ = SSucc SZero
+
+-- instance CircuitInputs Swap where
+--   circuitInputs _ = SSucc (SSucc SZero)
+
+-- instance CircuitInputs DropL where
+--   circuitInputs _ = SSucc (SSucc SZero)
+  
+-- instance CircuitInputs DropR where
+--   circuitInputs _ = SSucc (SSucc SZero)
 
 -- applyAppendLId :: PipeList (Apply fs as) -> Apply fs as ++ '[] :~: Apply fs as
 -- applyAppendLId PipeNil = Refl
