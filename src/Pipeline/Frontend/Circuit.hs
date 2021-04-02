@@ -69,7 +69,7 @@ data Beside (iF :: [* -> *] -> [*] -> [* -> *] -> [*] -> *) (inputsS :: [* -> *]
              DataSource' is ds)
     => iF fs as gs bs
     -> iF hs cs is ds
-    -> Beside iF (fs ++ hs) (as ++ cs) (gs ++ is) (bs ++ ds)
+    -> Beside iF (fs :++ hs) (as :++ cs) (gs :++ is) (bs :++ ds)
 
 data Swap (iF :: [* -> *] -> [*] -> [* -> *] -> [*] -> *) (inputsS :: [* -> *]) (inputsT :: [*]) (outputsS :: [* -> *]) (outputsT :: [*]) where
   Swap :: (DataSource' '[f, g] '[a, b]) => Swap iF '[f, g] '[a, b] '[g, f] '[b, a]
@@ -139,7 +139,7 @@ infixr 4 <->
          Beside :<: iF)
        => IFix4 iF fs as gs bs
        -> IFix4 iF hs cs is ds
-       -> IFix4 iF (fs ++ hs) (as ++ cs) (gs ++ is) (bs ++ ds)
+       -> IFix4 iF (fs :++ hs) (as :++ cs) (gs :++ is) (bs :++ ds)
 (<>) l r = IIn4 (inj (Beside l r))
 infixr 5 <>
 

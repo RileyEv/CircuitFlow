@@ -9,3 +9,7 @@ data HList (xs :: [*]) where
 data HList' (fs :: [* -> *]) (as :: [*]) where
   HCons' :: f a -> HList' fs as -> HList' (f ': fs) (a ': as)
   HNil' :: HList' '[] '[]
+
+
+data NEList a = NESingle a
+              | NECons a (NEList a)
