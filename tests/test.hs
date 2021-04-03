@@ -10,6 +10,4 @@ main = defaultMain tests
 
 
 tests :: TestTree
-tests = testGroup "Pipeline Tests" [ Pipe.tests
-                                   ]
-        
+tests = testGroup "Pipeline Tests" [Pipe.tests]

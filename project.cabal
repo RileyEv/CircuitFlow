@@ -19,14 +19,21 @@ extra-source-files:  CHANGELOG.md, README.md
 
 library
   exposed-modules:
-      Pipeline
-    , Pipeline.Core.DataStore
-    , Pipeline.Core.Graph
-    , Pipeline.Core.IFunctor
-    , Pipeline.Core.Modular
-    , Pipeline.Core.Task
-    , Pipeline.Backend.GraphMachine
-    , Pipeline.Frontend.Circuit
+      Pipeline.Circuit
+    , Pipeline.DataStore
+    , Pipeline.Network
+    , Pipeline.Task
+    , Pipeline.Nat
+    , Pipeline.Internal.Core.DataStore
+    , Pipeline.Internal.Core.CircuitAST
+    , Pipeline.Internal.Core.PipeList
+    , Pipeline.Internal.Common.IFunctor
+    , Pipeline.Internal.Common.IFunctor.Modular
+    , Pipeline.Internal.Common.HList
+    , Pipeline.Internal.Common.Nat
+    , Pipeline.Internal.Common.TypeList
+    , Pipeline.Internal.Backend.ProcessNetwork
+    , Pipeline.Internal.Backend.Translation
 
   default-extensions:
       GADTs
@@ -35,11 +42,14 @@ library
     , KindSignatures
     , RankNTypes
     , TypeOperators
+    , TypeApplications
     , DataKinds
+    , PolyKinds
+    , TypeFamilies
+    , MultiParamTypeClasses
 
   build-depends:
-      base >=4.13 && <4.14
-    , fgl
+      base >=4.13 && <5
     , cassava
     , bytestring
     , vector
