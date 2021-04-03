@@ -14,9 +14,6 @@ readIOTask = functionTask (read :: String -> Int) Empty
 showFileTask :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[Int] '[VariableStore Int] '[FileStore] '[String] '[FileStore String] N1
 showFileTask f = functionTask (show :: Int -> String) (FileStore f)
 
--- replicateTask :: Task '[VariableStore] '[Int] VariableStore [Int]
--- replicateTask = functionTask (replicate 100) Empty
-
 zipWithSelf :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
 zipWithSelf f = functionTask (\xs -> zip xs xs) (CSVStore f)
 
@@ -26,8 +23,6 @@ zipWith1To100 f = functionTask (zip [1..100]) (CSVStore f)
 zipWith100To1 :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
 zipWith100To1 f = functionTask (zip [100, 99..1]) (CSVStore f)
 
-
--- Some example tasks
 plus1Task :: (Task :<: iF) => IFix7 iF '[VariableStore] '[Int] '[VariableStore Int] '[VariableStore] '[Int] '[VariableStore Int] N1
 plus1Task = functionTask (+1) Empty
 
