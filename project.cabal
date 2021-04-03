@@ -6,11 +6,12 @@ name:                project
 version:             0.1.0.0
 -- synopsis:
 -- description:
--- bug-reports:
+homepage: https://github.com/RileyEv/project
+bug-reports: https://github.com/RileyEv/project/issues
 -- license:
 license-file:        LICENSE
 author:              Riley Evans
-maintainer:          riley@rileyevans.co.uk
+maintainer:          haskell@rly.rocks
 -- copyright:
 -- category:
 build-type:          Simple
