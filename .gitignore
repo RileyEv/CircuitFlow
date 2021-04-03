@@ -1,3 +1,4 @@
+# Haskell
 dist
 dist-*
 cabal-dev
@@ -22,3 +23,26 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 .dir-locals.el
+
+
+# LaTeX
+*.aux
+*.loa
+*.lof
+*.lol
+*.lot
+*.toc
+*.out
+*.log
+*.ptb
+*.bbl
+*.blg
+*.log
+*.ptb
+*.xml
+*.bcf
+*.hi
+*.o
+*.fdb_latexmk
+*.fls
+.auctex-auto/
