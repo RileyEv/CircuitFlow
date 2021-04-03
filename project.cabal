@@ -19,18 +19,21 @@ extra-source-files:  CHANGELOG.md, README.md
 
 library
   exposed-modules:
-      Pipeline
-    , Pipeline.Core.DataStore
-    , Pipeline.Core.Graph
-    , Pipeline.Core.HList
-    , Pipeline.Core.IFunctor
-    , Pipeline.Core.Modular
-    , Pipeline.Core.Nat
-    , Pipeline.Core.PID
-    , Pipeline.Core.Task
-    , Pipeline.Backend.ProcessNetwork
-    , Pipeline.Backend.Translation
-    , Pipeline.Frontend.Circuit
+      Pipeline.Circuit
+    , Pipeline.DataStore
+    , Pipeline.Network
+    , Pipeline.Task
+    , Pipeline.Nat
+    , Pipeline.Internal.Core.DataStore
+    , Pipeline.Internal.Core.CircuitAST
+    , Pipeline.Internal.Core.PipeList
+    , Pipeline.Internal.Common.IFunctor
+    , Pipeline.Internal.Common.IFunctor.Modular
+    , Pipeline.Internal.Common.HList
+    , Pipeline.Internal.Common.Nat
+    , Pipeline.Internal.Common.TypeList
+    , Pipeline.Internal.Backend.ProcessNetwork
+    , Pipeline.Internal.Backend.Translation
 
   default-extensions:
       GADTs
@@ -47,7 +50,6 @@ library
 
   build-depends:
       base >=4.13 && <5
-    , fgl
     , cassava
     , bytestring
     , vector
@@ -55,8 +57,6 @@ library
     , mtl
   hs-source-dir: src
   default-language: Haskell2010
-  -- ghc-options: -fconstraint-solver-iterations=0
-  --              -freduction-depth=0
 
 test-suite test
   default-language: Haskell2010

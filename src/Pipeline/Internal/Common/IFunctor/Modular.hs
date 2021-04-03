@@ -1,10 +1,12 @@
 {-# Language PolyKinds, MultiParamTypeClasses #-}
-module Pipeline.Core.Modular where
+module Pipeline.Internal.Common.IFunctor.Modular where
 
-import Pipeline.Core.IFunctor (IFunctor7(..))
-import Pipeline.Core.Nat (Nat)
+import Pipeline.Internal.Common.IFunctor (IFunctor7(..))
+import Pipeline.Internal.Common.Nat (Nat)
 
-data (iF :+: iG) (f' :: k -> j -> i -> k -> j -> i -> Nat -> *) (a :: k) (b :: j) (c :: i) (d :: k) (e :: j) (f :: i) (g :: Nat) where
+import Data.Kind (Type)
+
+data (iF :+: iG) (f' :: k -> j -> i -> k -> j -> i -> Nat -> Type) (a :: k) (b :: j) (c :: i) (d :: k) (e :: j) (f :: i) (g :: Nat) where
   L :: iF f' a b c d e f g -> (iF :+: iG) f' a b c d e f g
   R :: iG f' a b c d e f g -> (iF :+: iG) f' a b c d e f g
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE PolyKinds #-}
-module Pipeline.Core.IFunctor where
+module Pipeline.Internal.Common.IFunctor where
 
 
 class IFunctor iF where
