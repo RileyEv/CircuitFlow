@@ -1,7 +1,10 @@
 module Pipeline.Task (
   multiInputTask,
   functionTask,
-  Task(..)
+  Task(..),
+  IFix7(..),
+  (:<:)(..),
+  HList(..),
 ) where
 
 import Pipeline.Internal.Core.DataStore (DataStore'(..), DataStore(..))
@@ -31,3 +34,4 @@ hSequence (IOCons x xs) = do
   x' <- x
   xs' <- hSequence xs
   return $ x' `HCons` xs'
+
