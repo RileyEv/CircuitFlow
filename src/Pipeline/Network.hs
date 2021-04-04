@@ -1,7 +1,8 @@
 module Pipeline.Network (
   module Pipeline.Internal.Backend.ProcessNetwork,
   module Pipeline.Internal.Common.HList,
-  startNetwork
+  startNetwork,
+  InitialPipes,
 ) where
 
 import Pipeline.Internal.Core.CircuitAST (Circuit)

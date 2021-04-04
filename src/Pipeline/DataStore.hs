@@ -17,7 +17,7 @@ import qualified Data.Vector as V (toList)
 {-|
   A 'VariableStore' is a simple in memory 'DataStore'.
 -}
-data VariableStore a = Var a | Empty
+data VariableStore a = Var a | Empty deriving (Eq, Show)
 
 instance DataStore VariableStore a where
   fetch (Var x) = return x
@@ -30,7 +30,7 @@ instance DataStore VariableStore a where
   Fetching from an empty store will read input from stdin and writing to a
   store will cause the output to be writo to stdout.
 -}
-data IOStore a = IOVar a | IOEmpty
+data IOStore a = IOVar a | IOEmpty deriving (Eq, Show)
 
 {-|
   An instance in only defined for String types
@@ -49,7 +49,7 @@ instance DataStore IOStore String where
   A 'FileStore' is able to write a string to a file for intermediate
   between tasks
 -}
-newtype FileStore a = FileStore String
+newtype FileStore a = FileStore String deriving (Eq, Show)
 
 {-|
   You are able to write a String to a FileStore.
@@ -77,7 +77,7 @@ instance DataStore FileStore [String] where
 {-|
   A 'CSVStore' is able to write data to a csv file.
 -}
-newtype CSVStore a = CSVStore String
+newtype CSVStore a = CSVStore String deriving (Eq, Show)
 
 {-|
   A list of any type can be wrote to a CSV as long as it has a 'ToRecord'

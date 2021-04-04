@@ -14,7 +14,7 @@ import Data.Kind (Type)
 
 
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons :: Chan (f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
+  PipeCons :: (Eq (f a), Show (f a)) => Chan (f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
   PipeNil :: PipeList '[] '[] (Apply '[] '[])
 
 
