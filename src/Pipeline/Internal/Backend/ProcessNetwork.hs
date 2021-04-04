@@ -21,9 +21,11 @@ import Control.Monad (forM_, forever)
 import Data.Kind (Type)
 
 
--- | Stores details about the network.
-data Network (inputsStorage  :: [Type -> Type]) (inputsType  :: [Type]) (inputsAp  :: [Type])
-             (outputsStorage :: [Type -> Type]) (outputsType :: [Type]) (outputsAp :: [Type]) where
+-- | Main type for storing information about the process network.
+-- 
+--   The type arguments align with the 'Pipeline.Circuit.Circuit' data type.
+data Network (inputsStorageType  :: [Type -> Type]) (inputsType  :: [Type]) (inputsAp  :: [Type])
+             (outputsStorageType :: [Type -> Type]) (outputsType :: [Type]) (outputsAp :: [Type]) where
   Network :: {
     threads :: [ThreadId],
     inputs :: PipeList inputsStorage inputsType inputsAp,
@@ -56,8 +58,12 @@ read :: PipeList outputsS outputsT outputsA -> IO (HList' outputsS outputsT)
 read PipeNil = return HNil'
 read (PipeCons p ps) = readChan p >>= \x -> read ps >>= \xs -> return (HCons' x xs)
 
+-- | This will write the given input to the network 
 input :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
 input xs n = write xs (inputs n)
 
+-- | This will read from the outputs of the network.
+--
+--   This is a blocking call, therefore if there are no outputs to be read then the program will deadlock.
 output :: Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO (HList' outputsS outputsT)
 output n = read (outputs n)

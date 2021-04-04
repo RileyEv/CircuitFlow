@@ -1,5 +1,6 @@
 module Pipeline.Internal.Core.CircuitAST (
   Circuit,
+  -- * Constructors
   Id(..),
   Replicate(..),
   Then(..),
@@ -129,4 +130,27 @@ instance IFunctor7 Task where
   
 type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task
 
+{-|
+The core type for a Circuit. It takes 7 different type arguments
+
+@
+Circuit (inputsStorageTypes  :: [Type -> Type]) (inputsTypes  :: [Type]) (inputsApplied  :: [Type])
+        (outputsStorageTypes :: [Type -> Type]) (outputsTypes :: [Type]) (outputsApplied :: [Type])
+        (nInputs :: Nat)
+@
+
+@inputStorageTypes@ is a type-list of storage types,
+for example @'['Pipeline.DataStore.VariableStore', 'Pipeline.DataStore.CSVStore']@.
+
+@inputTypes@ is a type-list of the types stored in the storage,
+for example @'['Int', [(String, Float)]]@.
+
+@inputsApplied@ is a type-list of the storage types appiled to the types stored,
+for example @'['Pipeline.DataStore.VariableStore' Int, 'Pipeline.DataStore.CSVStore' [(String, Float)]]@.
+
+@outputsStorageTypes@, @inputTypes@ and @outputsApplied@ mirror the examples above, but for the outputs instead.
+
+@nInputs@ is a type-level 'Nat' that is the length of all input lists.
+
+-}
 type Circuit = IFix7 CircuitF

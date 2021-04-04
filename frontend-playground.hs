@@ -8,30 +8,29 @@ import Pipeline.Nat
 import Pipeline.Task
 import Pipeline.Network
 
-readIOTask :: (Task :<: iF) => IFix7 iF '[IOStore] '[String] '[IOStore String] '[VariableStore] '[Int] '[VariableStore Int] N1
+readIOTask :: Circuit '[IOStore] '[String] '[IOStore String] '[VariableStore] '[Int] '[VariableStore Int] N1
 readIOTask = functionTask (read :: String -> Int) Empty
 
-showFileTask :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[Int] '[VariableStore Int] '[FileStore] '[String] '[FileStore String] N1
+showFileTask :: FilePath -> Circuit '[VariableStore] '[Int] '[VariableStore Int] '[FileStore] '[String] '[FileStore String] N1
 showFileTask f = functionTask (show :: Int -> String) (FileStore f)
 
-zipWithSelf :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
+zipWithSelf :: FilePath -> Circuit '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
 zipWithSelf f = functionTask (\xs -> zip xs xs) (CSVStore f)
 
-zipWith1To100 :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
+zipWith1To100 :: FilePath -> Circuit '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
 zipWith1To100 f = functionTask (zip [1..100]) (CSVStore f)
 
-zipWith100To1 :: (Task :<: iF) => FilePath -> IFix7 iF '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
+zipWith100To1 :: FilePath -> Circuit '[VariableStore] '[[Int]] '[VariableStore [Int]] '[CSVStore] '[[(Int, Int)]] '[CSVStore [(Int, Int)]] N1
 zipWith100To1 f = functionTask (zip [100, 99..1]) (CSVStore f)
 
-plus1Task :: (Task :<: iF) => IFix7 iF '[VariableStore] '[Int] '[VariableStore Int] '[VariableStore] '[Int] '[VariableStore Int] N1
+plus1Task :: Circuit '[VariableStore] '[Int] '[VariableStore Int] '[VariableStore] '[Int] '[VariableStore Int] N1
 plus1Task = functionTask (+1) Empty
 
-showTask :: (Task :<: iF) => IFix7 iF '[VariableStore] '[Int] '[VariableStore Int] '[VariableStore] '[String] '[VariableStore String] N1
+showTask :: Circuit '[VariableStore] '[Int] '[VariableStore Int] '[VariableStore] '[String] '[VariableStore String] N1
 showTask = functionTask show Empty
 
-appendTask :: (Task :<: iF)
-  => IFix7 iF '[VariableStore, VariableStore] '[String, String] '[VariableStore String, VariableStore String]
-              '[VariableStore] '[String] '[VariableStore String] N2
+appendTask :: Circuit '[VariableStore, VariableStore] '[String, String] '[VariableStore String, VariableStore String]
+                      '[VariableStore] '[String] '[VariableStore String] N2
 appendTask = multiInputTask (\(HCons x (HCons y HNil)) -> x ++ y ) Empty
 
 
