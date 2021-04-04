@@ -17,7 +17,7 @@ import Data.List (nub)
 import Data.Kind (Type)
 
 
--- Used to build a list of pipes from a list of types.
+-- | Used to build a list of pipes from a list of types.
 class InitialPipes (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type]) where
   initialPipes :: IO (PipeList inputsS inputsT inputsA)
 

@@ -1,13 +1,30 @@
+{-|
+Module      : Pipeline.DataStore
+Description : The DataStore class and some pre-defined stores.
+Copyright   : (c) Riley Evans, 2020
+License     : BSD 3-Clause
+Maintainer  : haskell@rly.rocks
+
+This package contains the 'DataStore' class, it is the method used to transferring data between tasks.
+-}
 module Pipeline.DataStore (
-  module Pipeline.Internal.Core.DataStore,
+  -- * The DataStore Class
+  DataStore(..),
+  -- ** Combined DataStores
+  DataStore'(..),
+  -- * Pre-Defined DataStores
+  -- ** VariableStore
   VariableStore(..),
+  -- ** IOStore
   IOStore(..),
+  -- ** FileStore
   FileStore(..),
+  -- ** CSVStore
   CSVStore(..)
 ) where
 
 
-import Pipeline.Internal.Core.DataStore (DataStore(..))
+import Pipeline.Internal.Core.DataStore (DataStore'(..), DataStore(..))
 
 import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
 import qualified Data.ByteString.Lazy as B (readFile, writeFile)
@@ -27,13 +44,14 @@ instance DataStore VariableStore a where
 
 {-|
   An 'IOStore' is a simple in memory 'DataStore', with some extra features.
+
   Fetching from an empty store will read input from stdin and writing to a
-  store will cause the output to be writo to stdout.
+  store will cause the output to be wrote to stdout.
 -}
 data IOStore a = IOVar a | IOEmpty deriving (Eq, Show)
 
 {-|
-  An instance in only defined for String types
+  An instance is only defined for String types
 -}
 instance DataStore IOStore String where
   fetch (IOVar x) = return x
