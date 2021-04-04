@@ -21,7 +21,7 @@ import Data.Kind (Type)
 class InitialPipes (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type]) where
   initialPipes :: IO (PipeList inputsS inputsT inputsA)
 
-instance InitialPipes fs as xs => InitialPipes (f ': fs) (a ': as) (f a ': xs) where
+instance (InitialPipes fs as xs, Eq (f a), Show (f a)) => InitialPipes (f ': fs) (a ': as) (f a ': xs) where
   initialPipes = do
     c <- (newChan :: IO (Chan (f a)))
     PipeCons c <$> (initialPipes :: IO (PipeList fs as xs))
