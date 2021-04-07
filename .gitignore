@@ -47,3 +47,5 @@ cabal.project.local~
 *.fls
 .auctex-auto/
 *.tdo
+.pdf
+.tex
