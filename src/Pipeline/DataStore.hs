@@ -20,7 +20,9 @@ module Pipeline.DataStore (
   -- ** FileStore
   FileStore(..),
   -- ** CSVStore
-  CSVStore(..)
+  CSVStore(..),
+  ToRecord,
+  FromRecord,
 ) where
 
 
