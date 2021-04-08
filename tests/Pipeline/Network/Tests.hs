@@ -1,7 +1,6 @@
 module Pipeline.Network.Tests where
 
 import Test.Tasty
-import Test.Tasty.HUnit
 
 import Pipeline.Network.MinimalTests (minimalTests)
 
