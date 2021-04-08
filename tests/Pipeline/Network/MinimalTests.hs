@@ -24,8 +24,8 @@ minimalTests = testGroup "Minimal Examples" [ idTests
 singleInputTest :: (InitialPipes a b c) => Circuit a b c d e f g -> HList' a b -> IO (HList' d e)
 singleInputTest circuit i = do
   n <- startNetwork circuit
-  input i n
-  out <- output n
+  input_ i n
+  out <- output_ n
   stopNetwork n
   return out
 

@@ -13,6 +13,7 @@ module Pipeline.Internal.Core.CircuitAST (
 
 import Pipeline.Internal.Core.DataStore (DataStore', DataStore)
 import Pipeline.Internal.Core.PipeList (AppendP)
+import Pipeline.Internal.Core.UUID (UUID)
 import Pipeline.Internal.Common.Nat (Nat(..), (:+), (:=), IsNat(..))
 import Pipeline.Internal.Common.IFunctor (IFix7(..), IFunctor7(..))
 import Pipeline.Internal.Common.IFunctor.Modular ((:+:)(..))
@@ -99,7 +100,7 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
            outputsS ~ '[g'], outputsT ~ '[b'], outputsA ~ '[g' b'],
            DataStore' inputsS inputsT,
            DataStore g' b', Eq (g' b'), Show (g' b'))
-       => (HList' inputsS inputsT -> g' b' -> IO (g' b'))
+       => (UUID -> HList' inputsS inputsT -> g' b' -> IO (g' b'))
        -> g' b'
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
 

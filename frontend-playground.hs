@@ -2,6 +2,8 @@ module Main where
 
 import Prelude hiding (id, replicate, (<>))
 
+import Control.Monad (forM_)
+
 import Pipeline.Circuit
 import Pipeline.DataStore
 import Pipeline.Nat
@@ -103,18 +105,14 @@ example3 = example1   <> example2
 main :: IO ()
 main = do
   n1 <- startNetwork example2
-  input (HCons' (Var 0) HNil') n1
-  input (HCons' (Var 1) HNil') n1
-  input (HCons' (Var 2) HNil') n1
-  (HCons' (Var x) (HCons' (Var y) HNil')) <- output n1
-  print x
-  print y
-  (HCons' (Var x) (HCons' (Var y) HNil')) <- output n1
-  print x
-  print y
-  (HCons' (Var x) (HCons' (Var y) HNil')) <- output n1
-  print x
-  print y
+  input_ (HCons' (Var 0) HNil') n1
+  input_ (HCons' (Var 1) HNil') n1
+  input_ (HCons' (Var 2) HNil') n1
+  forM_ [0 .. 2] (\_ ->
+    do
+      (HCons' (Var x) (HCons' (Var y) HNil')) <- output_ n1
+      print x
+      print y)
 
   stopNetwork n1
 
