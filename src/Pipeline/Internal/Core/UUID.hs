@@ -6,7 +6,5 @@ import Data.UUID.V4 (nextRandom)
 
 type UUID = String
 
-genUUID :: IO (UUID)
-genUUID = do
-  uuid <- nextRandom
-  return $ toString uuid
+genUUID :: IO UUID
+genUUID = toString <$> nextRandom

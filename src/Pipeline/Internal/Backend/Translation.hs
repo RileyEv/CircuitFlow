@@ -24,7 +24,7 @@ class InitialPipes (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [
 
 instance (InitialPipes fs as xs, Eq (f a), Show (f a)) => InitialPipes (f ': fs) (a ': as) (f a ': xs) where
   initialPipes = do
-    c <- (newChan :: IO (Chan (UUID, f a)))
+    c <- newChan :: IO (Chan (UUID, f a))
     PipeCons c <$> (initialPipes :: IO (PipeList fs as xs))
 
 instance InitialPipes '[] '[] '[] where
@@ -35,7 +35,7 @@ initialNetwork :: forall inputsS inputsT inputsA.
   (InitialPipes inputsS inputsT inputsA)
   => IO (Network inputsS inputsT inputsA inputsS inputsT inputsA)
 initialNetwork = do
-  ps <- (initialPipes :: IO (PipeList inputsS inputsT inputsA))
+  ps <- initialPipes :: IO (PipeList inputsS inputsT inputsA)
   return $ Network [] ps ps 
 
 
