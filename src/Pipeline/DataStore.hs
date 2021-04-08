@@ -37,9 +37,9 @@ import qualified Data.Vector as V (toList)
 data VariableStore a = Var a | Empty deriving (Eq, Show)
 
 instance DataStore VariableStore a where
-  fetch (Var x) = return x
-  fetch Empty   = error "empty source"
-  save _ x = return (Var x)
+  fetch _ (Var x) = return x
+  fetch _ Empty   = error "empty source"
+  save _ _ x = return (Var x)
 
 
 {-|
@@ -54,12 +54,12 @@ data IOStore a = IOVar a | IOEmpty deriving (Eq, Show)
   An instance is only defined for String types
 -}
 instance DataStore IOStore String where
-  fetch (IOVar x) = return x
-  fetch IOEmpty   = do
+  fetch _ (IOVar x) = return x
+  fetch _ IOEmpty   = do
     putStr "Input: "
     getLine
     
-  save _ x = do
+  save _ _ x = do
     print x
     return (IOVar x)
 
@@ -73,8 +73,8 @@ newtype FileStore a = FileStore String deriving (Eq, Show)
   You are able to write a String to a FileStore.
 -}
 instance DataStore FileStore String where
-  fetch (FileStore fname) = readFile fname
-  save f@(FileStore fname) x = do
+  fetch _ (FileStore fname) = readFile fname
+  save _ f@(FileStore fname) x = do
     writeFile fname x
     return f
 
@@ -83,10 +83,10 @@ instance DataStore FileStore String where
   A new line is added between each string in the list.
 -}
 instance DataStore FileStore [String] where
-  fetch (FileStore fname) = do
+  fetch _ (FileStore fname) = do
     f <- readFile fname
     return (lines f)
-  save f@(FileStore fname) x = do
+  save _ f@(FileStore fname) x = do
     let x' = unlines x
     writeFile fname x'
     return f
@@ -102,7 +102,7 @@ newtype CSVStore a = CSVStore String deriving (Eq, Show)
   and 'FromRecord' instance defined.
 -}
 instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
-  fetch (CSVStore fname) = do
+  fetch _ (CSVStore fname) = do
     f <- B.readFile fname
     let dec = decode NoHeader f
         x' = case dec of
@@ -110,7 +110,7 @@ instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
           Left err -> error err
     return (V.toList x')
     
-  save f@(CSVStore fname) x = do
+  save _ f@(CSVStore fname) x = do
     let enc = encode x
     B.writeFile fname enc
     return f
