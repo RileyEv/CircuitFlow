@@ -24,6 +24,7 @@ module Pipeline.DataStore (
 ) where
 
 
+import Pipeline.Internal.Core.UUID (UUID)
 import Pipeline.Internal.Core.DataStore (DataStore'(..), DataStore(..))
 
 import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
@@ -63,6 +64,10 @@ instance DataStore IOStore String where
     print x
     return (IOVar x)
 
+addUUIDToFileName :: String -> UUID -> String
+addUUIDToFileName fname uuid = uuid ++ "-" ++ fname
+
+
 {-|
   A 'FileStore' is able to write a string to a file for intermediate
   between tasks
@@ -73,9 +78,9 @@ newtype FileStore a = FileStore String deriving (Eq, Show)
   You are able to write a String to a FileStore.
 -}
 instance DataStore FileStore String where
-  fetch _ (FileStore fname) = readFile fname
-  save _ f@(FileStore fname) x = do
-    writeFile fname x
+  fetch uuid (FileStore fname) = readFile (addUUIDToFileName fname uuid)
+  save uuid f@(FileStore fname) x = do
+    writeFile (addUUIDToFileName fname uuid) x
     return f
 
 {-|
@@ -83,12 +88,12 @@ instance DataStore FileStore String where
   A new line is added between each string in the list.
 -}
 instance DataStore FileStore [String] where
-  fetch _ (FileStore fname) = do
-    f <- readFile fname
+  fetch uuid (FileStore fname) = do
+    f <- readFile (addUUIDToFileName fname uuid)
     return (lines f)
-  save _ f@(FileStore fname) x = do
+  save uuid f@(FileStore fname) x = do
     let x' = unlines x
-    writeFile fname x'
+    writeFile (addUUIDToFileName fname uuid) x'
     return f
 
 
@@ -102,15 +107,15 @@ newtype CSVStore a = CSVStore String deriving (Eq, Show)
   and 'FromRecord' instance defined.
 -}
 instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
-  fetch _ (CSVStore fname) = do
-    f <- B.readFile fname
+  fetch uuid (CSVStore fname) = do
+    f <- B.readFile (addUUIDToFileName fname uuid)
     let dec = decode NoHeader f
         x' = case dec of
           Right x -> x
           Left err -> error err
     return (V.toList x')
     
-  save _ f@(CSVStore fname) x = do
+  save uuid f@(CSVStore fname) x = do
     let enc = encode x
-    B.writeFile fname enc
+    B.writeFile (addUUIDToFileName fname uuid) enc
     return f
