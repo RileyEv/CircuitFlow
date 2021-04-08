@@ -30,6 +30,7 @@ library
       Pipeline.Internal.Core.DataStore
     , Pipeline.Internal.Core.CircuitAST
     , Pipeline.Internal.Core.PipeList
+    , Pipeline.Internal.Core.UUID
     , Pipeline.Internal.Common.IFunctor
     , Pipeline.Internal.Common.IFunctor.Modular
     , Pipeline.Internal.Common.HList

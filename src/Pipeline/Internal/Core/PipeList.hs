@@ -8,13 +8,15 @@ module Pipeline.Internal.Core.PipeList (
 import Pipeline.Internal.Common.Nat (SNat(..))
 import Pipeline.Internal.Common.TypeList (Take, Drop, Apply, (:++))
 
+import Pipeline.Internal.Core.UUID (UUID)
+
 import Control.Concurrent.Chan (Chan)
 
 import Data.Kind (Type)
 
 
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons :: (Eq (f a), Show (f a)) => Chan (f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
+  PipeCons :: (Eq (f a), Show (f a)) => Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
   PipeNil :: PipeList '[] '[] (Apply '[] '[])
 
 
