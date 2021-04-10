@@ -53,7 +53,7 @@ library
     , MultiParamTypeClasses
 
   build-depends:
-      base >=4.13 && <5
+      base >=4 && <5
     , cassava
     , bytestring
     , vector
