@@ -2,6 +2,7 @@ module Main where
 
 import Pipeline
 import Prelude hiding (id, (<>), replicate)
+import Data.Time.Format.ISO8601 (iso8601ParseM)
 
 top10Task :: (ToRecord a, FromRecord a) => FilePath -> Circuit '[CSVStore] '[[a]] '[CSVStore [a]] '[CSVStore] '[[a]] '[CSVStore [a]] N1
 top10Task fname = functionTask f (CSVStore fname)
