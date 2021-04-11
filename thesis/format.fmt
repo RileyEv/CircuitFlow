@@ -1,0 +1,24 @@
+
+%include polycode.fmt
+%include forall.fmt
+%include spacing.fmt
+
+\newmuskip\codemuskip
+\codemuskip=4.0mu plus 2.0mu minus 2.0mu\relax
+\newcommand\codeskip{\mskip\codemuskip}%
+\let\codefont\textsf
+\newcommand\sub[1]{\ensuremath{_{\text{#1}}}}
+
+\newcommand\keyw[1]{{\codefont{\textbf{#1}}}}
+\newcommand\id[1]{\Varid{#1}}
+\newcommand\idsym[1]{\mathbin{\id{#1}}}
+\newcommand{\vertrule}[1][1.0ex]{\rule[-0.0ex]{.45pt}{#1}}
+
+%format `comp_` = "\cdot "
+%subst space        = "\codeskip "
+%subst char a       = "\text{\ttfamily{\textquotesingle}" a "\textquotesingle}"
+%subst backquoted a = "\mathbin{\text{\`{}}" a "\text{\`{}}}"
+
+\renewcommand\Varid[1]{\codefont{#1}}
+\let\Conid\Varid
+%format return = "\keyw{return}"

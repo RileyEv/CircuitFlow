@@ -46,3 +46,6 @@ cabal.project.local~
 *.fdb_latexmk
 *.fls
 .auctex-auto/
+*.tdo
+.pdf
+.tex
