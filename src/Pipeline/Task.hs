@@ -21,6 +21,7 @@ module Pipeline.Task (
 
 import Pipeline.Internal.Core.DataStore (DataStore'(..), DataStore(..))
 import Pipeline.Internal.Core.CircuitAST (Task(..), Circuit)
+import Pipeline.Internal.Core.UUID (UUID)
 import Pipeline.Internal.Common.IFunctor (IFix7(..))
 import Pipeline.Internal.Common.IFunctor.Modular ((:<:)(..))
 import Pipeline.Internal.Common.HList (HList(..), HList'(..), IOList(..))
@@ -34,9 +35,9 @@ multiInputTask :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b))
   => (HList as -> b) -- ^ The function to execute
   -> g b             -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
-multiInputTask f output = IIn7 (inj (Task (\sources sink -> do
-  input <- (hSequence . fetch') sources
-  save sink (f input)) output))
+multiInputTask f output = IIn7 (inj (Task (\uuid sources sink -> do
+  input <- (hSequence . fetch' uuid) sources
+  save uuid sink (f input)) output))
 
 {-|
 This allows a single @a -> b@ to be converted into a 'Task'.
@@ -67,7 +68,7 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 
 -- | Constructor for a task
 task :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b))
-  => (HList' fs as -> g b -> IO (g b))  -- ^ The function a Task will execute.
+  => (UUID -> HList' fs as -> g b -> IO (g b))  -- ^ The function a Task will execute.
   -> g b                                -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
 task f out = IIn7 (inj (Task f out))

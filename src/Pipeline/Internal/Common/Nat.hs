@@ -29,14 +29,14 @@ type N9 = 'Succ N8
 
 -- Operations on Nats
 type family (m :: Nat) := (n :: Nat) :: Bool where
-  ('Succ n) := 'Zero     = 'False
-  'Zero     := 'Zero     = 'True
-  'Zero     := ('Succ n) = 'False
-  ('Succ m) := ('Succ n) = m := n
+  'Succ n := 'Zero   = 'False
+  'Zero   := 'Zero   = 'True
+  'Zero   := 'Succ n = 'False
+  'Succ m := 'Succ n = m := n
 
 type family (a :: Nat) :+ (b :: Nat) where
-  a :+ 'Zero     = a
-  a :+ ('Succ b) = 'Succ (a :+ b)
+  a :+ 'Zero   = a
+  a :+ 'Succ b = 'Succ (a :+ b)
 
 -- Recovery of SNat from a type-level Nat
 class IsNat (n :: Nat) where nat :: SNat n
