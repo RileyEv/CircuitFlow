@@ -1,0 +1,95 @@
+import luigi
+import luigi.contrib.sqla
+import pandas as pd
+
+
+class Streams(luigi.ExternalTask):
+
+    date = luigi.DateParameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.date.strftime("data/streams_%Y-%m-%d.tsv"))
+
+
+class AggregateArtists(luigi.Task):
+
+    date_interval = luigi.DateIntervalParameter()
+
+    def output(self):
+        return luigi.LocalTarget(
+            "data/artist_streams_{}.tsv".format(self.date_interval)
+        )
+
+    def requires(self):
+        return [Streams(date) for date in self.date_interval]
+
+    def run(self):
+        artist_count = defaultdict(int)
+
+        for t in self.input():
+            with t.open("r") as in_file:
+                for line in in_file:
+                    _, artist, track = line.strip().split()
+                    artist_count[artist] += 1
+
+        with self.output().open("w") as out_file:
+            for artist, count in artist_count.items():
+                out_file.write("{}\t{}\n".format(artist, count))
+
+
+class Top10Artists(luigi.Task):
+
+    date_interval = luigi.DateIntervalParameter()
+
+    def requires(self):
+        return AggregateArtists(self.date_interval)
+
+    def output(self):
+        return luigi.LocalTarget("data/top_artists_%s.tsv" % self.date_interval)
+
+    def run(self):
+        top_10 = nlargest(10, self._input_iterator())
+        with self.output().open("w") as out_file:
+            for streams, artist in top_10:
+                out_line = "\t".join(
+                    [
+                        str(self.date_interval.date_a),
+                        str(self.date_interval.date_b),
+                        artist,
+                        str(streams),
+                    ]
+                )
+                out_file.write((out_line + "\n"))
+
+    def _input_iterator(self):
+        with self.input().open("r") as in_file:
+            for line in in_file:
+                artist, streams = line.strip().split()
+                yield int(streams), artist
+
+
+# TODO: Replace with sqlite - luigi.contrib.sqla.CopyToTable
+# https://luigi.readthedocs.io/en/stable/api/luigi.contrib.sqla.html
+class ArtistToplistToDatabase(luigi.contrib.postgres.CopyToTable):
+
+    date_interval = luigi.DateIntervalParameter()
+
+    host = "localhost"
+    database = "toplists"
+    user = "luigi"
+    password = "abc123"
+    table = "top10"
+
+    columns = [
+        ("date_from", "DATE"),
+        ("date_to", "DATE"),
+        ("artist", "TEXT"),
+        ("streams", "INT"),
+    ]
+
+    def requires(self):
+        return Top10Artists(self.date_interval)
+
+
+if __name__ == "__main__":
+    luigi.run()
