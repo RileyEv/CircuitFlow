@@ -40,12 +40,12 @@ jobs:
       run: cabal test all
     - name: Build Docs
       run: |
-        cabal haddock
-        cp -a ./**/*/doc/html/project ./html
+        # cabal haddock
+        cp -a $(cabal haddock | tail -1) ./html
     - name: Publish Docs
-      if: matrix.os == 'ubuntu-latest' && github.event_name == 'push'
+      if: github.event_name == 'push'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: html
-#         enable_jekyll: true
+        enable_jekyll: true
