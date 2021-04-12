@@ -61,7 +61,7 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 -- 
 -- A task should:
 -- 
---    * use 'fetch'' to retrieve all the inputs from the 'DataStore's.
+--    * use 'fetch'' to retrieve all the inputs from the 'DataStore's. 
 --
 --    * use 'save'' to save the outputs to the 'DataStore's, this should take the second argument given to the 'Task'.
 
@@ -80,4 +80,3 @@ hSequence (IOCons x xs) = do
   x' <- x
   xs' <- hSequence xs
   return $ x' `HCons` xs'
-

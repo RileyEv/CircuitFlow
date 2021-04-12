@@ -39,5 +39,3 @@ newtype C4 a i j k l = C4 {unConst4 :: a}
 
 cata :: Functor f => (f a -> a) -> Fix f -> a
 cata alg (In x) = alg (fmap (cata alg) x)
-
-
