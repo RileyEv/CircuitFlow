@@ -21,17 +21,18 @@ module Pipeline.DataStore (
   FileStore(..),
   -- ** CSVStore
   CSVStore(..),
-  ToRecord,
-  FromRecord,
+  NamedCSVStore(..),
 ) where
 
 
 import Pipeline.Internal.Core.UUID (UUID)
 import Pipeline.Internal.Core.DataStore (DataStore'(..), DataStore(..))
 
-import Data.Csv (encode, decode, ToRecord, FromRecord, HasHeader(..))
+import Data.Csv (
+  encode, encodeDefaultOrderedByName, decode, decodeByName,
+  ToRecord, FromRecord, HasHeader(..), ToNamedRecord, FromNamedRecord, DefaultOrdered)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile)
-import qualified Data.Vector as V (toList)
+import qualified Data.Vector as V (toList, Vector)
 
 
 {-|
@@ -119,5 +120,28 @@ instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
     
   save uuid f@(CSVStore fname) x = do
     let enc = encode x
+    B.writeFile (addUUIDToFileName fname uuid) enc
+    return f
+
+{-|
+  A 'NamedCSVStore' is able to write data to a csv file.
+-}
+newtype NamedCSVStore a = NamedCSVStore String deriving (Eq, Show)
+
+{-|
+  A list of any type can be wrote to a CSV as long as it has a 'ToRecord'
+  and 'FromRecord' instance defined.
+-}
+instance (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a) => DataStore NamedCSVStore [a] where
+  fetch uuid (NamedCSVStore fname) = do
+    f <- B.readFile (addUUIDToFileName fname uuid)
+    let dec = decodeByName f
+        x'  = case dec of
+          Right (_, x) -> x
+          Left err -> error err
+    return (V.toList x')
+    
+  save uuid f@(NamedCSVStore fname) x = do
+    let enc = encodeDefaultOrderedByName x
     B.writeFile (addUUIDToFileName fname uuid) enc
     return f
