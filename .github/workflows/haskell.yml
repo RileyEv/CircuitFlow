@@ -1,4 +1,4 @@
-name: Haskell Linter
+name: Haskell CI
 
 on:
   push:
@@ -7,15 +7,45 @@ on:
     branches: [ main ]
 
 jobs:
-  lint:
+  build:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Haskell Linter
-     # You may pin to the exact commit or the version.
-     # uses: domdere/haskell-lint-action@f865aa0bfb6db9632e0f905dee4b0716a76a5494
-      uses: domdere/haskell-lint-action@v1.0.2
+    - uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.10.3'
+        cabal-version: '3.2'
+
+    - name: Cache
+      uses: actions/cache@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        cache-name: cache-cabal
+      with:
+        path: ~/.cabal
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+
+    - name: Install dependencies
+      run: |
+        cabal update
+        cabal build --only-dependencies --enable-tests --enable-benchmarks
+    - name: Build
+      run: cabal build --enable-tests --enable-benchmarks all
+    - name: Run tests
+      run: cabal test all
+    - name: Build Docs
+      run: |
+        cabal haddock
+        cp -a ./**/*/doc/html/project ./html
+    - name: Publish Docs
+      if: matrix.os == 'ubuntu-latest' && github.event_name == 'push'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: html
+#         enable_jekyll: true
