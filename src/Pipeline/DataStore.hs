@@ -32,7 +32,8 @@ import Data.Csv (
   encode, encodeDefaultOrderedByName, decode, decodeByName,
   ToRecord, FromRecord, HasHeader(..), ToNamedRecord, FromNamedRecord, DefaultOrdered)
 import qualified Data.ByteString.Lazy as B (readFile, writeFile)
-import qualified Data.Vector as V (toList, Vector)
+import qualified Data.Vector as V (toList)
+import System.FilePath ((</>), splitFileName)
 
 
 {-|
@@ -68,7 +69,8 @@ instance DataStore IOStore String where
     return (IOVar x)
 
 addUUIDToFileName :: String -> UUID -> String
-addUUIDToFileName fname uuid = uuid ++ "-" ++ fname
+addUUIDToFileName fpath uuid = let (directory, fname) = splitFileName fpath
+                               in directory </> uuid ++ "-" ++ fname
 
 
 {-|
@@ -81,23 +83,25 @@ newtype FileStore a = FileStore String deriving (Eq, Show)
   You are able to write a String to a FileStore.
 -}
 instance DataStore FileStore String where
-  fetch uuid (FileStore fname) = readFile (addUUIDToFileName fname uuid)
-  save uuid f@(FileStore fname) x = do
-    writeFile (addUUIDToFileName fname uuid) x
-    return f
+  fetch _ (FileStore fname) = readFile fname
+  save uuid (FileStore fname) x = do
+    let fname' = addUUIDToFileName fname uuid
+    writeFile fname' x
+    return (FileStore fname')
 
 {-|
   It is possible to write a list of strings to a 'FileStore'.
   A new line is added between each string in the list.
 -}
 instance DataStore FileStore [String] where
-  fetch uuid (FileStore fname) = do
-    f <- readFile (addUUIDToFileName fname uuid)
+  fetch _ (FileStore fname) = do
+    f <- readFile fname
     return (lines f)
-  save uuid f@(FileStore fname) x = do
+  save uuid (FileStore fname) x = do
     let x' = unlines x
-    writeFile (addUUIDToFileName fname uuid) x'
-    return f
+        fname' = addUUIDToFileName fname uuid
+    writeFile fname' x'
+    return (FileStore fname')
 
 
 {-|
@@ -110,38 +114,40 @@ newtype CSVStore a = CSVStore String deriving (Eq, Show)
   and 'FromRecord' instance defined.
 -}
 instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
-  fetch uuid (CSVStore fname) = do
-    f <- B.readFile (addUUIDToFileName fname uuid)
+  fetch _ (CSVStore fname) = do
+    f <- B.readFile fname
     let dec = decode NoHeader f
         x' = case dec of
           Right x -> x
           Left err -> error err
     return (V.toList x')
     
-  save uuid f@(CSVStore fname) x = do
+  save uuid (CSVStore fname) x = do
     let enc = encode x
-    B.writeFile (addUUIDToFileName fname uuid) enc
-    return f
+        fname' = addUUIDToFileName fname uuid
+    B.writeFile fname' enc
+    return (CSVStore fname')
 
 {-|
-  A 'NamedCSVStore' is able to write data to a csv file.
+  A 'NamedCSVStore' is able to write data to a csv file, with a header.
 -}
 newtype NamedCSVStore a = NamedCSVStore String deriving (Eq, Show)
 
 {-|
-  A list of any type can be wrote to a CSV as long as it has a 'ToRecord'
-  and 'FromRecord' instance defined.
+  A list of any type can be wrote to a CSV as long as it has a 'ToNamedRecord',
+ 'FromNamedRecord', and 'DefaultOrdered' instance defined.
 -}
 instance (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a) => DataStore NamedCSVStore [a] where
-  fetch uuid (NamedCSVStore fname) = do
-    f <- B.readFile (addUUIDToFileName fname uuid)
+  fetch _ (NamedCSVStore fname) = do
+    f <- B.readFile fname
     let dec = decodeByName f
         x'  = case dec of
           Right (_, x) -> x
           Left err -> error err
     return (V.toList x')
     
-  save uuid f@(NamedCSVStore fname) x = do
+  save uuid (NamedCSVStore fname) x = do
     let enc = encodeDefaultOrderedByName x
-    B.writeFile (addUUIDToFileName fname uuid) enc
-    return f
+        fname' = addUUIDToFileName fname uuid
+    B.writeFile fname' enc
+    return (NamedCSVStore fname')

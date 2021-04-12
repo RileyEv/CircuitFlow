@@ -1,55 +1,77 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# OPTIONS_GHC -fprint-potential-instances #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, FlexibleInstances #-}
 module Main where
 
 import Pipeline
 import Prelude hiding (id, (<>), replicate)
-import Data.Time.Format.ISO8601 (iso8601ParseM)
 import Data.Csv
 import GHC.Generics
+import Data.List.Unique (count_)
+import qualified Data.Vector as V (fromList)
 
-import Control.Monad (mzero)
+import Control.Monad (mzero, forM_, forM)
+
+newtype Artist = Artist {artistName :: String} deriving (Eq, Generic, Ord)
+
+data Track = Track
+  { artist :: Artist
+  , contentName :: String
+  }
+  deriving (Eq, Generic, Ord)
+
+data TrackCount = TrackCount
+  { _track :: Track
+  , countTC :: Int
+  } deriving (Eq, Generic, Ord)
+data ArtistCount = ArtistCount
+  { _artist :: Artist
+  , countAC :: Int
+  } deriving (Eq, Generic, Ord)
+
 
 data Listen = Listen
   { appleIdNumber               :: Int
   , appleMusicSubscription      :: Bool
-  , artistName                  :: String
+  , track                       :: Track
+  -- , artistName                  :: String
   , buildVersion                :: String
   , clientIPAddress             :: String
-  , contentName                 :: String
+  -- , contentName                 :: String
   , contentProvider             :: String
   , contentSpecificType         :: String
   , deviceIdentifier            :: String
-  , endPositionInMilliseconds   :: Int
+  , endPositionInMilliseconds   :: Float
   , endReasonType               :: String
-  , eventEndTimestamp           :: String  -- Change to UTCTime
+  , eventEndTimestamp           :: String
   , eventReasonHintType         :: String
-  , eventReceivedTimestamp      :: String  -- UTCTime
-  , eventStartTimestamp         :: String  -- UTCTime
+  , eventReceivedTimestamp      :: String
+  , eventStartTimestamp         :: String
   , eventType                   :: String
   , featureName                 :: String
   , genre                       :: String
   , itemType                    :: String
-  , mediaDurationInMilliseconds :: Int
+  , mediaDurationInMilliseconds :: Float
   , mediaType                   :: String
-  , metricsBucketId             :: Int
+  , metricsBucketId             :: Float
   , metricsClientId             :: String
-  , millisecondsSincePlay       :: Int
+  , millisecondsSincePlay       :: Float
   , offline                     :: Bool
-  , playDurationMilliseconds    :: Int
+  , playDurationMilliseconds    :: Float
   , sourceType                  :: String
-  , startPositionInMilliseconds :: Int
+  , startPositionInMilliseconds :: Float
   , storeCountryName            :: String
-  , utcOffsetInSeconds          :: Int
+  , utcOffsetInSeconds          :: Float
   }
   deriving (Generic)
 
 instance FromNamedRecord Listen where
   parseNamedRecord r = Listen <$> r .: "Apple Id Number"
                               <*> r .: "Apple Music Subscription"
-                              <*> r .: "Artist Name"
+                              <*> (Track <$> (Artist <$> r .: "Artist Name") <*> r .: "Content Name")
+                              -- <*> r .: "Artist Name"
                               <*> r .: "Build Version"
                               <*> r .: "Client IP Address"
-                              <*> r .: "Content Name"
+                              -- <*> r .: "Content Name"
                               <*> r .: "Content Provider"
                               <*> r .: "Content Specific Type"
                               <*> r .: "Device Identifier"
@@ -78,10 +100,10 @@ instance FromNamedRecord Listen where
 instance ToNamedRecord Listen where
   toNamedRecord p = namedRecord [ "Apple Id Number" .= appleIdNumber p
                                 , "Apple Music Subscription" .= appleMusicSubscription p
-                                , "Artist Name" .= artistName p
+                                , "Artist Name" .= (artistName . artist . track) p
                                 , "Build Version" .= buildVersion p
                                 , "Client IP Address" .= clientIPAddress p
-                                , "Content Name" .= contentName p
+                                , "Content Name" .= (contentName . track) p
                                 , "Content Provider" .= contentProvider p
                                 , "Content Specific Type" .= contentSpecificType p
                                 , "Device Identifier" .= deviceIdentifier p
@@ -109,6 +131,29 @@ instance ToNamedRecord Listen where
                                 ]
 instance DefaultOrdered Listen
 
+instance ToNamedRecord ArtistCount where
+  toNamedRecord (ArtistCount a n) = namedRecord [ "Artist Name" .= artistName a
+                                     , "Count" .= n]
+instance FromNamedRecord ArtistCount where
+  parseNamedRecord r = ArtistCount <$> (Artist <$> r .: "Artist Name")
+                                   <*> r .: "Count"
+
+
+instance DefaultOrdered ArtistCount where
+  headerOrder a = V.fromList ["Artist Name", "Count"]
+
+instance ToNamedRecord TrackCount where
+  toNamedRecord (TrackCount t n) = namedRecord [ "Artist Name" .= (artistName . artist) t
+                                     , "Content Name" .= contentName t
+                                     , "Count" .= n]
+instance FromNamedRecord TrackCount where
+  parseNamedRecord r = TrackCount <$> (Track <$> (Artist <$> r .: "Artist Name")
+                                             <*> r .: "Content Name")
+                                  <*> r .: "Count"
+instance DefaultOrdered TrackCount where
+  headerOrder t = V.fromList ["Artist Name", "Content Name", "Count"]
+  
+
 instance FromField Bool where
   parseField s
     | s == "TRUE"  = pure True
@@ -119,8 +164,10 @@ instance ToField Bool where
   toField True  = "TRUE"
   toField False = "FALSE"
 
-top10Task :: (ToRecord a, FromRecord a) => FilePath -> Circuit '[CSVStore] '[[a]] '[CSVStore [a]] '[CSVStore] '[[a]] '[CSVStore [a]] N1
-top10Task fname = functionTask f (CSVStore fname)
+top10Task :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a)
+  => FilePath
+  -> Circuit '[NamedCSVStore] '[[a]] '[NamedCSVStore [a]] '[NamedCSVStore] '[[a]] '[NamedCSVStore [a]] N1
+top10Task fname = functionTask f (NamedCSVStore fname)
   where
     f :: [a] -> [a]
     f = take 10
@@ -128,36 +175,36 @@ top10Task fname = functionTask f (CSVStore fname)
 aggArtistsTask :: Circuit '[NamedCSVStore, NamedCSVStore, NamedCSVStore]
                           '[[Listen], [Listen], [Listen]]
                           '[NamedCSVStore [Listen], NamedCSVStore [Listen], NamedCSVStore [Listen]]
-                          '[CSVStore]
-                          '[[(Int, String)]]
-                          '[CSVStore [(Int, String)]]
+                          '[NamedCSVStore]
+                          '[[ArtistCount]]
+                          '[NamedCSVStore [ArtistCount]]
                           N3
-aggArtistsTask = multiInputTask f (CSVStore "aggArtists.csv")
+aggArtistsTask = multiInputTask f (NamedCSVStore "output/aggArtists.csv")
   where
-    f :: HList '[[Listen], [Listen], [Listen]] -> [(Int, String)]
-    -- Unique.count but with f
-    f (HCons day1 (HCons day2 (HCons day3 HNil))) = undefined
+    f :: HList '[[Listen], [Listen], [Listen]] -> [ArtistCount]
+    f (HCons day1 (HCons day2 (HCons day3 HNil))) = (map (uncurry ArtistCount) . reverse . count_ . map (artist . track)) (day1 ++ day2 ++ day3)
+    
 
 
 aggSongsTask :: Circuit '[NamedCSVStore, NamedCSVStore, NamedCSVStore]
                         '[[Listen], [Listen], [Listen]]
                         '[NamedCSVStore [Listen], NamedCSVStore [Listen], NamedCSVStore [Listen]]
-                        '[CSVStore]
-                        '[[(Int, String)]]
-                        '[CSVStore [(Int, String)]]
+                        '[NamedCSVStore]
+                        '[[TrackCount]]
+                        '[NamedCSVStore [TrackCount]]
                         N3
-aggSongsTask = multiInputTask f (CSVStore "aggSongs.csv")
+aggSongsTask = multiInputTask f (NamedCSVStore "output/aggSongs.csv")
   where
-    f :: HList '[[Listen], [Listen], [Listen]] -> [(Int, String)]
-    f (HCons day1 (HCons day2 (HCons day3 HNil))) = undefined
+    f :: HList '[[Listen], [Listen], [Listen]] -> [TrackCount]
+    f (HCons day1 (HCons day2 (HCons day3 HNil))) = (map (uncurry TrackCount) . reverse . count_ . map track) (day1 ++ day2 ++ day3)
 
 
 pipeline :: Circuit '[NamedCSVStore, NamedCSVStore, NamedCSVStore]
                     '[[Listen], [Listen], [Listen]]
                     '[NamedCSVStore [Listen], NamedCSVStore [Listen], NamedCSVStore [Listen]]
-                    '[CSVStore, CSVStore]
-                    '[[(Int, String)], [(Int, String)]]
-                    '[CSVStore [(Int, String)], CSVStore [(Int, String)]]
+                    '[NamedCSVStore, NamedCSVStore]
+                    '[[ArtistCount], [TrackCount]]
+                    '[NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount]]
                     N3
 pipeline = replicate <> replicate <> replicate
            <->
@@ -167,11 +214,47 @@ pipeline = replicate <> replicate <> replicate
            <->
            aggArtistsTask <> aggSongsTask
            <->
-           top10Task "top10Artists.csv" <> top10Task "top10Songs.csv"
-           
+           top10Task "output/top10Artists.csv" <> top10Task "output/top10Songs.csv"
 
+addUser :: Network '[NamedCSVStore, NamedCSVStore, NamedCSVStore]
+                   '[[Listen], [Listen], [Listen]]
+                   '[NamedCSVStore [Listen], NamedCSVStore [Listen], NamedCSVStore [Listen]]
+                   '[NamedCSVStore, NamedCSVStore]
+                   '[[ArtistCount], [TrackCount]]
+                   '[NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount]]
+        -> UUID
+        -> IO ()
+addUser n uuid = inputUUID uuid (HCons' (NamedCSVStore "../data/jan.csv") (
+                                 HCons' (NamedCSVStore "../data/jan.csv") (
+                                 HCons' (NamedCSVStore "../data/jan.csv")
+                                 HNil'))) n
 
-
+getUserTop10 :: Network '[NamedCSVStore, NamedCSVStore, NamedCSVStore]
+                        '[[Listen], [Listen], [Listen]]
+                        '[NamedCSVStore [Listen], NamedCSVStore [Listen], NamedCSVStore [Listen]]
+                        '[NamedCSVStore, NamedCSVStore]
+                        '[[ArtistCount], [TrackCount]]
+                        '[NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount]]
+             -> UUID
+             -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
+getUserTop10 n _ = do
+  (HCons' ac (HCons' tc HNil')) <- output_ n
+  return (ac, tc)
 
 main :: IO ()
-main = print "hello"
+main = do
+  n <- startNetwork pipeline
+
+  let users = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+  -- Input values into network
+  forM_ users (addUser n)
+
+  -- Get outputs of network
+  top10 <- forM users (getUserTop10 n)
+
+  -- Stop the network
+  stopNetwork n
+
+  -- print values
+  print top10
