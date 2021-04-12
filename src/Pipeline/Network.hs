@@ -14,9 +14,11 @@ module Pipeline.Network (
   stopNetwork,
   -- * Network IO
   UUID,
+  -- ** Input
   input,
   input_,
   inputUUID,
+  -- ** Output
   output,
   output_,
   module Pipeline.Internal.Common.HList,
@@ -34,32 +36,33 @@ import Pipeline.Internal.Backend.Translation (buildNetwork, InitialPipes, initia
 
 -- | This will create a new 'Network' for the given 'Circuit'
 startNetwork :: InitialPipes inputsS inputsT inputsA
-  -- | The 'Circuit' used to create the network
-  => Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs
-  -- | The created network
-  -> IO (Network inputsS inputsT inputsA outputsS outputsT outputsA)
+  => Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs -- ^ The 'Circuit' used to create the network
+  -> IO (Network inputsS inputsT inputsA outputsS outputsT outputsA) -- ^ The created network
 startNetwork (IIn7 c) = do
   n <- initialNetwork
   buildNetwork n c
 
-
-
--- | This will write the given input to the network 
-input_ :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
-input_ x n = do
-  _ <- input x n
-  return ()
-
-input :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO UUID
+-- | Input values into a network.
+-- This will return a randomly generated identifier for the inputs.
+input :: HList' inputsS inputsT -- ^ Inputs to the network
+  -> Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ Network to insert the values in
+  -> IO UUID -- ^ Randomly generated identifier
 input x n = do
   uuid <- genUUID
   inputUUID uuid x n
   return uuid
 
+-- | A variant of 'input', however it will not return the randomly generated identifier.
+input_ :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
+input_ x n = do
+  _ <- input x n
+  return ()
 
 
--- | This will read from the outputs of the network.
+
+
+-- | A variant of 'output', that does not return the unique identifier.
 --
---   This is a blocking call, therefore if there are no outputs to be read then the program will deadlock.
+--   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output_ :: Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO (HList' outputsS outputsT)
 output_ n = output n >>= (\(_, x) -> return x)

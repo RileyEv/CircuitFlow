@@ -144,10 +144,10 @@ Circuit (inputsStorageTypes  :: [Type -> Type]) (inputsTypes  :: [Type]) (inputs
 for example @'['Pipeline.DataStore.VariableStore', 'Pipeline.DataStore.CSVStore']@.
 
 @inputTypes@ is a type-list of the types stored in the storage,
-for example @'['Int', [(String, Float)]]@.
+for example @'['Int', [('String', 'Float')]]@.
 
 @inputsApplied@ is a type-list of the storage types appiled to the types stored,
-for example @'['Pipeline.DataStore.VariableStore' Int, 'Pipeline.DataStore.CSVStore' [(String, Float)]]@.
+for example @'['Pipeline.DataStore.VariableStore' 'Int', 'Pipeline.DataStore.CSVStore' [('String', 'Float')]]@.
 
 @outputsStorageTypes@, @inputTypes@ and @outputsApplied@ mirror the examples above, but for the outputs instead.
 

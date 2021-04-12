@@ -70,11 +70,8 @@ A diagram representing @a \<-\> b@ or \"a then b\" can be seen below,
 
 -}
 (<->) :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
-       -- | First circuit (@a@)
-       => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs
-       -- | Second circuit (@b@)
-       -> Circuit gs bs (Apply gs bs) hs cs (Apply hs cs) ngs
-       -- | Resulting circuit 
+       => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ First circuit (@a@)
+       -> Circuit gs bs (Apply gs bs) hs cs (Apply hs cs) ngs -- ^ Second circuit (@b@)
        -> Circuit fs as (Apply fs as) hs cs (Apply hs cs) nfs
 (<->) l r = IIn7 (inj (Then l r))
 infixr 4 <->
@@ -112,11 +109,8 @@ A diagram representing @a \<\> b@ or \"a next to b\" can be seen below,
          Drop (Length as) (as :++ cs) ~ cs,
          Drop (Length as) (fs :++ hs) ~ hs,
          AppendP gs bs (Apply gs bs) is ds (Apply is ds))
-       -- | Test1 
-       => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs
-       -- | Test2 
-       -> Circuit hs cs (Apply hs cs) is ds (Apply is ds) nhs
-       -- | Test3
+       => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ Left circuit
+       -> Circuit hs cs (Apply hs cs) is ds (Apply is ds) nhs -- ^ Right circuit
        -> Circuit (fs :++ hs) (as :++ cs) (Apply fs as :++ Apply hs cs)
                    (gs :++ is) (bs :++ ds) (Apply gs bs :++ Apply is ds) (nfs :+ nhs)
 (<>) l r = IIn7 (inj (Beside l r))

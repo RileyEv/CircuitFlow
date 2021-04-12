@@ -59,13 +59,16 @@ read :: PipeList outputsS outputsT outputsA -> IO (UUID, HList' outputsS outputs
 read PipeNil = return ("", HNil')
 read (PipeCons p ps) = readChan p >>= \(uuid, x) -> read ps >>= \(_, xs) -> return (uuid, HCons' x xs)
 
--- | This will write the given input to the network 
-inputUUID :: UUID -> HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
+-- | A variant of 'input', with a user specified unique identifier.
+inputUUID :: UUID -- ^ A unique identifier for the input values
+  -> HList' inputsS inputsT -- ^ The input values
+  -> Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to input the values in to
+  -> IO ()
 inputUUID uuid xs n = write uuid xs (inputs n)
 
 -- | This will read from the outputs of the network.
 --
---   This is a blocking call, therefore if there are no outputs to be read then the program will deadlock.
-output :: Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO (UUID, HList' outputsS outputsT)
+--   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
+output :: Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to retrieve inputs from
+  -> IO (UUID, HList' outputsS outputsT) -- ^ The identifier for the output and the output values
 output n = read (outputs n)
-
