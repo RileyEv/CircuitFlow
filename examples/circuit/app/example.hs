@@ -50,9 +50,9 @@ data Listen = Listen
   , featureName                 :: String
   , genre                       :: String
   , itemType                    :: String
-  , mediaDurationInMilliseconds :: Float
+  , mediaDurationInMilliseconds :: Maybe Float
   , mediaType                   :: String
-  , metricsBucketId             :: Float
+  , metricsBucketId             :: Maybe Float
   , metricsClientId             :: String
   , millisecondsSincePlay       :: Float
   , offline                     :: Bool
@@ -225,8 +225,8 @@ addUser :: Network '[NamedCSVStore, NamedCSVStore, NamedCSVStore]
         -> UUID
         -> IO ()
 addUser n uuid = inputUUID uuid (HCons' (NamedCSVStore "../data/jan.csv") (
-                                 HCons' (NamedCSVStore "../data/jan.csv") (
-                                 HCons' (NamedCSVStore "../data/jan.csv")
+                                 HCons' (NamedCSVStore "../data/feb.csv") (
+                                 HCons' (NamedCSVStore "../data/mar.csv")
                                  HNil'))) n
 
 getUserTop10 :: Network '[NamedCSVStore, NamedCSVStore, NamedCSVStore]

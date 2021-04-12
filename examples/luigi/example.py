@@ -1,95 +1,143 @@
 import luigi
-import luigi.contrib.sqla
+# import luigi.contrib.sqla
 import pandas as pd
 
 
 class Streams(luigi.ExternalTask):
 
-    date = luigi.DateParameter()
+    month = luigi.Parameter()
+    user_id = luigi.Parameter()  # Just ignored as i only have 1 copy of files
 
     def output(self):
-        return luigi.LocalTarget(self.date.strftime("data/streams_%Y-%m-%d.tsv"))
+        return luigi.LocalTarget(f"../data/{self.month}.csv")
 
 
 class AggregateArtists(luigi.Task):
 
-    date_interval = luigi.DateIntervalParameter()
+    months = luigi.ListParameter()
+    user_id = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(
-            "data/artist_streams_{}.tsv".format(self.date_interval)
+            "output/artist_streams_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
+            format=luigi.format.Nop
         )
 
     def requires(self):
-        return [Streams(date) for date in self.date_interval]
+        return [Streams(month, self.user_id) for month in self.months]
 
     def run(self):
-        artist_count = defaultdict(int)
-
+        main_df = None
         for t in self.input():
             with t.open("r") as in_file:
-                for line in in_file:
-                    _, artist, track = line.strip().split()
-                    artist_count[artist] += 1
-
-        with self.output().open("w") as out_file:
-            for artist, count in artist_count.items():
-                out_file.write("{}\t{}\n".format(artist, count))
+                df = pd.read_csv(in_file)
+                if main_df is None:
+                    main_df = df
+                else:
+                    main_df = main_df.append(df)
 
 
-class Top10Artists(luigi.Task):
+        counts = main_df.groupby('Artist Name').count()['Apple Id Number'].sort_values(ascending=False).rename('Count')
+                    
+        with self.output().open('w') as out_file:
+            counts.to_csv(out_file)
 
-    date_interval = luigi.DateIntervalParameter()
+class AggregateSongs(luigi.Task):
 
-    def requires(self):
-        return AggregateArtists(self.date_interval)
+    months = luigi.ListParameter()
+    user_id = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget("data/top_artists_%s.tsv" % self.date_interval)
+        return luigi.LocalTarget(
+            "output/song_streams_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
+            format=luigi.format.Nop
+        )
+
+    def requires(self):
+        return [Streams(month, self.user_id) for month in self.months]
 
     def run(self):
-        top_10 = nlargest(10, self._input_iterator())
-        with self.output().open("w") as out_file:
-            for streams, artist in top_10:
-                out_line = "\t".join(
-                    [
-                        str(self.date_interval.date_a),
-                        str(self.date_interval.date_b),
-                        artist,
-                        str(streams),
-                    ]
-                )
-                out_file.write((out_line + "\n"))
+        main_df = None
+        for t in self.input():
+            with t.open("r") as in_file:
+                df = pd.read_csv(in_file)
+                if main_df is None:
+                    main_df = df
+                else:
+                    main_df = main_df.append(df)
 
-    def _input_iterator(self):
+
+        counts = main_df.groupby(['Artist Name', 'Content Name']).count()['Apple Id Number'].sort_values(ascending=False).rename('Count')
+                    
+        with self.output().open('w') as out_file:
+            counts.to_csv(out_file)
+
+            
+class Top10Artists(luigi.Task):
+
+    months = luigi.ListParameter()
+    user_id = luigi.Parameter()
+
+    def requires(self):
+        return AggregateArtists(self.months, self.user_id)
+
+    def output(self):
+        return luigi.LocalTarget("output/top_artists_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
+            format=luigi.format.Nop)
+
+    def run(self):
         with self.input().open("r") as in_file:
-            for line in in_file:
-                artist, streams = line.strip().split()
-                yield int(streams), artist
+            df = pd.read_csv(in_file)
+
+        df = df.iloc[:,:10]
+        with self.output().open('w') as out_file:
+            df.to_csv(out_file, index=False)
+            
+class Top10Songs(luigi.Task):
+
+    months = luigi.ListParameter()
+    user_id = luigi.Parameter()
+
+    def requires(self):
+        return AggregateSongs(self.months, self.user_id)
+
+    def output(self):
+        return luigi.LocalTarget("output/top_songs_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
+            format=luigi.format.Nop)
+
+    def run(self):
+        with self.input().open("r") as in_file:
+            df = pd.read_csv(in_file)
+
+        df = df.iloc[:,:10]
+        with self.output().open('w') as out_file:
+            df.to_csv(out_file, index=False)
 
 
 # TODO: Replace with sqlite - luigi.contrib.sqla.CopyToTable
 # https://luigi.readthedocs.io/en/stable/api/luigi.contrib.sqla.html
-class ArtistToplistToDatabase(luigi.contrib.postgres.CopyToTable):
+# class ArtistToplistToDatabase(luigi.contrib.postgres.CopyToTable):
 
-    date_interval = luigi.DateIntervalParameter()
+#     date_interval = luigi.DateIntervalParameter()
 
-    host = "localhost"
-    database = "toplists"
-    user = "luigi"
-    password = "abc123"
-    table = "top10"
+#     host = "localhost"
+#     database = "toplists"
+#     user = "luigi"
+#     password = "abc123"
+#     table = "top10"
 
-    columns = [
-        ("date_from", "DATE"),
-        ("date_to", "DATE"),
-        ("artist", "TEXT"),
-        ("streams", "INT"),
-    ]
+#     columns = [
+#         ("date_from", "DATE"),
+#         ("date_to", "DATE"),
+#         ("artist", "TEXT"),
+#         ("streams", "INT"),
+#     ]
 
-    def requires(self):
-        return Top10Artists(self.date_interval)
+#     def requires(self):
+#         return Top10Artists(self.date_interval)
 
 
 if __name__ == "__main__":
-    luigi.run()
+    months = ["jan", "feb", "mar"]
+    luigi.build([task for user in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+                      for task in [Top10Artists(months, user), Top10Songs(months, user)]], workers=4, local_scheduler=True)
