@@ -1,6 +1,2 @@
-packages:.
+packages:. ../../
     
-source-repository-package
-    type: git
-    location: https://github.com/RileyEv/project
-    tag: 48888f778bc23dd722612e9eb9751406c34889cf
