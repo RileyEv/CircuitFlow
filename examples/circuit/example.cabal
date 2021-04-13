@@ -67,7 +67,8 @@ executable Example
                     time,
                     cassava,
                     Unique,
-                    vector
+                    vector,
+                    clock
 
     -- Directories containing source files.
   hs-source-dirs:   app

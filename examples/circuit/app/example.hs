@@ -8,6 +8,8 @@ import Data.Csv
 import GHC.Generics
 import Data.List.Unique (count_)
 import qualified Data.Vector as V (fromList)
+import System.Clock
+import Text.Printf
 
 import Control.Monad (mzero, forM_, forM)
 
@@ -243,9 +245,10 @@ getUserTop10 n _ = do
 
 main :: IO ()
 main = do
-  
+  let clock = Realtime
+  startTime <- getTime clock
   n <- startNetwork pipeline
-
+  networkStartedTime <- getTime clock
   let users = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
   -- Input values into network
@@ -254,8 +257,16 @@ main = do
   -- Get outputs of network
   top10 <- forM users (getUserTop10 n)
 
+  endTime <- getTime clock
   -- Stop the network
   stopNetwork n
 
   -- print values
   print top10
+
+  let totalRunTime = fromIntegral (toNanoSecs (diffTimeSpec endTime startTime)) / (1e9 :: Double)
+      initTime = fromIntegral (toNanoSecs (diffTimeSpec networkStartedTime startTime)) / (1e9 :: Double)
+      processTime = fromIntegral (toNanoSecs (diffTimeSpec endTime networkStartedTime)) / (1e9 :: Double)
+  printf "Total Runtime (s): %.6f\n" totalRunTime
+  printf "Init Runtime (s): %.6f\n" initTime
+  printf "Process Runtime (s): %.6f\n" processTime
