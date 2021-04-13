@@ -243,6 +243,7 @@ getUserTop10 n _ = do
 
 main :: IO ()
 main = do
+  
   n <- startNetwork pipeline
 
   let users = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]

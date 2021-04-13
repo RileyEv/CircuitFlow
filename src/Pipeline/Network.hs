@@ -41,6 +41,7 @@ startNetwork :: InitialPipes inputsS inputsT inputsA
 startNetwork (IIn7 c) = do
   n <- initialNetwork
   buildNetwork n c
+{-# SCC startNetwork #-}
 
 -- | Input values into a network.
 -- This will return a randomly generated identifier for the inputs.
