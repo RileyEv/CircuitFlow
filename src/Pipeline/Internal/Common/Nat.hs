@@ -5,8 +5,8 @@ data Nat = Zero     -- ^ Natural number for 0
          | Succ Nat -- ^ Natural number for n + 1
 
 data SNat (n :: Nat) where
-  SZero :: SNat 'Zero
-  SSucc :: SNat n -> SNat ('Succ n)
+  SZero ::SNat 'Zero
+  SSucc ::SNat n -> SNat ('Succ n)
 
 -- | Nat equal to 1
 type N1 = 'Succ 'Zero

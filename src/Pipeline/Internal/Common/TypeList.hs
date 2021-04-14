@@ -1,18 +1,18 @@
 module Pipeline.Internal.Common.TypeList where
 
-import Pipeline.Internal.Common.Nat (Nat(..))
+import           Pipeline.Internal.Common.Nat (Nat (..))
 
-import Data.Kind (Type)
+import           Data.Kind                    (Type)
 
 type family Length (l :: [k]) :: Nat where
   Length '[] = 'Zero
   Length (e ': l) = 'Succ (Length l)
-  
+
 type family Take (x :: Nat) (l :: [k]) :: [k] where
   Take 'Zero     l        = '[]
   Take ('Succ n) '[]      = '[]
   Take ('Succ n) (e ': l) = e ': Take n l
-  
+
 type family Drop (x :: Nat) (l :: [k]) :: [k] where
   Drop 'Zero     l        = l
   Drop ('Succ _) '[]      = '[]

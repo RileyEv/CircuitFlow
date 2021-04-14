@@ -10,19 +10,22 @@ This package contains a datatype for representing natural numbers, as well as se
 They are needed, when defining a Circuit.
 
 -}
-module Pipeline.Nat (
+module Pipeline.Nat
+  (
   -- * Main Type
-  Nat(..),
+    Nat(..)
+  ,
   -- * Helpful Types
-  N1,
-  N2,
-  N3,
-  N4,
-  N5,
-  N6,
-  N7,
-  N8,
-  N9
-) where
+    N1
+  , N2
+  , N3
+  , N4
+  , N5
+  , N6
+  , N7
+  , N8
+  , N9
+  ) where
 
-import Pipeline.Internal.Common.Nat (Nat(..), N1, N2, N3, N4, N5, N6, N7, N8, N9)
+import           Pipeline.Internal.Common.Nat (N1, N2, N3, N4, N5, N6, N7, N8,
+                                               N9, Nat (..))

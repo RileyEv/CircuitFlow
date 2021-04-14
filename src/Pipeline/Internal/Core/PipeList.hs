@@ -1,34 +1,36 @@
-module Pipeline.Internal.Core.PipeList (
-  PipeList(..),
-  AppendP(..),
-  takeP,
-  dropP
-) where
+module Pipeline.Internal.Core.PipeList
+  ( PipeList(..)
+  , AppendP(..)
+  , takeP
+  , dropP
+  ) where
 
-import Pipeline.Internal.Common.Nat (SNat(..))
-import Pipeline.Internal.Common.TypeList (Take, Drop, Apply, (:++))
+import           Pipeline.Internal.Common.Nat      (SNat (..))
+import           Pipeline.Internal.Common.TypeList (Apply, Drop, Take, (:++))
 
-import Pipeline.Internal.Core.UUID (UUID)
+import           Pipeline.Internal.Core.UUID       (UUID)
 
-import Control.Concurrent.Chan (Chan)
+import           Control.Concurrent.Chan           (Chan)
 
-import Data.Kind (Type)
+import           Data.Kind                         (Type)
 
 
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons :: (Eq (f a), Show (f a)) => Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
-  PipeNil :: PipeList '[] '[] (Apply '[] '[])
+  PipeCons ::(Eq (f a), Show (f a)) => Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
+  PipeNil ::PipeList '[] '[] (Apply '[] '[])
 
 
-takeP :: SNat n -> PipeList fs as xs -> PipeList (Take n fs) (Take n as) (Take n xs)
+takeP
+  :: SNat n -> PipeList fs as xs -> PipeList (Take n fs) (Take n as) (Take n xs)
 takeP SZero     _               = PipeNil
 takeP (SSucc _) PipeNil         = PipeNil
 takeP (SSucc n) (PipeCons x xs) = PipeCons x (takeP n xs)
 
 
-dropP :: SNat n -> PipeList fs as xs -> PipeList (Drop n fs) (Drop n as) (Drop n xs)
-dropP SZero      l               = l
-dropP (SSucc _)  PipeNil         = PipeNil
+dropP
+  :: SNat n -> PipeList fs as xs -> PipeList (Drop n fs) (Drop n as) (Drop n xs)
+dropP SZero     l               = l
+dropP (SSucc _) PipeNil         = PipeNil
 dropP (SSucc n) (PipeCons _ xs) = dropP n xs
 
 

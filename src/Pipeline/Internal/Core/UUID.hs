@@ -1,7 +1,7 @@
 module Pipeline.Internal.Core.UUID where
 
-import Data.UUID (toString)
-import Data.UUID.V4 (nextRandom)
+import           Data.UUID    (toString)
+import           Data.UUID.V4 (nextRandom)
 
 
 type UUID = String

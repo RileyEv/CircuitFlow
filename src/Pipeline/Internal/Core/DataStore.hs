@@ -1,13 +1,14 @@
-module Pipeline.Internal.Core.DataStore (
-  DataStore(..),
-  DataStore'(..),
-) where
+module Pipeline.Internal.Core.DataStore
+  ( DataStore(..)
+  , DataStore'(..)
+  ) where
 
-import Pipeline.Internal.Common.HList (HList(..), HList'(..), IOList(..))
-import Pipeline.Internal.Common.TypeList (Apply)
-import Pipeline.Internal.Core.UUID (UUID)
+import           Pipeline.Internal.Common.HList    (HList (..), HList' (..),
+                                                    IOList (..))
+import           Pipeline.Internal.Common.TypeList (Apply)
+import           Pipeline.Internal.Core.UUID       (UUID)
 
-import Data.Kind (Type)
+import           Data.Kind                         (Type)
 
 -- | DataStore that can be defined for each datastore needed to be used.
 class DataStore f a where
@@ -40,4 +41,5 @@ instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' '[f] '[a] where
 
 instance (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
   fetch' uuid (HCons' x xs) = IOCons (fetch uuid x) (fetch' uuid xs)
-  save' uuid (HCons' ref rs) (HCons x xs) = IOCons (save uuid ref x) (save' uuid rs xs) 
+  save' uuid (HCons' ref rs) (HCons x xs) =
+    IOCons (save uuid ref x) (save' uuid rs xs)

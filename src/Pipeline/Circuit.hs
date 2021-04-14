@@ -8,41 +8,45 @@ Maintainer  : haskell@rly.rocks
 This package contains all the constructors needed to build a 'Circuit'.
 
 -}
-module Pipeline.Circuit (
+module Pipeline.Circuit
+  (
   -- * Main Type
-  Circuit,
+    Circuit
+  ,
   -- * Constructors
-  id,
-  replicate,
-  (<->),
-  (<>),
-  swap,
-  dropL,
-  dropR
-) where  
+    id
+  , replicate
+  , (<->)
+  , (<>)
+  , swap
+  , dropL
+  , dropR
+  ) where
 
 
-import Pipeline.Internal.Core.CircuitAST
-import Pipeline.Internal.Core.DataStore (DataStore')
-import Pipeline.Internal.Core.PipeList (AppendP)
-import Pipeline.Internal.Common.IFunctor (IFix7(..))
-import Pipeline.Internal.Common.IFunctor.Modular ((:<:)(..))
-import Pipeline.Internal.Common.Nat (Nat(..), IsNat, (:+), N1, N2)
-import Pipeline.Internal.Common.TypeList (Length, Drop, Take, Apply, (:++))
+import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))
+import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
+import           Pipeline.Internal.Common.Nat              (IsNat, N1, N2,
+                                                            Nat (..), (:+))
+import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
+                                                            Take, (:++))
+import           Pipeline.Internal.Core.CircuitAST
+import           Pipeline.Internal.Core.DataStore          (DataStore')
+import           Pipeline.Internal.Core.PipeList           (AppendP)
 
-import Prelude hiding (id, replicate, (<>))
+import           Prelude                                   hiding (id,
+                                                            replicate, (<>))
 
 
 {-|
 Passes an input through without modifying it.
 
-In diagram form it would look like, 
+In diagram form it would look like,
 
 > |
 
 -}
-id :: (DataStore' '[f] '[a])
-  => Circuit '[f] '[a] '[f a] '[f] '[a] '[f a] N1
+id :: (DataStore' '[f] '[a]) => Circuit '[f] '[a] '[f a] '[f] '[a] '[f a] N1
 id = (IIn7 . inj) Id
 
 {-|
@@ -53,8 +57,9 @@ In diagram form it would look like,
 > /\
 
 -}
-replicate :: (DataStore' '[f] '[a])
-  => Circuit '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a] N1
+replicate
+  :: (DataStore' '[f] '[a])
+  => Circuit '[f] '[a] '[f a] '[f , f] '[a , a] '[f a , f a] N1
 replicate = (IIn7 . inj) Replicate
 
 {-|
@@ -69,10 +74,11 @@ A diagram representing @a \<-\> b@ or \"a then b\" can be seen below,
 > | ... |    -- Any number of outputs
 
 -}
-(<->) :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
-       => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ First circuit (@a@)
-       -> Circuit gs bs (Apply gs bs) hs cs (Apply hs cs) ngs -- ^ Second circuit (@b@)
-       -> Circuit fs as (Apply fs as) hs cs (Apply hs cs) nfs
+(<->)
+  :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
+  => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ First circuit (@a@)
+  -> Circuit gs bs (Apply gs bs) hs cs (Apply hs cs) ngs -- ^ Second circuit (@b@)
+  -> Circuit fs as (Apply fs as) hs cs (Apply hs cs) nfs
 (<->) l r = IIn7 (inj (Then l r))
 infixr 4 <->
 
@@ -125,20 +131,23 @@ In diagram form this would look like,
 > /\
 
 -}
-swap :: (DataStore' '[f, g] '[a, b])
-  => Circuit '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a] N2
+swap
+  :: (DataStore' '[f , g] '[a , b])
+  => Circuit '[f , g] '[a , b] '[f a , g b] '[g , f] '[b , a] '[g b , f a] N2
 swap = (IIn7 . inj) Swap
 
 {-|
 Takes two values as input and drops the left input.
 -}
-dropL :: (DataStore' '[f, g] '[a, b])
-  => Circuit '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b] N2
+dropL
+  :: (DataStore' '[f , g] '[a , b])
+  => Circuit '[f , g] '[a , b] '[f a , g b] '[g] '[b] '[g b] N2
 dropL = (IIn7 . inj) DropL
 
 {-|
 Takes two values as input and drops the right input.
 -}
-dropR :: (DataStore' '[f, g] '[a, b])
-  => Circuit '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a] N2
+dropR
+  :: (DataStore' '[f , g] '[a , b])
+  => Circuit '[f , g] '[a , b] '[f a , g b] '[f] '[a] '[f a] N2
 dropR = (IIn7 . inj) DropR

@@ -7,16 +7,16 @@ Maintainer  : haskell@rly.rocks
 
 All the modules needed to build a pipeline
 -}
-module Pipeline (
-  module Pipeline.Circuit,
-  module Pipeline.DataStore,
-  module Pipeline.Nat,
-  module Pipeline.Network,
-  module Pipeline.Task,
-) where
+module Pipeline
+  ( module Pipeline.Circuit
+  , module Pipeline.DataStore
+  , module Pipeline.Nat
+  , module Pipeline.Network
+  , module Pipeline.Task
+  ) where
 
-import Pipeline.Circuit
-import Pipeline.DataStore
-import Pipeline.Nat
-import Pipeline.Network
-import Pipeline.Task
+import           Pipeline.Circuit
+import           Pipeline.DataStore
+import           Pipeline.Nat
+import           Pipeline.Network
+import           Pipeline.Task

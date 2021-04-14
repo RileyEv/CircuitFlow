@@ -7,33 +7,43 @@ Maintainer  : haskell@rly.rocks
 
 This package contains the 'DataStore' class, it is the method used to transferring data between tasks.
 -}
-module Pipeline.DataStore (
+module Pipeline.DataStore
+  (
   -- * The DataStore Class
-  DataStore(..),
+    DataStore(..)
+  ,
   -- ** Combined DataStores
-  DataStore'(..),
+    DataStore'(..)
+  ,
   -- * Pre-Defined DataStores
   -- ** VariableStore
-  VariableStore(..),
+    VariableStore(..)
+  ,
   -- ** IOStore
-  IOStore(..),
+    IOStore(..)
+  ,
   -- ** FileStore
-  FileStore(..),
+    FileStore(..)
+  ,
   -- ** CSVStore
-  CSVStore(..),
-  NamedCSVStore(..),
-) where
+    CSVStore(..)
+  , NamedCSVStore(..)
+  ) where
 
 
-import Pipeline.Internal.Core.UUID (UUID)
-import Pipeline.Internal.Core.DataStore (DataStore'(..), DataStore(..))
+import           Pipeline.Internal.Core.DataStore (DataStore (..),
+                                                   DataStore' (..))
+import           Pipeline.Internal.Core.UUID      (UUID)
 
-import Data.Csv (
-  encode, encodeDefaultOrderedByName, decode, decodeByName,
-  ToRecord, FromRecord, HasHeader(..), ToNamedRecord, FromNamedRecord, DefaultOrdered)
-import qualified Data.ByteString.Lazy as B (readFile, writeFile)
-import qualified Data.Vector as V (toList)
-import System.FilePath ((</>), splitFileName)
+import qualified Data.ByteString.Lazy             as B (readFile, writeFile)
+import           Data.Csv                         (DefaultOrdered,
+                                                   FromNamedRecord, FromRecord,
+                                                   HasHeader (..),
+                                                   ToNamedRecord, ToRecord,
+                                                   decode, decodeByName, encode,
+                                                   encodeDefaultOrderedByName)
+import qualified Data.Vector                      as V (toList)
+import           System.FilePath                  (splitFileName, (</>))
 
 
 {-|
@@ -63,14 +73,15 @@ instance DataStore IOStore String where
   fetch _ IOEmpty   = do
     putStr "Input: "
     getLine
-    
+
   save _ _ x = do
     print x
     return (IOVar x)
 
 addUUIDToFileName :: String -> UUID -> String
-addUUIDToFileName fpath uuid = let (directory, fname) = splitFileName fpath
-                               in directory </> uuid ++ "-" ++ fname
+addUUIDToFileName fpath uuid =
+  let (directory, fname) = splitFileName fpath
+  in  directory </> uuid ++ "-" ++ fname
 
 
 {-|
@@ -98,7 +109,7 @@ instance DataStore FileStore [String] where
     f <- readFile fname
     return (lines f)
   save uuid (FileStore fname) x = do
-    let x' = unlines x
+    let x'     = unlines x
         fname' = addUUIDToFileName fname uuid
     writeFile fname' x'
     return (FileStore fname')
@@ -117,13 +128,13 @@ instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
   fetch _ (CSVStore fname) = do
     f <- B.readFile fname
     let dec = decode NoHeader f
-        x' = case dec of
-          Right x -> x
-          Left err -> error err
+        x'  = case dec of
+          Right x   -> x
+          Left  err -> error err
     return (V.toList x')
-    
+
   save uuid (CSVStore fname) x = do
-    let enc = encode x
+    let enc    = encode x
         fname' = addUUIDToFileName fname uuid
     B.writeFile fname' enc
     return (CSVStore fname')
@@ -143,11 +154,11 @@ instance (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a) => DataStore Nam
     let dec = decodeByName f
         x'  = case dec of
           Right (_, x) -> x
-          Left err -> error err
+          Left  err    -> error err
     return (V.toList x')
-    
+
   save uuid (NamedCSVStore fname) x = do
-    let enc = encodeDefaultOrderedByName x
+    let enc    = encodeDefaultOrderedByName x
         fname' = addUUIDToFileName fname uuid
     B.writeFile fname' enc
     return (NamedCSVStore fname')
