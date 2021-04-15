@@ -3,6 +3,7 @@ dist
 dist-*
 newdist
 cabal-dev
+newdist
 *.o
 *.hi
 *.hie

@@ -25,36 +25,25 @@ lhs2TexTask
        '[FileStore String]
        N1
 lhs2TexTask = task f (FileStore "dissertation.tex")
- where
-  f :: HList' '[FileStore] '[String] -> FileStore String -> IO (FileStore String)
-  f (HCons' (FileStore fInName) HNil') fOut@(FileStore fOutName) = do
-    callCommand ("lhs2tex -o " ++ fOutName ++ " " ++ fInName ++ " > lhs2tex.log")
-    return fOut
+  where
+    f :: UUID -> HList' '[FileStore] '[String] -> FileStore String -> IO (FileStore String)
+    f _ (HCons' (FileStore fInName) HNil') fOut@(FileStore fOutName) = do
+      callCommand ("lhs2tex -o " ++ fOutName ++ " " ++ fInName ++ " > lhs2tex.log")
+      return fOut
 
-buildTexTask
-  :: Circuit
-       '[FileStore]
-       '[String]
-       '[FileStore String]
-       '[FileStore]
-       '[String]
-       '[FileStore String]
-       N1
+buildTexTask :: Circuit '[FileStore] '[String] '[FileStore String] '[FileStore] '[String] '[FileStore String] N1
 buildTexTask = task f (FileStore "dissertation.pdf")
- where
-  f :: HList' '[FileStore] '[String] -> FileStore String -> IO (FileStore String)
-  f (HCons' (FileStore fInName) HNil') fOut@(FileStore fOutName) = do
-    callCommand
-      ("texfot --no-stderr latexmk -interaction=nonstopmode -pdf -no-shell-escape -bibtex -jobname=dissertation "
-      ++ fInName
-      )
-    return fOut
+  where
+    f :: UUID -> HList' '[FileStore] '[String] -> FileStore String -> IO (FileStore String)
+    f _ (HCons' (FileStore fInName) HNil') fOut@(FileStore _) = do
+      callCommand ("texfot --no-stderr latexmk -interaction=nonstopmode -pdf -no-shell-escape -bibtex -jobname=dissertation " ++ fInName)
+      return fOut
 
 main :: IO ()
 main = do
   n <- startNetwork buildDissPipeline
 
-  input (HCons' (FileStore "dissertation.lhs") HNil') n
+  input_ (HCons' (FileStore "dissertation.lhs") HNil') n
 
   o <- output n
   print o

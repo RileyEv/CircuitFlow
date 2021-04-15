@@ -61,7 +61,7 @@ executable BuildDiss
     , GADTs
 
     -- Other library packages from which modules are imported.
-  build-depends:    base ^>=4.15.0.0,
+  build-depends:    base >=4.12 && < 5,
                     project,
                     process
 

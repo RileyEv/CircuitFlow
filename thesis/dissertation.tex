@@ -1,0 +1,667 @@
+
+\documentclass[
+author={Riley Evans},
+supervisor={Dr. Meng Wang},
+degree={MEng},
+title={\vbox{Circuit: A Domain Specific Language for Dataflow Programming}},
+subtitle={},
+type={research},
+year={2021}
+]{dissertation}
+  
+%% \usepackage{libertine}
+\usepackage{todonotes}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{amsmath}
+
+% lhs2tex setup
+
+
+%% ODER: format ==         = "\mathrel{==}"
+%% ODER: format /=         = "\neq "
+%
+%
+\makeatletter
+\@ifundefined{lhs2tex.lhs2tex.sty.read}%
+  {\@namedef{lhs2tex.lhs2tex.sty.read}{}%
+   \newcommand\SkipToFmtEnd{}%
+   \newcommand\EndFmtInput{}%
+   \long\def\SkipToFmtEnd#1\EndFmtInput{}%
+  }\SkipToFmtEnd
+
+\newcommand\ReadOnlyOnce[1]{\@ifundefined{#1}{\@namedef{#1}{}}\SkipToFmtEnd}
+\usepackage{amstext}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\DeclareFontFamily{OT1}{cmtex}{}
+\DeclareFontShape{OT1}{cmtex}{m}{n}
+  {<5><6><7><8>cmtex8
+   <9>cmtex9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmtex10}{}
+\DeclareFontShape{OT1}{cmtex}{m}{it}
+  {<-> ssub * cmtt/m/it}{}
+\newcommand{\texfamily}{\fontfamily{cmtex}\selectfont}
+\DeclareFontShape{OT1}{cmtt}{bx}{n}
+  {<5><6><7><8>cmtt8
+   <9>cmbtt9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmbtt10}{}
+\DeclareFontShape{OT1}{cmtex}{bx}{n}
+  {<-> ssub * cmtt/bx/n}{}
+\newcommand{\tex}[1]{\text{\texfamily#1}}	% NEU
+
+\newcommand{\Sp}{\hskip.33334em\relax}
+
+
+\newcommand{\Conid}[1]{\mathit{#1}}
+\newcommand{\Varid}[1]{\mathit{#1}}
+\newcommand{\anonymous}{\kern0.06em \vbox{\hrule\@width.5em}}
+\newcommand{\plus}{\mathbin{+\!\!\!+}}
+\newcommand{\bind}{\mathbin{>\!\!\!>\mkern-6.7mu=}}
+\newcommand{\rbind}{\mathbin{=\mkern-6.7mu<\!\!\!<}}% suggested by Neil Mitchell
+\newcommand{\sequ}{\mathbin{>\!\!\!>}}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\usepackage{polytable}
+
+%mathindent has to be defined
+\@ifundefined{mathindent}%
+  {\newdimen\mathindent\mathindent\leftmargini}%
+  {}%
+
+\def\resethooks{%
+  \global\let\SaveRestoreHook\empty
+  \global\let\ColumnHook\empty}
+\newcommand*{\savecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\savecolumns[#1]}}
+\newcommand*{\restorecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\restorecolumns[#1]}}
+\newcommand*{\aligncolumn}[2]%
+  {\g@addto@macro\ColumnHook{\column{#1}{#2}}}
+
+\resethooks
+
+\newcommand{\onelinecommentchars}{\quad-{}- }
+\newcommand{\commentbeginchars}{\enskip\{-}
+\newcommand{\commentendchars}{-\}\enskip}
+
+\newcommand{\visiblecomments}{%
+  \let\onelinecomment=\onelinecommentchars
+  \let\commentbegin=\commentbeginchars
+  \let\commentend=\commentendchars}
+
+\newcommand{\invisiblecomments}{%
+  \let\onelinecomment=\empty
+  \let\commentbegin=\empty
+  \let\commentend=\empty}
+
+\visiblecomments
+
+\newlength{\blanklineskip}
+\setlength{\blanklineskip}{0.66084ex}
+
+\newcommand{\hsindent}[1]{\quad}% default is fixed indentation
+\let\hspre\empty
+\let\hspost\empty
+\newcommand{\NB}{\textbf{NB}}
+\newcommand{\Todo}[1]{$\langle$\textbf{To do:}~#1$\rangle$}
+
+\EndFmtInput
+\makeatother
+%
+%
+%
+%
+%
+%
+% This package provides two environments suitable to take the place
+% of hscode, called "plainhscode" and "arrayhscode". 
+%
+% The plain environment surrounds each code block by vertical space,
+% and it uses \abovedisplayskip and \belowdisplayskip to get spacing
+% similar to formulas. Note that if these dimensions are changed,
+% the spacing around displayed math formulas changes as well.
+% All code is indented using \leftskip.
+%
+% Changed 19.08.2004 to reflect changes in colorcode. Should work with
+% CodeGroup.sty.
+%
+\ReadOnlyOnce{polycode.fmt}%
+\makeatletter
+
+\newcommand{\hsnewpar}[1]%
+  {{\parskip=0pt\parindent=0pt\par\vskip #1\noindent}}
+
+% can be used, for instance, to redefine the code size, by setting the
+% command to \small or something alike
+\newcommand{\hscodestyle}{}
+
+% The command \sethscode can be used to switch the code formatting
+% behaviour by mapping the hscode environment in the subst directive
+% to a new LaTeX environment.
+
+\newcommand{\sethscode}[1]%
+  {\expandafter\let\expandafter\hscode\csname #1\endcsname
+   \expandafter\let\expandafter\endhscode\csname end#1\endcsname}
+
+% "compatibility" mode restores the non-polycode.fmt layout.
+
+\newenvironment{compathscode}%
+  {\par\noindent
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed\)%
+   \par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\compaths}{\sethscode{compathscode}}
+
+% "plain" mode is the proposed default.
+% It should now work with \centering.
+% This required some changes. The old version
+% is still available for reference as oldplainhscode.
+
+\newenvironment{plainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newenvironment{oldplainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+% Here, we make plainhscode the default environment.
+
+\newcommand{\plainhs}{\sethscode{plainhscode}}
+\newcommand{\oldplainhs}{\sethscode{oldplainhscode}}
+\plainhs
+
+% The arrayhscode is like plain, but makes use of polytable's
+% parray environment which disallows page breaks in code blocks.
+
+\newenvironment{arrayhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\parray}%
+  {\endparray\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newcommand{\arrayhs}{\sethscode{arrayhscode}}
+
+% The mathhscode environment also makes use of polytable's parray 
+% environment. It is supposed to be used only inside math mode 
+% (I used it to typeset the type rules in my thesis).
+
+\newenvironment{mathhscode}%
+  {\parray}{\endparray}
+
+\newcommand{\mathhs}{\sethscode{mathhscode}}
+
+% texths is similar to mathhs, but works in text mode.
+
+\newenvironment{texthscode}%
+  {\(\parray}{\endparray\)}
+
+\newcommand{\texths}{\sethscode{texthscode}}
+
+% The framed environment places code in a framed box.
+
+\def\codeframewidth{\arrayrulewidth}
+\RequirePackage{calc}
+
+\newenvironment{framedhscode}%
+  {\parskip=\abovedisplayskip\par\noindent
+   \hscodestyle
+   \arrayrulewidth=\codeframewidth
+   \tabular{@{}|p{\linewidth-2\arraycolsep-2\arrayrulewidth-2pt}|@{}}%
+   \hline\framedhslinecorrect\\{-1.5ex}%
+   \let\endoflinesave=\\
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \framedhslinecorrect\endoflinesave{.5ex}\hline
+   \endtabular
+   \parskip=\belowdisplayskip\par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\framedhslinecorrect}[2]%
+  {#1[#2]}
+
+\newcommand{\framedhs}{\sethscode{framedhscode}}
+
+% The inlinehscode environment is an experimental environment
+% that can be used to typeset displayed code inline.
+
+\newenvironment{inlinehscode}%
+  {\(\def\column##1##2{}%
+   \let\>\undefined\let\<\undefined\let\\\undefined
+   \newcommand\>[1][]{}\newcommand\<[1][]{}\newcommand\\[1][]{}%
+   \def\fromto##1##2##3{##3}%
+   \def\nextline{}}{\) }%
+
+\newcommand{\inlinehs}{\sethscode{inlinehscode}}
+
+% The joincode environment is a separate environment that
+% can be used to surround and thereby connect multiple code
+% blocks.
+
+\newenvironment{joincode}%
+  {\let\orighscode=\hscode
+   \let\origendhscode=\endhscode
+   \def\endhscode{\def\hscode{\endgroup\def\@currenvir{hscode}\\}\begingroup}
+   %\let\SaveRestoreHook=\empty
+   %\let\ColumnHook=\empty
+   %\let\resethooks=\empty
+   \orighscode\def\hscode{\endgroup\def\@currenvir{hscode}}}%
+  {\origendhscode
+   \global\let\hscode=\orighscode
+   \global\let\endhscode=\origendhscode}%
+
+\makeatother
+\EndFmtInput
+%
+%
+%
+% First, let's redefine the forall, and the dot.
+%
+%
+% This is made in such a way that after a forall, the next
+% dot will be printed as a period, otherwise the formatting
+% of `comp_` is used. By redefining `comp_`, as suitable
+% composition operator can be chosen. Similarly, period_
+% is used for the period.
+%
+\ReadOnlyOnce{forall.fmt}%
+\makeatletter
+
+% The HaskellResetHook is a list to which things can
+% be added that reset the Haskell state to the beginning.
+% This is to recover from states where the hacked intelligence
+% is not sufficient.
+
+\let\HaskellResetHook\empty
+\newcommand*{\AtHaskellReset}[1]{%
+  \g@addto@macro\HaskellResetHook{#1}}
+\newcommand*{\HaskellReset}{\HaskellResetHook}
+
+\global\let\hsforallread\empty
+
+\newcommand\hsforall{\global\let\hsdot=\hsperiodonce}
+\newcommand*\hsperiodonce[2]{#2\global\let\hsdot=\hscompose}
+\newcommand*\hscompose[2]{#1}
+
+\AtHaskellReset{\global\let\hsdot=\hscompose}
+
+% In the beginning, we should reset Haskell once.
+\HaskellReset
+
+\makeatother
+\EndFmtInput
+%
+
+
+
+\newmuskip\codemuskip
+\codemuskip=4.0mu plus 2.0mu minus 2.0mu\relax
+\newcommand\codeskip{\mskip\codemuskip}%
+\let\codefont\textsf
+\newcommand\sub[1]{\ensuremath{_{\text{#1}}}}
+
+\newcommand\keyw[1]{{\codefont{\textbf{#1}}}}
+\newcommand\id[1]{\Varid{#1}}
+\newcommand\idsym[1]{\mathbin{\id{#1}}}
+\newcommand{\vertrule}[1][1.0ex]{\rule[-0.0ex]{.45pt}{#1}}
+
+
+\renewcommand\Varid[1]{\codefont{#1}}
+\let\Conid\Varid
+
+\begin{document}
+  
+
+\maketitle
+
+% =============================================================================
+
+\frontmatter
+\makedecl{}
+\tableofcontents
+\listoftodos
+
+% -----------------------------------------------------------------------------
+
+% \chapter*{Supporting Technologies}
+
+% % -----------------------------------------------------------------------------
+
+% \chapter*{Notation and Acronyms}
+
+% maybe?
+
+% -----------------------------------------------------------------------------
+
+\chapter*{Acknowledgements}
+
+\noindent
+It is common practice (although totally optional) to acknowledge any
+third-party advice, contribution or influence you have found useful
+during your work.  Examples include support from friends or family, 
+the input of your Supervisor and/or Advisor, external organisations 
+or persons who  have supplied resources of some kind (e.g., funding, 
+advice or time), and so on.
+
+% =============================================================================
+
+\mainmatter{}
+
+
+\chapter{Introduction}\label{chap:intro}
+
+% -----------------------------------------------------------------------------
+
+\chapter{Background}\label{chap:background}
+
+\section{Dataflow Programming}
+Dataflow programming is a paradigm that models applications as a directed graph.
+The nodes of the graph have inputs and outputs and are pure functions, therefore have no side effects.
+It is possible for a node to be a: source; sink; or processing node.
+Edges connect these nodes together, and define the flow of information.
+\todo[inline]{this feels a little light on detail }
+
+
+\paragraph{Example - Data Pipelines}
+A common use of dataflow programming is in pipelines that process data.
+This paradigm is particularly helpful as it helps the developer to focus on each specific transformation on the data as a single component.
+Avoiding the need for long and laborious scripts that could be hard to maintain.
+
+\paragraph{Example - Quartz Composer}
+Apple developed a tool included in XCode, named Quartz Composer, which is a node-based visual programming language~\cite{quartz}.
+It allows for quick development of programs that process and render graphical data.
+By using visual programming it allows the user to build programs, without having to write a single line of code.
+This means that even non-programmers are able to use the tool.
+
+\paragraph{Example - Spreadsheets}
+A widely used example of dataflow programming is in spreadsheets.
+A cell in a spreadsheet can be thought of as a single node.
+It is possible to specify dependencies to other cells through the use of formulas.
+Whenever a cell is updated it sends its new value to those who depend on it, and so on.
+Work has also done to visualise spreadsheets using dataflow diagrams, to help debug ones that are complex\cite{hermans2011breviz}.
+
+
+\subsection{The Benefits}
+\paragraph{Visual}
+The dataflow paradigm uses graphs, which make programming visual.
+It allows the end-user programmer to see how data passes through the program, much easier than in an imperative approach.
+In many cases, dataflow programming languages use drag and drop blocks with a graphical user interface to build programs,
+for example Tableau Prep~\cite{tableauPrep}.
+This makes programming more accessible to users who do not have programming skills.
+
+\paragraph{Implicit Parallelism}
+Moore's law states that the number of transistors on a computer chip doubles every two years~\cite{4785860}.
+This meant that the chips processing speeds also increased in alignment with Moore's law.
+However, in recent years this is becoming harder for chip manufacturers to achieve~\cite{bentley_2020}.
+Therefore, chip manufactures have had to turn to other approaches to increase the speed of new chips, such as multiple cores.
+It is this approach the dataflow programming can effectively make use of.
+Since each node in a dataflow is a pure function, it is possible to parallelise implicitly.
+No node can interact with another node, therefore there are no data dependencies outside of those encoded in the dataflow.
+Thus eliminating the ability for a deadlock to occur.
+
+\subsection{Dataflow Diagrams}
+Dataflow programs are typically viewed as a graph.
+An example dataflow graph along with its corresponding imperative approach, is visible in Figure~\ref{fig:dataflow-example}.
+In this diagram is possible to see how implicit parallelisation is possible.
+Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated after they are complete.
+
+
+\begin{figure}[ht]
+  \centering
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \begin{equation*}
+      \begin{aligned}
+      A &:= 100 \times X \\
+      B &:= X + Y \\
+      C &:= A - B \\
+      \end{aligned}
+    \end{equation*}
+    \caption{}
+    \label{subfig:dataflow-example-equations}
+  \end{subfigure}
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \input{diagrams/dataflow-example}
+    \caption{}
+    \label{subfig:dataflow-example-diagram}
+  \end{subfigure}
+  \caption{An example dataflow and its imperative approach.}
+    \label{fig:dataflow-example}
+\end{figure}
+
+
+\subsection{Kahn Process Networks}
+A method introduced by Gilles Kahn, called Kahn Process Networks (KPN) realised this concept through the use of threads
+and unbounded FIFO queues~\cite{DBLP:conf/ifip/Kahn74}.
+A node in the dataflow becomes a thread in the process network.
+These threads are then able to communicate through FIFO queues.
+The node can have multiple input queues and is able to read any number of values from them.
+It will then compute a result and add it to an output queue.
+A requirement of KPNs is that a thread is suspended if it attempts to fetch a value from an empty queue.
+It is not possible for a process to test for the presence of data in a queue.
+
+Parks described a variant of KPNs, called Data Processing networks~\cite{381846}.
+They recognise that if functions have no side effects then they have no values to be shared between each firing.
+Therefore, a pool of threads can be used with a central scheduler instead.
+
+
+
+
+\section{Domain Specific Languages (DSLs)}
+A Domain Specific Language (DSL) is a programming language unit that has a specialised domain or use-case.
+This differs from a General Purpose Language (GPL), which can be applied across a larger set of domains.
+HTML is an example of a DSL, it is good for describing the appearance of websites, however,
+it cannot be used for more generic purposes, such as adding two numbers together.
+
+\paragraph{Approaches to Implementation}
+DSLs are typically split into two categories: standalone and embedded.
+Standalone DSLs require their own compiler and typically their own syntax; HTML would be an example of a standalone DSL.
+Embedded DSLs use an existing language as a host, therefore they use the syntax and compiler from the host.
+This means that they are easier to maintain and often quicker to develop than standalone DSLs.
+An embedded DSL, can be implemented using two differing techniques: shallow and deep embeddings.
+
+\todo[inline]{Add something about why embedded DSLs are used in Haskell}
+
+
+\subsection{Deep Embeddings}
+A deep embedding is when the terms of the DSL will construct an Abstract Syntax Tree (AST) as a host language datatype.
+Semantics can then be provided later on with an \ensuremath{\Varid{eval}} function.
+Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{12}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{31}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{data}\codeskip \Conid{Parser}_{2}\codeskip (\Varid{a}\mathbin{::}\Conid{Type})\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{Satisfy}{}\<[12]%
+\>[12]{}\mathbin{::}(\Conid{Char}\to \Conid{Bool}){}\<[31]%
+\>[31]{}\to \Conid{Parser}_{2}\codeskip \Conid{Char}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{Or}{}\<[12]%
+\>[12]{}\mathbin{::}\Conid{Parser}_{2}\codeskip \Varid{a}{}\<[31]%
+\>[31]{}\to \Conid{Parser}_{2}\codeskip \Varid{a}\to \Conid{Parser}_{2}\codeskip \Varid{a}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+The same \ensuremath{\Varid{aorb}} parser can be created\todo{reads dodgy} by creating an AST.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{aorb}_{2}\mathbin{::}\Conid{Parser}_{2}\codeskip \Conid{Char}{}\<[E]%
+\\
+\>[B]{}\Varid{aorb}_{2}\mathrel{=}\Conid{Satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}a\textquotesingle})\mathbin{\text{\`{}}\Conid{Or}\text{\`{}}}\Conid{Satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}b\textquotesingle}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+However, this parser does not have any semantics, therefore this needs to be provided by the evaluation function \ensuremath{\Varid{parse}_{2}}.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{12}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{parse}_{2}\mathbin{::}\Conid{Parser}_{2}\codeskip \Varid{a}\to \Conid{String}\to [\mskip1.5mu (\Varid{a},\Conid{String})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\Varid{parse}_{2}\codeskip (\Conid{Satisfy}\codeskip \Varid{p})\mathrel{=}\lambda \mathbf{case}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}[\mskip1.5mu \mskip1.5mu]{}\<[12]%
+\>[12]{}\to [\mskip1.5mu \mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}(\Varid{t}\mathbin{:}\Varid{ts'}){}\<[12]%
+\>[12]{}\to [\mskip1.5mu (\Varid{t},\Varid{ts'})\mid \Varid{p}\codeskip \Varid{t}\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\Varid{parse}_{2}\codeskip (\Conid{Or}\codeskip \Varid{px}\codeskip \Varid{py})\mathrel{=}\lambda \Varid{ts}\to \Varid{parse}_{2}\codeskip \Varid{px}\codeskip \Varid{ts}\plus \Varid{parse}_{2}\codeskip \Varid{py}\codeskip \Varid{ts}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code.
+However, they also have drawbacks - it can be laborious to add a new constructor to the language.
+Since it requires that all functions that use the deep embedding be modified to add a case for the new constructor.
+
+
+\subsection{Shallow Embeddings}
+In contrast, a shallow approach is when the terms of the DSL are defined as first class components of the language.
+For example, a function in Haskell.
+Components can then be composed together and evaluated to provide the semantics of the language.
+Again a simple parser example can be considered.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{12}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{newtype}\codeskip \Conid{Parser}\codeskip \Varid{a}\mathrel{=}\Conid{Parser}\codeskip \{\mskip1.5mu \Varid{parse}\mathbin{::}\Conid{String}\to [\mskip1.5mu (\Varid{a},\Conid{String})\mskip1.5mu]\mskip1.5mu\}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Varid{or}\mathbin{::}\Conid{Parser}\codeskip \Varid{a}\to \Conid{Parser}\codeskip \Varid{a}\to \Conid{Parser}\codeskip \Varid{a}{}\<[E]%
+\\
+\>[B]{}\Varid{or}\codeskip (\Conid{Parser}\codeskip \Varid{px})\codeskip (\Conid{Parser}\codeskip \Varid{py})\mathrel{=}\Conid{Parser}\codeskip (\lambda \Varid{ts}\to \Varid{px}\codeskip \Varid{ts}\plus \Varid{py}\codeskip \Varid{ts}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Varid{satisfy}\mathbin{::}(\Conid{Char}\to \Conid{Bool})\to \Conid{Parser}\codeskip \Conid{Char}{}\<[E]%
+\\
+\>[B]{}\Varid{satisfy}\codeskip \Varid{p}\mathrel{=}\Conid{Parser}\codeskip (\lambda \mathbf{case}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}[\mskip1.5mu \mskip1.5mu]{}\<[12]%
+\>[12]{}\to [\mskip1.5mu \mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}(\Varid{t}\mathbin{:}\Varid{ts'}){}\<[12]%
+\>[12]{}\to [\mskip1.5mu (\Varid{t},\Varid{ts'})\mid \Varid{p}\codeskip \Varid{t}\mskip1.5mu]){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+This can be used to build a parser that can parse the characters \ensuremath{\text{\ttfamily{\textquotesingle}a\textquotesingle}} or \ensuremath{\text{\ttfamily{\textquotesingle}b\textquotesingle}}.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{aorb}\mathbin{::}\Conid{Parser}\codeskip \Conid{Char}{}\<[E]%
+\\
+\>[B]{}\Varid{aorb}\mathrel{=}\Varid{satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}a\textquotesingle})\mathbin{\text{\`{}}\Varid{or}\text{\`{}}}\Varid{satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}b\textquotesingle}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+The program can then be evaluated by the \ensuremath{\Varid{parse}} function.
+For example, \ensuremath{\Varid{parse}\codeskip \Varid{aorb}\codeskip \text{\ttfamily \char34 a\char34}} evaluates to \ensuremath{[\mskip1.5mu (\text{\ttfamily{\textquotesingle}a\textquotesingle},\text{\ttfamily \char34 \char34})\mskip1.5mu]}, and \ensuremath{\Varid{parse}\codeskip \Varid{aorb}\codeskip \text{\ttfamily \char34 c\char34}} evaluates to \ensuremath{[\mskip1.5mu \mskip1.5mu]}.
+
+Using a shallow implementation has the benefit of being able add new `constructors' to a DSL, without having to modify any other functions.
+Since each `constructor', produces the desired result directly.
+However, this causes one of the main disadvantages of a shallow embedding - you cannot inspect the structure.
+This means that optimisations cannot be made to the structure before evaluating it.
+
+
+\section{Higher Order Functors}
+Introduce the need for them\ldots folding typed ASTs to provide syntax.
+\begin{itemize}
+  \item IFunctors, imap, natural transformation
+  \item Maybe drop some cat theory diagrams
+  \item IFix
+  \item Their use for DSL development, icata, small example.
+  %% \item Data types a la carte
+\end{itemize}
+
+\section{Type Families}
+\begin{itemize}
+  \item What are they?
+  \item DataKinds
+  \item Examples
+\end{itemize}
+
+\section{Dependently Typed Programming}
+\begin{itemize}
+  \item What is is?
+  \item Singletons, why they needed, examples, using with typefamilies.
+\end{itemize}
+
+
+
+
+% -----------------------------------------------------------------------------
+
+\chapter{Project Execution}\label{chap:execution}
+
+
+
+% -----------------------------------------------------------------------------
+
+\chapter{Critical Evaluation}\label{chap:evaluation}
+
+% -----------------------------------------------------------------------------
+
+\chapter{Conclusion}\label{chap:conclusion}
+
+% =============================================================================
+
+\backmatter{}
+
+\bibliography{dissertation}
+
+
+% =============================================================================
+
+\end{document}
+
+% ----- Configure Emacs -----
+%
+% Local Variables: ***
+% mode: latex ***
+% mmm-classes: literate-haskell-latex ***
+% End: ***
