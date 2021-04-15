@@ -5,7 +5,7 @@ supervisor={Dr. Meng Wang},
 degree={MEng},
 title={\vbox{Circuit: A Domain Specific Language for Dataflow Programming}},
 subtitle={},
-type={Research},
+type={research},
 year={2021}
 ]{dissertation}
   
@@ -75,24 +75,56 @@ advice or time), and so on.
 \chapter{Background}\label{chap:background}
 
 \section{Dataflow Programming}
-programming paradigm that represents applications as a DAG (like a dataflow diagram).
-nodes with inputs and outputs. nodes are sources, sinks or processing nodes.
-nodes connected by directed edges which define the flow of information
+Dataflow programming is a paradigm that models applications as a directed graph.
+The nodes of the graph have inputs and outputs and are pure functions, therefore have no side effects.
+It is possible for a node to be a: source; sink; or processing node.
+Edges connect these nodes together, and define the flow of information.
+\todo[inline]{this feels a little light on detail }
+
+
+\paragraph{Example - Data Pipelines}
+A common use of dataflow programming is in pipelines that process data.
+This paradigm is particularly helpful as it helps the developer to focus on each specific transformation on the data as a single component.
+Avoiding the need for long and laborious scripts that could be hard to maintain.
+
+\paragraph{Example - Quartz Composer}
+Apple developed a tool included in XCode, named Quartz Composer, which is a node-based visual programming language~\cite{quartz}.
+It allows for quick development of programs that process and render graphical data.
+By using visual programming it allows the user to build programs, without having to write a single line of code.
+This means that even non-programmers are able to use the tool.
+
+\paragraph{Example - Spreadsheets}
+A widely used example of dataflow programming is in spreadsheets.
+A cell in a spreadsheet can be thought of as a single node.
+It is possible to specify dependencies to other cells through the use of formulas.
+Whenever a cell is updated it sends its new value to those who depend on it, and so on.
+Work has also done to visualise spreadsheets using dataflow diagrams, to help debug ones that are complex\cite{hermans2011breviz}.
+
 
 \subsection{The Benefits}
 \paragraph{Visual}
-visual programming language, easier for the end user to visualise what is happening.
+The dataflow paradigm uses graphs, which make programming visual.
+It allows the end-user programmer to see how data passes through the program, much easier than in an imperative approach.
+In many cases, dataflow programming languages use drag and drop blocks with a graphical user interface to build programs,
+for example Tableau Prep~\cite{tableauPrep}.
+This makes programming more accessible to users who do not have programming skills.
 
 \paragraph{Implicit Parallelism}
-implicit parallelism~\cite{10.1145/1013208.1013209}, each node is pure and has no side effects.
-no data dependencies.
-parallelism is now more important because of multicore cpus and the need to process large amounts
-of data, that can benefit from parallel processing.
+Moore's law states that the number of transistors on a computer chip doubles every two years~\cite{4785860}.
+This meant that the chips processing speeds also increased in alignment with Moore's law.
+However, in recent years this is becoming harder for chip manufacturers to achieve~\cite{bentley_2020}.
+Therefore, chip manufactures have had to turn to other approaches to increase the speed of new chips, such as multiple cores.
+It is this approach the dataflow programming can effectively make use of.
+Since each node in a dataflow is a pure function, it is possible to parallelise implicitly.
+No node can interact with another node, therefore there are no data dependencies outside of those encoded in the dataflow.
+Thus eliminating the ability for a deadlock to occur.
 
 \subsection{Dataflow Diagrams}
+Dataflow programs are typically viewed as a graph.
+An example dataflow graph along with its corresponding imperative approach, is visible in Figure~\ref{fig:dataflow-example}.
+In this diagram is possible to see how implicit parallelisation is possible.
+Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated after they are complete.
 
-In the traditional imperative approach, the code written will be sequential, with each line executed one after another. An example is visible in Figure~\ref{subfig:dataflow-example-equations}.
-However, in
 
 \begin{figure}[ht]
   \centering
@@ -114,32 +146,24 @@ However, in
     \caption{}
     \label{subfig:dataflow-example-diagram}
   \end{subfigure}
-  \caption{an example \ref{subfig:dataflow-example-diagram}}
+  \caption{An example dataflow and its imperative approach.}
+    \label{fig:dataflow-example}
 \end{figure}
-
-\todo[inline]{Give some example diagrams for a data flow}
-Give a simple expression style program and a dataflow equivalent.
-
-\paragraph{Batch Processing}
-What is it? and where is it used?
-
-An example?
-
-\paragraph{Stream Processing}
-What is it and where is it used?
-
-An example?
-
-\paragraph{Batch vs Stream}
-Comparison of features, discuss how dataflow programming can be used for both.
 
 
 \subsection{Kahn Process Networks}
-What are they?
+A method introduced by Gilles Kahn, called Kahn Process Networks (KPN) realised this concept through the use of threads
+and unbounded FIFO queues~\cite{DBLP:conf/ifip/Kahn74}.
+A node in the dataflow becomes a thread in the process network.
+These threads are then able to communicate through FIFO queues.
+The node can have multiple input queues and is able to read any number of values from them.
+It will then compute a result and add it to an output queue.
+A requirement of KPNs is that a thread is suspended if it attempts to fetch a value from an empty queue.
+It is not possible for a process to test for the presence of data in a queue.
 
-How can they be used to model a Kahn process network? Maybe give an example diagram
-
-Discuss the specific case i am using, where the firing of a node will always pop 1 from the input tape.
+Parks described a variant of KPNs, called Data Processing networks~\cite{381846}.
+They recognise that if functions have no side effects then they have no values to be shared between each firing.
+Therefore, a pool of threads can be used with a central scheduler instead.
 
 
 
@@ -159,44 +183,11 @@ An embedded DSL, can be implemented using two differing techniques: shallow and 
 
 \todo[inline]{Add something about why embedded DSLs are used in Haskell}
 
-\subsection{Shallow Embeddings}
-A shallow approach, is when the terms of the DSL are defined as first class components of the language.
-For example, a function in Haskell.
-Components can then be composed together and evaluated to provide the semantics of the language.
-Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
-
-\begin{code}
-newtype Parser a = Parser {parse :: String -> [(a, String)]}
-
-or :: Parser a -> Parser a -> Parser a
-or (Parser px) (Parser py) = Parser (\ts -> px ts ++ py ts)
-
-satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = Parser (\case
-  []       -> []
-  (t:ts')  -> [(t, ts') | p t])
-\end{code}
-
-\noindent
-This can be used to build a parser that can parse the characters |'a'| or |'b'|.
-
-\begin{code}
-aorb :: Parser Char
-aorb = satisfy (== 'a') `or` satisfy (== 'b')
-\end{code}
-
-\noindent
-The program can then be evaluated by the |parse| function.
-For example, |parse aorb "a"| evaluates to \eval{parse aorb "a"}, and |parse aorb "c"| evaluates to \eval{parse aorb "c"}.
-
-\todo[inline]{Add the advantages of shallow embeddings.}
 
 \subsection{Deep Embeddings}
-
-Alternatively, a deep embedding can be used to represent a DSL.
-This is when the terms of the DSL will construct an Abstract Syntax Tree (AST) as a host language datatype.
+A deep embedding is when the terms of the DSL will construct an Abstract Syntax Tree (AST) as a host language datatype.
 Semantics can then be provided later on with an |eval| function.
-Again a simple parser example can be considered.
+Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
 
 %format Parser2
 %format aorb2
@@ -227,8 +218,45 @@ parse2 (Satisfy p) = \case
 parse2 (Or px py) = \ts -> parse2 px ts ++ parse2 py ts
 \end{code}
 
+A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code.
+However, they also have drawbacks - it can be laborious to add a new constructor to the language.
+Since it requires that all functions that use the deep embedding be modified to add a case for the new constructor.
 
-\todo[inline]{Add the advantages of deep embeddings.}
+
+\subsection{Shallow Embeddings}
+In contrast, a shallow approach is when the terms of the DSL are defined as first class components of the language.
+For example, a function in Haskell.
+Components can then be composed together and evaluated to provide the semantics of the language.
+Again a simple parser example can be considered.
+
+\begin{code}
+newtype Parser a = Parser {parse :: String -> [(a, String)]}
+
+or :: Parser a -> Parser a -> Parser a
+or (Parser px) (Parser py) = Parser (\ts -> px ts ++ py ts)
+
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = Parser (\case
+  []       -> []
+  (t:ts')  -> [(t, ts') | p t])
+\end{code}
+
+\noindent
+This can be used to build a parser that can parse the characters |'a'| or |'b'|.
+
+\begin{code}
+aorb :: Parser Char
+aorb = satisfy (== 'a') `or` satisfy (== 'b')
+\end{code}
+
+\noindent
+The program can then be evaluated by the |parse| function.
+For example, |parse aorb "a"| evaluates to \eval{parse aorb "a"}, and |parse aorb "c"| evaluates to \eval{parse aorb "c"}.
+
+Using a shallow implementation has the benefit of being able add new `constructors' to a DSL, without having to modify any other functions.
+Since each `constructor', produces the desired result directly.
+However, this causes one of the main disadvantages of a shallow embedding - you cannot inspect the structure.
+This means that optimisations cannot be made to the structure before evaluating it.
 
 
 \section{Higher Order Functors}
@@ -276,6 +304,7 @@ Introduce the need for them\ldots folding typed ASTs to provide syntax.
 \backmatter{}
 
 \bibliography{dissertation}
+
 
 % =============================================================================
 
