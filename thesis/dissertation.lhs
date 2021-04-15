@@ -3,14 +3,17 @@
 author={Riley Evans},
 supervisor={Dr. Meng Wang},
 degree={MEng},
-title={\vbox{TBD}},
+title={\vbox{Circuit: A Domain Specific Language for Dataflow Programming}},
 subtitle={},
-type={research},
+type={Research},
 year={2021}
 ]{dissertation}
   
-%\usepackage{libertine}
+%% \usepackage{libertine}
 \usepackage{todonotes}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{amsmath}
 
 % lhs2tex setup
 
@@ -26,7 +29,7 @@ year={2021}
 module Dissertation where
 import Prelude hiding (or)
 import Data.Kind (Type)
-\end{code}  
+\end{code}
 %endif
 
 \maketitle
@@ -72,17 +75,79 @@ advice or time), and so on.
 \chapter{Background}\label{chap:background}
 
 \section{Dataflow Programming}
-\begin{itemize}
-  \item What is is?
-  \item Why is it useful?
-  \item What benefits does it have?
-  \item Examples
-\end{itemize}
+programming paradigm that represents applications as a DAG (like a dataflow diagram).
+nodes with inputs and outputs. nodes are sources, sinks or processing nodes.
+nodes connected by directed edges which define the flow of information
+
+\subsection{The Benefits}
+\paragraph{Visual}
+visual programming language, easier for the end user to visualise what is happening.
+
+\paragraph{Implicit Parallelism}
+implicit parallelism~\cite{10.1145/1013208.1013209}, each node is pure and has no side effects.
+no data dependencies.
+parallelism is now more important because of multicore cpus and the need to process large amounts
+of data, that can benefit from parallel processing.
+
+\subsection{Dataflow Diagrams}
+
+In the traditional imperative approach, the code written will be sequential, with each line executed one after another. An example is visible in Figure~\ref{subfig:dataflow-example-equations}.
+However, in
+
+\begin{figure}[ht]
+  \centering
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \begin{equation*}
+      \begin{aligned}
+      A &:= 100 \times X \\
+      B &:= X + Y \\
+      C &:= A - B \\
+      \end{aligned}
+    \end{equation*}
+    \caption{}
+    \label{subfig:dataflow-example-equations}
+  \end{subfigure}
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \input{diagrams/dataflow-example}
+    \caption{}
+    \label{subfig:dataflow-example-diagram}
+  \end{subfigure}
+  \caption{an example \ref{subfig:dataflow-example-diagram}}
+\end{figure}
+
+\todo[inline]{Give some example diagrams for a data flow}
+Give a simple expression style program and a dataflow equivalent.
+
+\paragraph{Batch Processing}
+What is it? and where is it used?
+
+An example?
+
+\paragraph{Stream Processing}
+What is it and where is it used?
+
+An example?
+
+\paragraph{Batch vs Stream}
+Comparison of features, discuss how dataflow programming can be used for both.
+
+
+\subsection{Kahn Process Networks}
+What are they?
+
+How can they be used to model a Kahn process network? Maybe give an example diagram
+
+Discuss the specific case i am using, where the firing of a node will always pop 1 from the input tape.
+
+
+
 
 \section{Domain Specific Languages (DSLs)}
 A Domain Specific Language (DSL) is a programming language unit that has a specialised domain or use-case.
 This differs from a General Purpose Language (GPL), which can be applied across a larger set of domains.
-HTML is an example of a DSL, it is very good for describing the appearance of websites, however,
+HTML is an example of a DSL, it is good for describing the appearance of websites, however,
 it cannot be used for more generic purposes, such as adding two numbers together.
 
 \paragraph{Approaches to Implementation}
@@ -144,7 +209,7 @@ data Parser2 (a :: Type) where
 \end{code}
 
 \noindent
-The same |aorb| parser can be created by creating an AST.
+The same |aorb| parser can be created\todo{reads dodgy} by creating an AST.
 
 \begin{code}
 aorb2 :: Parser2 Char
@@ -173,7 +238,7 @@ Introduce the need for them\ldots folding typed ASTs to provide syntax.
   \item Maybe drop some cat theory diagrams
   \item IFix
   \item Their use for DSL development, icata, small example.
-  \item Data types a la carte
+  %% \item Data types a la carte
 \end{itemize}
 
 \section{Type Families}
@@ -190,11 +255,6 @@ Introduce the need for them\ldots folding typed ASTs to provide syntax.
 \end{itemize}
 
 
-\section{Kahn Process Networks}
-\begin{itemize}
-  \item What is is?
-  \item Diagrams
-\end{itemize}
 
 
 % -----------------------------------------------------------------------------
