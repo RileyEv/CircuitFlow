@@ -15,6 +15,7 @@ year={2021}
 \usepackage{subcaption}
 \usepackage{amsmath}
 \usepackage{tikz-cd}
+\usepackage{latexsym}
 
 % lhs2tex setup
 
