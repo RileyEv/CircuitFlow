@@ -273,6 +273,9 @@ Instead a type class called |IFunctor| can be used, which is able to maintain th
 This makes use of |~>|, which represents a natural transformation from |f| to |g|.
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 
+%format Parser3
+%format ~> = "\leadsto"
+
 \begin{code}
 type (~>) f g = forall a. f a -> g a
 class IFunctor iF where

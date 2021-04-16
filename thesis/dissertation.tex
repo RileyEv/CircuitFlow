@@ -621,16 +621,17 @@ Instead a type class called \ensuremath{\Conid{IFunctor}} can be used, which is 
 This makes use of \ensuremath{\mathbin{\char126 >}}, which represents a natural transformation from \ensuremath{\Varid{f}} to \ensuremath{\Varid{g}}.
 \ensuremath{\Conid{IFunctor}} can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 
+
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\mathbf{type}\codeskip (\mathbin{\char126 >})\codeskip \Varid{f}\codeskip \Varid{g}\mathrel{=}\forall \Varid{a}\hsforall \hsdot{\cdot }{.}\Varid{f}\codeskip \Varid{a}\to \Varid{g}\codeskip \Varid{a}{}\<[E]%
+\>[B]{}\mathbf{type}\codeskip (\leadsto)\codeskip \Varid{f}\codeskip \Varid{g}\mathrel{=}\forall \Varid{a}\hsforall \hsdot{\cdot }{.}\Varid{f}\codeskip \Varid{a}\to \Varid{g}\codeskip \Varid{a}{}\<[E]%
 \\
 \>[B]{}\mathbf{class}\codeskip \Conid{IFunctor}\codeskip \Varid{iF}\codeskip \mathbf{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Varid{imap}\mathbin{::}(\Varid{f}\mathbin{\char126 >}\Varid{g})\to \Varid{iF}\codeskip \Varid{f}\mathbin{\char126 >}\Varid{iF}\codeskip \Varid{g}{}\<[E]%
+\>[3]{}\Varid{imap}\mathbin{::}(\Varid{f}\leadsto\Varid{g})\to \Varid{iF}\codeskip \Varid{f}\leadsto\Varid{iF}\codeskip \Varid{g}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -713,7 +714,7 @@ It uses the algebra argument as a specification of how to transform a layer of t
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\Varid{icata}\mathbin{::}\Conid{IFunctor}\codeskip \Varid{iF}\Rightarrow (\Varid{iF}\codeskip \Varid{f}\mathbin{\char126 >}\Varid{f})\to \Conid{IFix}\codeskip \Varid{iF}\mathbin{\char126 >}\Varid{f}{}\<[E]%
+\>[B]{}\Varid{icata}\mathbin{::}\Conid{IFunctor}\codeskip \Varid{iF}\Rightarrow (\Varid{iF}\codeskip \Varid{f}\leadsto\Varid{f})\to \Conid{IFix}\codeskip \Varid{iF}\leadsto\Varid{f}{}\<[E]%
 \\
 \>[B]{}\Varid{icata}\codeskip \Varid{alg}\codeskip (\Conid{IIn}\codeskip \Varid{x})\mathrel{=}\Varid{alg}\codeskip (\Varid{imap}\codeskip (\Varid{icata}\codeskip \Varid{alg})\codeskip \Varid{x}){}\<[E]%
 \ColumnHook
