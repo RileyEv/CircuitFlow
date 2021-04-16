@@ -14,6 +14,7 @@ year={2021}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{amsmath}
+\usepackage{tikz-cd}
 
 % lhs2tex setup
 
@@ -25,7 +26,7 @@ year={2021}
 %if False
 
 \begin{code}
-{-# LANGUAGE KindSignatures, GADTs, LambdaCase #-}
+{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators #-}
 module Dissertation where
 import Prelude hiding (or)
 import Data.Kind (Type)
@@ -189,34 +190,35 @@ A deep embedding is when the terms of the DSL will construct an Abstract Syntax 
 Semantics can then be provided later on with an |eval| function.
 Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
 
-%format Parser2
-%format aorb2
-%format parse2
 
 \begin{code}
-data Parser2 (a :: Type) where
-  Satisfy  :: (Char -> Bool)  -> Parser2 Char
-  Or       :: Parser2 a       -> Parser2 a -> Parser2 a
+data Parser (a :: Type) where
+  Satisfy  :: (Char -> Bool) -> Parser Char
+  Or       :: Parser a       -> Parser a -> Parser a
 \end{code}
 
 \noindent
-The same |aorb| parser can be created\todo{reads dodgy} by creating an AST.
+This can be used to build a parser that can parse the characters |'a'| or |'b'|.
 
 \begin{code}
-aorb2 :: Parser2 Char
-aorb2 = Satisfy (== 'a') `Or` Satisfy (== 'b')
+aorb :: Parser Char
+aorb = Satisfy (== 'a') `Or` Satisfy (== 'b')
 \end{code}
 
 \noindent
-However, this parser does not have any semantics, therefore this needs to be provided by the evaluation function |parse2|.
+However, this parser does not have any semantics, therefore this needs to be provided by the evaluation function |parse|.
 
 \begin{code}
-parse2 :: Parser2 a -> String -> [(a, String)]
-parse2 (Satisfy p) = \case
+parse :: Parser a -> String -> [(a, String)]
+parse (Satisfy p) = \case
   []       -> []
   (t:ts')  -> [(t, ts') | p t]
-parse2 (Or px py) = \ts -> parse2 px ts ++ parse2 py ts
+parse (Or px py) = \ts -> parse px ts ++ parse py ts
 \end{code}
+
+\noindent
+The program can then be evaluated by the |parse| function.
+For example, |parse aorb "a"| evaluates to \eval{parse aorb "a"}, and |parse aorb "c"| evaluates to \eval{parse aorb "c"}.
 
 A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code.
 However, they also have drawbacks - it can be laborious to add a new constructor to the language.
@@ -229,29 +231,30 @@ For example, a function in Haskell.
 Components can then be composed together and evaluated to provide the semantics of the language.
 Again a simple parser example can be considered.
 
+%format Parser2
+%format aorb2
+%format parse2
+
 \begin{code}
-newtype Parser a = Parser {parse :: String -> [(a, String)]}
+newtype Parser2 a = Parser2 {parse2 :: String -> [(a, String)]}
 
-or :: Parser a -> Parser a -> Parser a
-or (Parser px) (Parser py) = Parser (\ts -> px ts ++ py ts)
+or :: Parser2 a -> Parser2 a -> Parser2 a
+or (Parser2 px) (Parser2 py) = Parser2 (\ts -> px ts ++ py ts)
 
-satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = Parser (\case
+satisfy :: (Char -> Bool) -> Parser2 Char
+satisfy p = Parser2 (\case
   []       -> []
   (t:ts')  -> [(t, ts') | p t])
 \end{code}
 
 \noindent
-This can be used to build a parser that can parse the characters |'a'| or |'b'|.
+The same |aorb| parser can be created\todo{reads dodgy} by creating an AST.
 
 \begin{code}
-aorb :: Parser Char
-aorb = satisfy (== 'a') `or` satisfy (== 'b')
+aorb2 :: Parser2 Char
+aorb2 = satisfy (== 'a') `or` satisfy (== 'b')
 \end{code}
 
-\noindent
-The program can then be evaluated by the |parse| function.
-For example, |parse aorb "a"| evaluates to \eval{parse aorb "a"}, and |parse aorb "c"| evaluates to \eval{parse aorb "c"}.
 
 Using a shallow implementation has the benefit of being able add new `constructors' to a DSL, without having to modify any other functions.
 Since each `constructor', produces the desired result directly.
@@ -260,7 +263,85 @@ This means that optimisations cannot be made to the structure before evaluating 
 
 
 \section{Higher Order Functors}
-Introduce the need for them\ldots folding typed ASTs to provide syntax.
+It is possible to capture the shape of an abstract datatype as a |Functor|.
+The use of a |Functor| allows for the specification of where a datatype recurses.
+There is, however, one problem: a |Functor| expressing the parser language is required to be typed.
+Parsers require the type of the tokens being parsed.
+For example, a parser reading tokens that make up an expression could have the type |Parser Expr|.
+A |Functor| does not retain the type of a parser.
+Instead a type class called |IFunctor| can be used, which is able to maintain the type indicies~\todo{cite}.
+This makes use of |~>|, which represents a natural transformation from |f| to |g|.
+|IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
+
+\begin{code}
+type (~>) f g = forall a. f a -> g a
+class IFunctor iF where
+  imap :: (f ~> g) -> iF f ~> iF g
+\end{code}
+
+\noindent
+The shape of |Parser| can be seen in |ParserF| where the |f| marks the recursive spots.
+The type |f| represents the type of the children of that node.
+In most cases this will be
+
+\begin{code}
+data ParserF (f :: * -> *) (a :: *) where
+  SatisfyF :: (Char -> Bool) -> ParserF f Char
+  OrF :: f a -> f a -> ParserF f a
+\end{code}
+
+\noindent
+An |IFunctor| instance can be defined, which follow the same structure as a standard |Functor| instance.
+
+\begin{code}
+instance IFunctor ParserF where
+  imap _ (SatisfyF s) = SatisfyF s
+  imap f (OrF px py) = OrF (f px) (f py)
+\end{code}
+
+\noindent
+|Fix| is used to get the fixed point of a |Functor|, to get the indexed fixed point |IFix| can be used.
+
+\begin{code}
+newtype Fix f = In (f (Fix f))
+newtype IFix iF a = IIn (iF (IFix iF) a)
+\end{code}
+
+%format Parser3
+
+\noindent
+The fixed point of |ParserF| is |Parser3|.
+
+\begin{code}
+type Parser3 = IFix ParserF
+\end{code}
+
+In a deep embedding, the AST is traversed and modified to make optimisations, however, it may not be the best representation when evaluating it.
+This means that it is usually transformed to a different representation. In the case of a parser, this could be a stack machine.
+Now that the recursion in the datatype has been generalised, it is possible to create a mechanism to perform this transformation.
+An indexed \textit{catamorphism} is one such way to do this, it is a generalised way of folding an abstract datatype.
+The commutative diagram below describes how to define a catamorphism, that folds an |IFix iF a| to a |f a|.
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}[column sep=huge]
+|iF (Fix iF) a|  \arrow[r, "|imap (icata alg)|"] \arrow[d, shift left=0.15cm, "|IIn|"] & |iF f a| \arrow[d, "|alg|"]\\
+|IFix iF a|       \arrow[r, "|icata alg|"]        \arrow[u, shift left=0.15cm, "|inop|"]        & |f a|
+\end{tikzcd}
+\end{figure}
+
+|icata| is able to fold an |IFix iF a| and produce an item of type |f a|.
+It uses the algebra argument as a specification of how to transform a layer of the datatype.
+
+\begin{code}
+icata :: IFunctor iF => (iF f ~> f) -> IFix iF ~> f
+icata alg (IIn x) = alg (imap (icata alg) x)
+\end{code}
+
+The resulting type of |icata| is |f a|, this requires the |f| to be a |Functor|.
+This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the AST.
+
+
 \begin{itemize}
   \item IFunctors, imap, natural transformation
   \item Maybe drop some cat theory diagrams
@@ -268,6 +349,9 @@ Introduce the need for them\ldots folding typed ASTs to provide syntax.
   \item Their use for DSL development, icata, small example.
   %% \item Data types a la carte
 \end{itemize}
+
+\section{Data types a la carte}\todo{e with a thingy}
+Describe how they work with |:+:| and |:<:|. Don't make an indexed one yet.
 
 \section{Type Families}
 \begin{itemize}

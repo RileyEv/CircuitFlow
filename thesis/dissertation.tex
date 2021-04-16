@@ -14,6 +14,7 @@ year={2021}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{amsmath}
+\usepackage{tikz-cd}
 
 % lhs2tex setup
 
@@ -498,45 +499,44 @@ Consider the example of a minimal non-deterministic parser combinator library~\c
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{12}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{31}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{30}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\mathbf{data}\codeskip \Conid{Parser}_{2}\codeskip (\Varid{a}\mathbin{::}\Conid{Type})\codeskip \mathbf{where}{}\<[E]%
+\>[B]{}\mathbf{data}\codeskip \Conid{Parser}\codeskip (\Varid{a}\mathbin{::}\Conid{Type})\codeskip \mathbf{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Conid{Satisfy}{}\<[12]%
-\>[12]{}\mathbin{::}(\Conid{Char}\to \Conid{Bool}){}\<[31]%
-\>[31]{}\to \Conid{Parser}_{2}\codeskip \Conid{Char}{}\<[E]%
+\>[12]{}\mathbin{::}(\Conid{Char}\to \Conid{Bool})\to \Conid{Parser}\codeskip \Conid{Char}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Conid{Or}{}\<[12]%
-\>[12]{}\mathbin{::}\Conid{Parser}_{2}\codeskip \Varid{a}{}\<[31]%
-\>[31]{}\to \Conid{Parser}_{2}\codeskip \Varid{a}\to \Conid{Parser}_{2}\codeskip \Varid{a}{}\<[E]%
+\>[12]{}\mathbin{::}\Conid{Parser}\codeskip \Varid{a}{}\<[30]%
+\>[30]{}\to \Conid{Parser}\codeskip \Varid{a}\to \Conid{Parser}\codeskip \Varid{a}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
 \noindent
-The same \ensuremath{\Varid{aorb}} parser can be created\todo{reads dodgy} by creating an AST.
+This can be used to build a parser that can parse the characters \ensuremath{\text{\ttfamily{\textquotesingle}a\textquotesingle}} or \ensuremath{\text{\ttfamily{\textquotesingle}b\textquotesingle}}.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\Varid{aorb}_{2}\mathbin{::}\Conid{Parser}_{2}\codeskip \Conid{Char}{}\<[E]%
+\>[B]{}\Varid{aorb}\mathbin{::}\Conid{Parser}\codeskip \Conid{Char}{}\<[E]%
 \\
-\>[B]{}\Varid{aorb}_{2}\mathrel{=}\Conid{Satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}a\textquotesingle})\mathbin{\text{\`{}}\Conid{Or}\text{\`{}}}\Conid{Satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}b\textquotesingle}){}\<[E]%
+\>[B]{}\Varid{aorb}\mathrel{=}\Conid{Satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}a\textquotesingle})\mathbin{\text{\`{}}\Conid{Or}\text{\`{}}}\Conid{Satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}b\textquotesingle}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
 \noindent
-However, this parser does not have any semantics, therefore this needs to be provided by the evaluation function \ensuremath{\Varid{parse}_{2}}.
+However, this parser does not have any semantics, therefore this needs to be provided by the evaluation function \ensuremath{\Varid{parse}}.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{12}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\Varid{parse}_{2}\mathbin{::}\Conid{Parser}_{2}\codeskip \Varid{a}\to \Conid{String}\to [\mskip1.5mu (\Varid{a},\Conid{String})\mskip1.5mu]{}\<[E]%
+\>[B]{}\Varid{parse}\mathbin{::}\Conid{Parser}\codeskip \Varid{a}\to \Conid{String}\to [\mskip1.5mu (\Varid{a},\Conid{String})\mskip1.5mu]{}\<[E]%
 \\
-\>[B]{}\Varid{parse}_{2}\codeskip (\Conid{Satisfy}\codeskip \Varid{p})\mathrel{=}\lambda \mathbf{case}{}\<[E]%
+\>[B]{}\Varid{parse}\codeskip (\Conid{Satisfy}\codeskip \Varid{p})\mathrel{=}\lambda \mathbf{case}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}[\mskip1.5mu \mskip1.5mu]{}\<[12]%
@@ -546,9 +546,13 @@ However, this parser does not have any semantics, therefore this needs to be pro
 \>[3]{}(\Varid{t}\mathbin{:}\Varid{ts'}){}\<[12]%
 \>[12]{}\to [\mskip1.5mu (\Varid{t},\Varid{ts'})\mid \Varid{p}\codeskip \Varid{t}\mskip1.5mu]{}\<[E]%
 \\
-\>[B]{}\Varid{parse}_{2}\codeskip (\Conid{Or}\codeskip \Varid{px}\codeskip \Varid{py})\mathrel{=}\lambda \Varid{ts}\to \Varid{parse}_{2}\codeskip \Varid{px}\codeskip \Varid{ts}\plus \Varid{parse}_{2}\codeskip \Varid{py}\codeskip \Varid{ts}{}\<[E]%
+\>[B]{}\Varid{parse}\codeskip (\Conid{Or}\codeskip \Varid{px}\codeskip \Varid{py})\mathrel{=}\lambda \Varid{ts}\to \Varid{parse}\codeskip \Varid{px}\codeskip \Varid{ts}\plus \Varid{parse}\codeskip \Varid{py}\codeskip \Varid{ts}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
+
+\noindent
+The program can then be evaluated by the \ensuremath{\Varid{parse}} function.
+For example, \ensuremath{\Varid{parse}\codeskip \Varid{aorb}\codeskip \text{\ttfamily \char34 a\char34}} evaluates to \ensuremath{[\mskip1.5mu (\text{\ttfamily{\textquotesingle}a\textquotesingle},\text{\ttfamily \char34 \char34})\mskip1.5mu]}, and \ensuremath{\Varid{parse}\codeskip \Varid{aorb}\codeskip \text{\ttfamily \char34 c\char34}} evaluates to \ensuremath{[\mskip1.5mu \mskip1.5mu]}.
 
 A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code.
 However, they also have drawbacks - it can be laborious to add a new constructor to the language.
@@ -561,20 +565,21 @@ For example, a function in Haskell.
 Components can then be composed together and evaluated to provide the semantics of the language.
 Again a simple parser example can be considered.
 
+
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{12}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\mathbf{newtype}\codeskip \Conid{Parser}\codeskip \Varid{a}\mathrel{=}\Conid{Parser}\codeskip \{\mskip1.5mu \Varid{parse}\mathbin{::}\Conid{String}\to [\mskip1.5mu (\Varid{a},\Conid{String})\mskip1.5mu]\mskip1.5mu\}{}\<[E]%
+\>[B]{}\mathbf{newtype}\codeskip \Conid{Parser}_{2}\codeskip \Varid{a}\mathrel{=}\Conid{Parser}_{2}\codeskip \{\mskip1.5mu \Varid{parse}_{2}\mathbin{::}\Conid{String}\to [\mskip1.5mu (\Varid{a},\Conid{String})\mskip1.5mu]\mskip1.5mu\}{}\<[E]%
 \\[\blanklineskip]%
-\>[B]{}\Varid{or}\mathbin{::}\Conid{Parser}\codeskip \Varid{a}\to \Conid{Parser}\codeskip \Varid{a}\to \Conid{Parser}\codeskip \Varid{a}{}\<[E]%
+\>[B]{}\Varid{or}\mathbin{::}\Conid{Parser}_{2}\codeskip \Varid{a}\to \Conid{Parser}_{2}\codeskip \Varid{a}\to \Conid{Parser}_{2}\codeskip \Varid{a}{}\<[E]%
 \\
-\>[B]{}\Varid{or}\codeskip (\Conid{Parser}\codeskip \Varid{px})\codeskip (\Conid{Parser}\codeskip \Varid{py})\mathrel{=}\Conid{Parser}\codeskip (\lambda \Varid{ts}\to \Varid{px}\codeskip \Varid{ts}\plus \Varid{py}\codeskip \Varid{ts}){}\<[E]%
+\>[B]{}\Varid{or}\codeskip (\Conid{Parser}_{2}\codeskip \Varid{px})\codeskip (\Conid{Parser}_{2}\codeskip \Varid{py})\mathrel{=}\Conid{Parser}_{2}\codeskip (\lambda \Varid{ts}\to \Varid{px}\codeskip \Varid{ts}\plus \Varid{py}\codeskip \Varid{ts}){}\<[E]%
 \\[\blanklineskip]%
-\>[B]{}\Varid{satisfy}\mathbin{::}(\Conid{Char}\to \Conid{Bool})\to \Conid{Parser}\codeskip \Conid{Char}{}\<[E]%
+\>[B]{}\Varid{satisfy}\mathbin{::}(\Conid{Char}\to \Conid{Bool})\to \Conid{Parser}_{2}\codeskip \Conid{Char}{}\<[E]%
 \\
-\>[B]{}\Varid{satisfy}\codeskip \Varid{p}\mathrel{=}\Conid{Parser}\codeskip (\lambda \mathbf{case}{}\<[E]%
+\>[B]{}\Varid{satisfy}\codeskip \Varid{p}\mathrel{=}\Conid{Parser}_{2}\codeskip (\lambda \mathbf{case}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}[\mskip1.5mu \mskip1.5mu]{}\<[12]%
@@ -587,20 +592,17 @@ Again a simple parser example can be considered.
 \end{hscode}\resethooks
 
 \noindent
-This can be used to build a parser that can parse the characters \ensuremath{\text{\ttfamily{\textquotesingle}a\textquotesingle}} or \ensuremath{\text{\ttfamily{\textquotesingle}b\textquotesingle}}.
+The same \ensuremath{\Varid{aorb}} parser can be created\todo{reads dodgy} by creating an AST.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\Varid{aorb}\mathbin{::}\Conid{Parser}\codeskip \Conid{Char}{}\<[E]%
+\>[B]{}\Varid{aorb}_{2}\mathbin{::}\Conid{Parser}_{2}\codeskip \Conid{Char}{}\<[E]%
 \\
-\>[B]{}\Varid{aorb}\mathrel{=}\Varid{satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}a\textquotesingle})\mathbin{\text{\`{}}\Varid{or}\text{\`{}}}\Varid{satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}b\textquotesingle}){}\<[E]%
+\>[B]{}\Varid{aorb}_{2}\mathrel{=}\Varid{satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}a\textquotesingle})\mathbin{\text{\`{}}\Varid{or}\text{\`{}}}\Varid{satisfy}\codeskip (\equiv \text{\ttfamily{\textquotesingle}b\textquotesingle}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
-\noindent
-The program can then be evaluated by the \ensuremath{\Varid{parse}} function.
-For example, \ensuremath{\Varid{parse}\codeskip \Varid{aorb}\codeskip \text{\ttfamily \char34 a\char34}} evaluates to \ensuremath{[\mskip1.5mu (\text{\ttfamily{\textquotesingle}a\textquotesingle},\text{\ttfamily \char34 \char34})\mskip1.5mu]}, and \ensuremath{\Varid{parse}\codeskip \Varid{aorb}\codeskip \text{\ttfamily \char34 c\char34}} evaluates to \ensuremath{[\mskip1.5mu \mskip1.5mu]}.
 
 Using a shallow implementation has the benefit of being able add new `constructors' to a DSL, without having to modify any other functions.
 Since each `constructor', produces the desired result directly.
@@ -609,7 +611,118 @@ This means that optimisations cannot be made to the structure before evaluating 
 
 
 \section{Higher Order Functors}
-Introduce the need for them\ldots folding typed ASTs to provide syntax.
+It is possible to capture the shape of an abstract datatype as a \ensuremath{\Conid{Functor}}.
+The use of a \ensuremath{\Conid{Functor}} allows for the specification of where a datatype recurses.
+There is, however, one problem: a \ensuremath{\Conid{Functor}} expressing the parser language is required to be typed.
+Parsers require the type of the tokens being parsed.
+For example, a parser reading tokens that make up an expression could have the type \ensuremath{\Conid{Parser}\codeskip \Conid{Expr}}.
+A \ensuremath{\Conid{Functor}} does not retain the type of a parser.
+Instead a type class called \ensuremath{\Conid{IFunctor}} can be used, which is able to maintain the type indicies~\todo{cite}.
+This makes use of \ensuremath{\mathbin{\char126 >}}, which represents a natural transformation from \ensuremath{\Varid{f}} to \ensuremath{\Varid{g}}.
+\ensuremath{\Conid{IFunctor}} can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{type}\codeskip (\mathbin{\char126 >})\codeskip \Varid{f}\codeskip \Varid{g}\mathrel{=}\forall \Varid{a}\hsforall \hsdot{\cdot }{.}\Varid{f}\codeskip \Varid{a}\to \Varid{g}\codeskip \Varid{a}{}\<[E]%
+\\
+\>[B]{}\mathbf{class}\codeskip \Conid{IFunctor}\codeskip \Varid{iF}\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Varid{imap}\mathbin{::}(\Varid{f}\mathbin{\char126 >}\Varid{g})\to \Varid{iF}\codeskip \Varid{f}\mathbin{\char126 >}\Varid{iF}\codeskip \Varid{g}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+The shape of \ensuremath{\Conid{Parser}} can be seen in \ensuremath{\Conid{ParserF}} where the \ensuremath{\Varid{f}} marks the recursive spots.
+The type \ensuremath{\Varid{f}} represents the type of the children of that node.
+In most cases this will be
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{data}\codeskip \Conid{ParserF}\codeskip (\Varid{f}\mathbin{::}\mathbin{*}\to \mathbin{*})\codeskip (\Varid{a}\mathbin{::}\mathbin{*})\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{SatisfyF}\mathbin{::}(\Conid{Char}\to \Conid{Bool})\to \Conid{ParserF}\codeskip \Varid{f}\codeskip \Conid{Char}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{OrF}\mathbin{::}\Varid{f}\codeskip \Varid{a}\to \Varid{f}\codeskip \Varid{a}\to \Conid{ParserF}\codeskip \Varid{f}\codeskip \Varid{a}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+An \ensuremath{\Conid{IFunctor}} instance can be defined, which follow the same structure as a standard \ensuremath{\Conid{Functor}} instance.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{instance}\codeskip \Conid{IFunctor}\codeskip \Conid{ParserF}\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Varid{imap}\codeskip \anonymous \codeskip (\Conid{SatisfyF}\codeskip \Varid{s})\mathrel{=}\Conid{SatisfyF}\codeskip \Varid{s}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Varid{imap}\codeskip \Varid{f}\codeskip (\Conid{OrF}\codeskip \Varid{px}\codeskip \Varid{py})\mathrel{=}\Conid{OrF}\codeskip (\Varid{f}\codeskip \Varid{px})\codeskip (\Varid{f}\codeskip \Varid{py}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+\ensuremath{\Conid{Fix}} is used to get the fixed point of a \ensuremath{\Conid{Functor}}, to get the indexed fixed point \ensuremath{\Conid{IFix}} can be used.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{newtype}\codeskip \Conid{Fix}\codeskip \Varid{f}\mathrel{=}\Conid{In}\codeskip (\Varid{f}\codeskip (\Conid{Fix}\codeskip \Varid{f})){}\<[E]%
+\\
+\>[B]{}\mathbf{newtype}\codeskip \Conid{IFix}\codeskip \Varid{iF}\codeskip \Varid{a}\mathrel{=}\Conid{IIn}\codeskip (\Varid{iF}\codeskip (\Conid{IFix}\codeskip \Varid{iF})\codeskip \Varid{a}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+\noindent
+The fixed point of \ensuremath{\Conid{ParserF}} is \ensuremath{\Conid{Parser}_{3}}.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{type}\codeskip \Conid{Parser}_{3}\mathrel{=}\Conid{IFix}\codeskip \Conid{ParserF}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+In a deep embedding, the AST is traversed and modified to make optimisations, however, it may not be the best representation when evaluating it.
+This means that it is usually transformed to a different representation. In the case of a parser, this could be a stack machine.
+Now that the recursion in the datatype has been generalised, it is possible to create a mechanism to perform this transformation.
+An indexed \textit{catamorphism} is one such way to do this, it is a generalised way of folding an abstract datatype.
+The commutative diagram below describes how to define a catamorphism, that folds an \ensuremath{\Conid{IFix}\codeskip \Varid{iF}\codeskip \Varid{a}} to a \ensuremath{\Varid{f}\codeskip \Varid{a}}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzcd}[column sep=huge]
+\ensuremath{\Varid{iF}\codeskip (\Conid{Fix}\codeskip \Varid{iF})\codeskip \Varid{a}}  \arrow[r, "\ensuremath{\Varid{imap}\codeskip (\Varid{icata}\codeskip \Varid{alg})}"] \arrow[d, shift left=0.15cm, "\ensuremath{\Conid{IIn}}"] & \ensuremath{\Varid{iF}\codeskip \Varid{f}\codeskip \Varid{a}} \arrow[d, "\ensuremath{\Varid{alg}}"]\\
+\ensuremath{\Conid{IFix}\codeskip \Varid{iF}\codeskip \Varid{a}}       \arrow[r, "\ensuremath{\Varid{icata}\codeskip \Varid{alg}}"]        \arrow[u, shift left=0.15cm, "\ensuremath{\Varid{inop}}"]        & \ensuremath{\Varid{f}\codeskip \Varid{a}}
+\end{tikzcd}
+\end{figure}
+
+\ensuremath{\Varid{icata}} is able to fold an \ensuremath{\Conid{IFix}\codeskip \Varid{iF}\codeskip \Varid{a}} and produce an item of type \ensuremath{\Varid{f}\codeskip \Varid{a}}.
+It uses the algebra argument as a specification of how to transform a layer of the datatype.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{icata}\mathbin{::}\Conid{IFunctor}\codeskip \Varid{iF}\Rightarrow (\Varid{iF}\codeskip \Varid{f}\mathbin{\char126 >}\Varid{f})\to \Conid{IFix}\codeskip \Varid{iF}\mathbin{\char126 >}\Varid{f}{}\<[E]%
+\\
+\>[B]{}\Varid{icata}\codeskip \Varid{alg}\codeskip (\Conid{IIn}\codeskip \Varid{x})\mathrel{=}\Varid{alg}\codeskip (\Varid{imap}\codeskip (\Varid{icata}\codeskip \Varid{alg})\codeskip \Varid{x}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+The resulting type of \ensuremath{\Varid{icata}} is \ensuremath{\Varid{f}\codeskip \Varid{a}}, this requires the \ensuremath{\Varid{f}} to be a \ensuremath{\Conid{Functor}}.
+This could be \ensuremath{\Conid{IFix}\codeskip \Conid{ParserF}}, which would be a transformation to the same structure, possibly applying optimisations to the AST.
+
+
 \begin{itemize}
   \item IFunctors, imap, natural transformation
   \item Maybe drop some cat theory diagrams
@@ -617,6 +730,9 @@ Introduce the need for them\ldots folding typed ASTs to provide syntax.
   \item Their use for DSL development, icata, small example.
   %% \item Data types a la carte
 \end{itemize}
+
+\section{Data types a la carte}\todo{e with a thingy}
+Describe how they work with \ensuremath{\mathbin{:+:}} and \ensuremath{\mathbin{:<:}}. Don't make an indexed one yet.
 
 \section{Type Families}
 \begin{itemize}
