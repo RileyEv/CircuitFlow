@@ -292,8 +292,8 @@ In most cases this will be
 
 \begin{code}
 data ParserF (f :: * -> *) (a :: *) where
-  SatisfyF :: (Char -> Bool) -> ParserF f Char
-  OrF :: f a -> f a -> ParserF f a
+  SatisfyF  :: (Char -> Bool) -> ParserF f Char
+  OrF       :: f a -> f a -> ParserF f a
 \end{code}
 
 \noindent
@@ -301,8 +301,8 @@ An |IFunctor| instance can be defined, which follow the same structure as a stan
 
 \begin{code}
 instance IFunctor ParserF where
-  imap _ (SatisfyF s) = SatisfyF s
-  imap f (OrF px py) = OrF (f px) (f py)
+  imap  _  (SatisfyF s)  = SatisfyF s
+  imap  f  (OrF px py)   = OrF (f px) (f py)
 \end{code}
 
 \noindent
