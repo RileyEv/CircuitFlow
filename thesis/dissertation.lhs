@@ -264,6 +264,10 @@ This means that optimisations cannot be made to the structure before evaluating 
 
 
 \section{Higher Order Functors}
+
+%format Parser3
+%format ~> = "\leadsto"
+
 It is possible to capture the shape of an abstract datatype as a |Functor|.
 The use of a |Functor| allows for the specification of where a datatype recurses.
 There is, however, one problem: a |Functor| expressing the parser language is required to be typed.
@@ -274,8 +278,6 @@ Instead a type class called |IFunctor| can be used, which is able to maintain th
 This makes use of |~>|, which represents a natural transformation from |f| to |g|.
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 
-%format Parser3
-%format ~> = "\leadsto"
 
 \begin{code}
 type (~>) f g = forall a. f a -> g a
@@ -311,8 +313,6 @@ newtype Fix f = In (f (Fix f))
 newtype IFix iF a = IIn (iF (IFix iF) a)
 \end{code}
 
-%format Parser3
-
 \noindent
 The fixed point of |ParserF| is |Parser3|.
 
@@ -329,7 +329,7 @@ The commutative diagram below describes how to define a catamorphism, that folds
 \begin{figure}[h]
 \centering
 \begin{tikzcd}[column sep=huge]
-|iF (Fix iF) a|  \arrow[r, "|imap (icata alg)|"] \arrow[d, shift left=0.15cm, "|IIn|"] & |iF f a| \arrow[d, "|alg|"]\\
+|iF (IFix iF) a|  \arrow[r, "|imap (icata alg)|"] \arrow[d, shift left=0.15cm, "|IIn|"] & |iF f a| \arrow[d, "|alg|"]\\
 |IFix iF a|       \arrow[r, "|icata alg|"]        \arrow[u, shift left=0.15cm, "|inop|"]        & |f a|
 \end{tikzcd}
 \end{figure}

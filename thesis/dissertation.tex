@@ -612,6 +612,8 @@ This means that optimisations cannot be made to the structure before evaluating 
 
 
 \section{Higher Order Functors}
+
+
 It is possible to capture the shape of an abstract datatype as a \ensuremath{\Conid{Functor}}.
 The use of a \ensuremath{\Conid{Functor}} allows for the specification of where a datatype recurses.
 There is, however, one problem: a \ensuremath{\Conid{Functor}} expressing the parser language is required to be typed.
@@ -619,7 +621,7 @@ Parsers require the type of the tokens being parsed.
 For example, a parser reading tokens that make up an expression could have the type \ensuremath{\Conid{Parser}\codeskip \Conid{Expr}}.
 A \ensuremath{\Conid{Functor}} does not retain the type of a parser.
 Instead a type class called \ensuremath{\Conid{IFunctor}} can be used, which is able to maintain the type indicies~\todo{cite}.
-This makes use of \ensuremath{\mathbin{\char126 >}}, which represents a natural transformation from \ensuremath{\Varid{f}} to \ensuremath{\Varid{g}}.
+This makes use of \ensuremath{\leadsto}, which represents a natural transformation from \ensuremath{\Varid{f}} to \ensuremath{\Varid{g}}.
 \ensuremath{\Conid{IFunctor}} can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 
 
@@ -684,7 +686,6 @@ An \ensuremath{\Conid{IFunctor}} instance can be defined, which follow the same 
 \ColumnHook
 \end{hscode}\resethooks
 
-
 \noindent
 The fixed point of \ensuremath{\Conid{ParserF}} is \ensuremath{\Conid{Parser}_{3}}.
 
@@ -704,7 +705,7 @@ The commutative diagram below describes how to define a catamorphism, that folds
 \begin{figure}[h]
 \centering
 \begin{tikzcd}[column sep=huge]
-\ensuremath{\Varid{iF}\codeskip (\Conid{Fix}\codeskip \Varid{iF})\codeskip \Varid{a}}  \arrow[r, "\ensuremath{\Varid{imap}\codeskip (\Varid{icata}\codeskip \Varid{alg})}"] \arrow[d, shift left=0.15cm, "\ensuremath{\Conid{IIn}}"] & \ensuremath{\Varid{iF}\codeskip \Varid{f}\codeskip \Varid{a}} \arrow[d, "\ensuremath{\Varid{alg}}"]\\
+\ensuremath{\Varid{iF}\codeskip (\Conid{IFix}\codeskip \Varid{iF})\codeskip \Varid{a}}  \arrow[r, "\ensuremath{\Varid{imap}\codeskip (\Varid{icata}\codeskip \Varid{alg})}"] \arrow[d, shift left=0.15cm, "\ensuremath{\Conid{IIn}}"] & \ensuremath{\Varid{iF}\codeskip \Varid{f}\codeskip \Varid{a}} \arrow[d, "\ensuremath{\Varid{alg}}"]\\
 \ensuremath{\Conid{IFix}\codeskip \Varid{iF}\codeskip \Varid{a}}       \arrow[r, "\ensuremath{\Varid{icata}\codeskip \Varid{alg}}"]        \arrow[u, shift left=0.15cm, "\ensuremath{\Varid{inop}}"]        & \ensuremath{\Varid{f}\codeskip \Varid{a}}
 \end{tikzcd}
 \end{figure}
