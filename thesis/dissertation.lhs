@@ -442,8 +442,6 @@ Although Haskell does not officially support dependently typed programming, ther
 \subsection{DataKinds Language Extension}
 \todo[inline]{Add some refs}
 
-%format "'Zero" = Zero
-%format "'Succ" = Succ
 
 Through the use of the DataKinds language extension, all data types are promoted to also be kinds and their constructors to be type constructors.
 When constructors are promoted to type constructors, they are prefixed with a '. For example |Zero|
@@ -458,6 +456,9 @@ data Nat = Zero
          | Succ Nat
 \end{code}
 
+%format Zero = "'Zero"
+%format Succ = "'Succ"
+
 \noindent
 A vector type can now be defined that makes use of the promoted |Nat| kind.
 
@@ -470,6 +471,13 @@ data Vec :: Type -> Nat -> Type where
 The use of DataKinds can enforce stronger types.
 For example a function can now require that a specific length of vector is given as an argument.
 With standard lists, this would not be possible, which could result in run-time errors when the incorrect length is used.
+One case where this could be is getting the head of a list. If you attempt to get the head of an empty list an error will be thrown.
+For a vector a |safeHead| function can be defined that will not type check if the vector is empty.
+
+\begin{code}
+safeHead :: Vector (Succ n) a -> a
+safeHead (Cons x _) = x
+\end{code}
 
 \subsection{Singletons}
 \todo[inline]{Add some refs}
@@ -516,13 +524,14 @@ vecAppend :: Vec a n -> Vec a m -> Vec a (n + m)
 \end{code}
 
 \noindent
-This will require a |+| type family that can add two |Nat|s together.
+This requires a |+| type family that can add two |Nat|s together.
 
 \begin{code}
 type family (a :: Nat) :+ (b :: Nat) where
   a  :+  Zero    =  a
   a  :+  Succ b  =  Succ (a :+ b)
 \end{code}
+
 
 
 

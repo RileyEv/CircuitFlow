@@ -888,6 +888,7 @@ This is where numbers are defined as zero or a number n incremented by 1.
 \ColumnHook
 \end{hscode}\resethooks
 
+
 \noindent
 A vector type can now be defined that makes use of the promoted \ensuremath{\Conid{Nat}} kind.
 
@@ -900,17 +901,28 @@ A vector type can now be defined that makes use of the promoted \ensuremath{\Con
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Conid{Nil}{}\<[9]%
-\>[9]{}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip \Conid{Zero}{}\<[E]%
+\>[9]{}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip Zero{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Conid{Cons}{}\<[9]%
-\>[9]{}\mathbin{::}\Varid{a}\to \Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Vec}\codeskip \Varid{a}\codeskip (\Conid{Succ}\codeskip \Varid{n}){}\<[E]%
+\>[9]{}\mathbin{::}\Varid{a}\to \Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Vec}\codeskip \Varid{a}\codeskip (Succ\codeskip \Varid{n}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
 The use of DataKinds can enforce stronger types.
 For example a function can now require that a specific length of vector is given as an argument.
 With standard lists, this would not be possible, which could result in run-time errors when the incorrect length is used.
+One case where this could be is getting the head of a list. If you attempt to get the head of an empty list an error will be thrown.
+For a vector a \ensuremath{\Varid{safeHead}} function can be defined that will not type check if the vector is empty.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{safeHead}\mathbin{::}\Conid{Vector}\codeskip (Succ\codeskip \Varid{n})\codeskip \Varid{a}\to \Varid{a}{}\<[E]%
+\\
+\>[B]{}\Varid{safeHead}\codeskip (\Conid{Cons}\codeskip \Varid{x}\codeskip \anonymous )\mathrel{=}\Varid{x}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
 
 \subsection{Singletons}
 \todo[inline]{Add some refs}
@@ -937,10 +949,10 @@ The structure for \ensuremath{\Conid{SNat}} closely flows that of \ensuremath{\C
 \>[B]{}\mathbf{data}\codeskip \Conid{SNat}\codeskip (\Varid{n}\mathbin{::}\Conid{Nat})\codeskip \mathbf{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Conid{SZero}\mathbin{::}\Conid{SNat}\codeskip \Conid{Zero}{}\<[E]%
+\>[3]{}\Conid{SZero}\mathbin{::}\Conid{SNat}\codeskip Zero{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Conid{SSucc}\mathbin{::}\Conid{SNat}\codeskip \Varid{n}\to \Conid{SNat}\codeskip (\Conid{Succ}\codeskip \Varid{n}){}\<[E]%
+\>[3]{}\Conid{SSucc}\mathbin{::}\Conid{SNat}\codeskip \Varid{n}\to \Conid{SNat}\codeskip (Succ\codeskip \Varid{n}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -978,7 +990,7 @@ The ideal type signature for appending two vectors together would be,
 \end{hscode}\resethooks
 
 \noindent
-This will require a \ensuremath{\mathbin{+}} type family that can add two \ensuremath{\Conid{Nat}}s together.
+This requires a \ensuremath{\mathbin{+}} type family that can add two \ensuremath{\Conid{Nat}}s together.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -995,18 +1007,19 @@ This will require a \ensuremath{\mathbin{+}} type family that can add two \ensur
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Varid{a}{}\<[6]%
 \>[6]{}\mathbin{:+}{}\<[6E]%
-\>[10]{}\Conid{Zero}{}\<[18]%
+\>[10]{}Zero{}\<[18]%
 \>[18]{}\mathrel{=}{}\<[18E]%
 \>[21]{}\Varid{a}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Varid{a}{}\<[6]%
 \>[6]{}\mathbin{:+}{}\<[6E]%
-\>[10]{}\Conid{Succ}\codeskip \Varid{b}{}\<[18]%
+\>[10]{}Succ\codeskip \Varid{b}{}\<[18]%
 \>[18]{}\mathrel{=}{}\<[18E]%
-\>[21]{}\Conid{Succ}\codeskip (\Varid{a}\mathbin{:+}\Varid{b}){}\<[E]%
+\>[21]{}Succ\codeskip (\Varid{a}\mathbin{:+}\Varid{b}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
+
 
 
 
