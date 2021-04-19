@@ -361,7 +361,7 @@ This is defined as,
 %format :<: = ":\prec:"
 
 \begin{code}
-data (f :+: g) e = L (f e) | R (g e)
+data (f :+: g) a = L (f a) | R (g a)
 \end{code}
 
 \noindent
