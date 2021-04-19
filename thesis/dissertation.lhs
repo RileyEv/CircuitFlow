@@ -221,9 +221,9 @@ parse (Or px py) = \ts -> parse px ts ++ parse py ts
 The program can then be evaluated by the |parse| function.
 For example, |parse aorb "a"| evaluates to \eval{parse aorb "a"}, and |parse aorb "c"| evaluates to \eval{parse aorb "c"}.
 
-A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code.
+A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code: Parsley makes use of such techniques to create optimised parsers~\cite{parsley}.
 However, they also have drawbacks - it can be laborious to add a new constructor to the language.
-Since it requires that all functions that use the deep embedding be modified to add a case for the new constructor.
+Since it requires that all functions that use the deep embedding be modified to add a case for the new constructor \cite{SVENNINGSSON2015143}.
 
 
 \subsection{Shallow Embeddings}
@@ -249,7 +249,7 @@ satisfy p = Parser2 (\case
 \end{code}
 
 \noindent
-The same |aorb| parser can be created\todo{reads dodgy} by creating an AST.
+The same |aorb| parser can be created directly from these functions, avoiding the need for an intermediate AST.
 
 \begin{code}
 aorb2 :: Parser2 Char
@@ -274,7 +274,7 @@ There is, however, one problem: a |Functor| expressing the parser language is re
 Parsers require the type of the tokens being parsed.
 For example, a parser reading tokens that make up an expression could have the type |Parser Expr|.
 A |Functor| does not retain the type of a parser.
-Instead a type class called |IFunctor| can be used, which is able to maintain the type indicies~\todo{cite}.
+Instead a type class called |IFunctor| can be used, which is able to maintain the type indicies~\cite{mcbride2011functional}.
 This makes use of |~>|, which represents a natural transformation from |f| to |g|.
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 
@@ -334,6 +334,7 @@ The commutative diagram below describes how to define a catamorphism, that folds
 \end{tikzcd}
 \end{figure}
 
+\noindent
 |icata| is able to fold an |IFix iF a| and produce an item of type |f a|.
 It uses the algebra argument as a specification of how to transform a layer of the datatype.
 
@@ -342,6 +343,7 @@ icata :: IFunctor iF => (iF f ~> f) -> IFix iF ~> f
 icata alg (IIn x) = alg (imap (icata alg) x)
 \end{code}
 
+\noindent
 The resulting type of |icata| is |f a|, this requires the |f| to be a |Functor|.
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the AST.
 
@@ -372,6 +374,7 @@ data Val f = Val Int
 data Mul f = Mul f f
 \end{code}
 
+\noindent
 By using |Fix| to tie the recursive knot, the |Fix (Val :+: Mul)| data type would be isomorphic to a standard |Expr| data type.
 
 \begin{code}
@@ -379,6 +382,7 @@ data Expr = Add Expr Expr
           | Val Int
 \end{code}
 
+\noindent
 One problem that now exist, however, is that it is now rather difficult to create expressions, take a simple example of $12 \times 34$.
 
 \begin{code}
@@ -386,6 +390,7 @@ exampleExpr :: Fix (Val :+: Mul)
 exampleExpr = In (R (Mul (In (L (Val 12))) (In (L (Val 34)))))
 \end{code}
 
+\noindent
 It would be beneficial if there was a way to add these |L|s and |R|s automatically. Fortunately there is a method using injections.
 The |:<:| type class captures the notion of subtypes between |Functor|s.
 
@@ -421,14 +426,14 @@ x * y = inject (Mul x y)
 Expressions can now be built using the constructors, such as |val 12 * val 34|.
 
 
-\noindent
-It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
+%% \noindent
+%% It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
 
-\begin{code}
-instance (Functor f, Functor g) => Functor (f :+: g) where
-  fmap f (L x) = L (fmap f x)
-  fmap f (R y) = R (fmap f y)
-\end{code}
+%% \begin{code}
+%% instance (Functor f, Functor g) => Functor (f :+: g) where
+%%   fmap f (L x) = L (fmap f x)
+%%   fmap f (R y) = R (fmap f y)
+%% \end{code}
 
 
 \section{Type Families}

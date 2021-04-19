@@ -73,6 +73,42 @@
   bibsource =    {dblp computer science bibliography, https://dblp.org}
 }
 
+@article{SVENNINGSSON2015143,
+  title =        {Combining deep and shallow embedding of domain-specific
+                  languages},
+  journal =      {Computer Languages, Systems \& Structures},
+  volume =       44,
+  pages =        {143-165},
+  year =         2015,
+  note =         {SI: TFP 2011/12},
+  issn =         {1477-8424},
+  doi =          {https://doi.org/10.1016/j.cl.2015.07.003},
+  url =
+                  {https://www.sciencedirect.com/science/article/pii/S1477842415000500},
+  author =       {Josef Svenningsson and Emil Axelsson},
+  keywords =     {Domain specific languages, Shallow embedding, Deep embedding,
+                  Fusion, Monads},
+  abstract =     {We present a technique to combine deep and shallow embedding
+                  in the context of compiling embedded languages in order to
+                  provide the benefits of both techniques. When compiling
+                  embedded languages it is natural to use an abstract syntax
+                  tree to represent programs. This is known as a deep embedding
+                  and it is a rather cumbersome technique compared to other
+                  forms of embedding, typically leading to more code and being
+                  harder to extend. In shallow embeddings, language constructs
+                  are mapped directly to their semantics which yields more
+                  flexible and succinct implementations. But shallow embeddings
+                  are not well-suited for compiling embedded languages. Our
+                  technique uses a combination of deep and shallow embedding,
+                  which helps keeping the deep embedding small and makes
+                  extending the embedded language much easier. The technique
+                  also has some unexpected but welcome secondary effects. It
+                  provides fusion of functions to remove intermediate results
+                  for free without any additional effort. It also helps us to
+                  give the embedded language a more natural programming
+                  interface.}
+}
+
 @misc{bentley_2020,
   title =        {The end of Moore's Law: what happens next?},
   url =
@@ -90,6 +126,46 @@
   eprint =       {1111.6895},
   archivePrefix ={arXiv},
   primaryClass = {cs.SE}
+}
+
+@article{mcbride2011functional,
+  title =        {Functional pearl: Kleisli arrows of outrageous fortune},
+  author =       {McBride, Conor},
+  journal =      {Journal of Functional Programming (accepted for publication)},
+  year =         2011
+}
+
+@article{parsley,
+  author =       {Willis, Jamie and Wu, Nicolas and Pickering, Matthew},
+  title =        {Staged Selective Parser Combinators},
+  year =         2020,
+  issue_date =   {August 2020},
+  publisher =    {Association for Computing Machinery},
+  address =      {New York, NY, USA},
+  volume =       4,
+  number =       {ICFP},
+  url =          {https://doi.org/10.1145/3409002},
+  doi =          {10.1145/3409002},
+  abstract =     {Parser combinators are a middle ground between the fine
+                  control of hand-rolled parsers and the high-level almost
+                  grammar-like appearance of parsers created via parser
+                  generators. They also promote a cleaner, compositional design
+                  for parsers. Historically, however, they cannot match the
+                  performance of their counterparts. This paper describes how to
+                  compile parser combinators into parsers of hand-written
+                  quality. This is done by leveraging the static information
+                  present in the grammar by representing it as a tree. However,
+                  in order to exploit this information, it will be necessary to
+                  drop support for monadic computation since this generates
+                  dynamic structure. Selective functors can help recover lost
+                  functionality in the absence of monads, and the parser tree
+                  can be partially evaluated with staging. This is implemented
+                  in a library called Parsley.},
+  journal =      {Proc. ACM Program. Lang.},
+  month =        aug,
+  articleno =    120,
+  numpages =     30,
+  keywords =     {parsers, meta-programming, combinators}
 }
 
 @misc{quartz,
