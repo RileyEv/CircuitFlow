@@ -27,7 +27,7 @@ year={2021}
 %if False
 
 \begin{code}
-{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators #-}
+{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances #-}
 module Dissertation where
 import Prelude hiding (or)
 import Data.Kind (Type)
@@ -346,16 +346,90 @@ The resulting type of |icata| is |f a|, this requires the |f| to be a |Functor|.
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the AST.
 
 
-\begin{itemize}
-  \item IFunctors, imap, natural transformation
-  \item Maybe drop some cat theory diagrams
-  \item IFix
-  \item Their use for DSL development, icata, small example.
-  %% \item Data types a la carte
-\end{itemize}
+\section{Data types \`{a} la carte}
+When building a DSL one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
+The expression problem is a trade off between a deep and shallow embedding.
+In a deep embedding, it is easy to add multiple interpretations to the DSL - just add a new evaluation function.
+However, it is not easy to add a new constructor, since all functions will need to be modified to add a new case for the constructor.
+The opposite is true in a shallow embedding.
 
-\section{Data types a la carte}\todo{e with a thingy}
-Describe how they work with |:+:| and |:<:|. Don't make an indexed one yet.
+One possible attempt at fixing the expression problem is data types \`{a} la carte.
+It combines constructors using the coproduct of their signatures.
+This is defined as,
+
+%format :+: = ":\!\!+\!\!:"
+%format :<: = ":\prec:"
+
+\begin{code}
+data (f :+: g) e = L (f e) | R (g e)
+\end{code}
+
+\noindent
+For each constructor it is possible to define a new data type.
+
+\begin{code}
+data Val f = Val Int
+data Mul f = Mul f f
+\end{code}
+
+By using |Fix| to tie the recursive knot, the |Fix (Val :+: Mul)| data type would be isomorphic to a standard |Expr| data type.
+
+\begin{code}
+data Expr = Add Expr Expr
+          | Val Int
+\end{code}
+
+One problem that now exist, however, is that it is now rather difficult to create expressions, take a simple example of $12 \times 34$.
+
+\begin{code}
+exampleExpr :: Fix (Val :+: Mul)
+exampleExpr = In (R (Mul (In (L (Val 12))) (In (L (Val 34)))))
+\end{code}
+
+It would be beneficial if there was a way to add these |L|s and |R|s automatically. Fortunately there is a method using injections.
+The |:<:| type class captures the notion of subtypes between |Functor|s.
+
+\begin{code}
+class (Functor f, Functor g) => f :<: g where
+  inj :: f a -> g a
+
+instance Functor f => f :<: f where
+  inj = id
+
+instance (Functor f, Functor g) => f :<: (f :+: g) where
+  inj = L
+
+instance (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
+  inj = R . inj
+\end{code}
+
+\noindent
+Using this type class, smart constructors can be defined.
+
+\begin{code}
+inject :: (g :<: f) => g (Fix f) -> Fix f
+inject = In . inj
+
+val :: (Val :<: f) => Int -> Expr f
+val x = inject (Val x)
+
+(*) :: (Mul :<: f) => Fix f -> Fix f -> Fix f
+x * y = inject (Mul x y)
+\end{code}
+
+\noindent
+Expressions can now be built using the constructors, such as |val 12 * val 34|.
+
+
+\noindent
+It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
+
+\begin{code}
+instance (Functor f, Functor g) => Functor (f :+: g) where
+  fmap f (L x) = L (fmap f x)
+  fmap f (R y) = R (fmap f y)
+\end{code}
+
 
 \section{Type Families}
 \begin{itemize}
