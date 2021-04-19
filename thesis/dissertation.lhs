@@ -276,7 +276,7 @@ For example, a parser reading tokens that make up an expression could have the t
 A |Functor| does not retain the type of a parser.
 Instead a type class called |IFunctor| can be used, which is able to maintain the type indicies~\cite{mcbride2011functional}.
 This makes use of |~>|, which represents a natural transformation from |f| to |g|.
-|IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
+|IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it~\cite{lane1998categories}.
 
 
 \begin{code}
