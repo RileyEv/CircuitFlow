@@ -27,7 +27,7 @@ year={2021}
 %if False
 
 \begin{code}
-{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances #-}
+{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances, DataKinds #-}
 module Dissertation where
 import Prelude hiding (or)
 import Data.Kind (Type)
@@ -436,6 +436,96 @@ Expressions can now be built using the constructors, such as |val 12 * val 34|.
 %% \end{code}
 
 
+\section{Dependently Typed Programming}
+Although Haskell does not officially support dependently typed programming, there are techniques available that together can be used to replicate the experience.
+
+\subsection{DataKinds Language Extension}
+\todo[inline]{Add some refs}
+
+%format "'Zero" = Zero
+%format "'Succ" = Succ
+
+Through the use of the DataKinds language extension, all data types are promoted to also be kinds and their constructors to be type constructors.
+When constructors are promoted to type constructors, they are prefixed with a '. For example |Zero|
+This allows for more interesting and restrictive types.
+
+Consider the example of a vector that also maintains its length.
+Peano numbers can be used to keep track of the length, which prevents a negative length for a vector.
+This is where numbers are defined as zero or a number n incremented by 1.
+
+\begin{code}
+data Nat = Zero
+         | Succ Nat
+\end{code}
+
+\noindent
+A vector type can now be defined that makes use of the promoted |Nat| kind.
+
+\begin{code}
+data Vec :: Type -> Nat -> Type where
+  Nil   :: Vec a Zero
+  Cons  :: a -> Vec a n -> Vec a (Succ n)
+\end{code}
+
+The use of DataKinds can enforce stronger types.
+For example a function can now require that a specific length of vector is given as an argument.
+With standard lists, this would not be possible, which could result in run-time errors when the incorrect length is used.
+
+\subsection{Singletons}
+\todo[inline]{Add some refs}
+DataKinds are useful for adding extra information back into the types, but how can information be recovered from the types?
+For example could a function that gets the length of a vector be defined?
+
+\begin{code}
+vecLength :: Vec a n -> Nat
+\end{code}
+
+It turns out this is possible through the use of singletons.
+A singleton in Haskell is a type that has just one inhabitant.
+They are written in such a way that pattern matching reveals the type parameter.
+For example, the corresponding singleton instance for |Nat| is |SNat|.
+The structure for |SNat| closely flows that of |Nat|.
+
+\begin{code}
+data SNat (n :: Nat) where
+  SZero :: SNat Zero
+  SSucc :: SNat n -> SNat (Succ n)
+\end{code}
+
+\noindent
+A function that fetches the length of a vector can now definable.
+
+%format vecLength2
+
+\begin{code}
+vecLength2 :: Vec a n -> SNat n
+vecLength2 Nil          = SZero
+vecLength2 (Cons x xs)  = SSucc (vecLength2 xs)
+\end{code}
+
+
+\subsection{Type Families}
+\todo[inline]{Add some refs}
+Now consider the possible scenario of appending two vectors together.
+How would the type signature look? This leads to the problem where two type level Nats need to be added together.
+This is where Type Families become useful, they allow for the definition of functions on types.
+The ideal type signature for appending two vectors together would be,
+
+\begin{code}
+vecAppend :: Vec a n -> Vec a m -> Vec a (n + m)
+\end{code}
+
+\noindent
+This will require a |+| type family that can add two |Nat|s together.
+
+\begin{code}
+type family (a :: Nat) :+ (b :: Nat) where
+  a  :+  Zero    =  a
+  a  :+  Succ b  =  Succ (a :+ b)
+\end{code}
+
+
+
 \section{Type Families}
 \begin{itemize}
   \item What are they?
@@ -443,7 +533,6 @@ Expressions can now be built using the constructors, such as |val 12 * val 34|.
   \item Examples
 \end{itemize}
 
-\section{Dependently Typed Programming}
 \begin{itemize}
   \item What is is?
   \item Singletons, why they needed, examples, using with typefamilies.

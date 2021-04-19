@@ -335,6 +335,7 @@ year={2021}
 \renewcommand\Varid[1]{\codefont{#1}}
 \let\Conid\Varid
 
+
 \begin{document}
   
 
@@ -861,6 +862,154 @@ Expressions can now be built using the constructors, such as \ensuremath{\Varid{
 %% \end{code}
 
 
+\section{Dependently Typed Programming}
+Although Haskell does not officially support dependently typed programming, there are techniques available that together can be used to replicate the experience.
+
+\subsection{DataKinds Language Extension}
+\todo[inline]{Add some refs}
+
+
+Through the use of the DataKinds language extension, all data types are promoted to also be kinds and their constructors to be type constructors.
+When constructors are promoted to type constructors, they are prefixed with a '. For example \ensuremath{\Conid{Zero}}
+This allows for more interesting and restrictive types.
+
+Consider the example of a vector that also maintains its length.
+Peano numbers can be used to keep track of the length, which prevents a negative length for a vector.
+This is where numbers are defined as zero or a number n incremented by 1.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{10}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{data}\codeskip \Conid{Nat}\mathrel{=}\Conid{Zero}{}\<[E]%
+\\
+\>[B]{}\hsindent{10}{}\<[10]%
+\>[10]{}\mid \Conid{Succ}\codeskip \Conid{Nat}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+A vector type can now be defined that makes use of the promoted \ensuremath{\Conid{Nat}} kind.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{data}\codeskip \Conid{Vec}\mathbin{::}\Conid{Type}\to \Conid{Nat}\to \Conid{Type}\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{Nil}{}\<[9]%
+\>[9]{}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip \Conid{Zero}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{Cons}{}\<[9]%
+\>[9]{}\mathbin{::}\Varid{a}\to \Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Vec}\codeskip \Varid{a}\codeskip (\Conid{Succ}\codeskip \Varid{n}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+The use of DataKinds can enforce stronger types.
+For example a function can now require that a specific length of vector is given as an argument.
+With standard lists, this would not be possible, which could result in run-time errors when the incorrect length is used.
+
+\subsection{Singletons}
+\todo[inline]{Add some refs}
+DataKinds are useful for adding extra information back into the types, but how can information be recovered from the types?
+For example could a function that gets the length of a vector be defined?
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{vecLength}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Nat}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+It turns out this is possible through the use of singletons.
+A singleton in Haskell is a type that has just one inhabitant.
+They are written in such a way that pattern matching reveals the type parameter.
+For example, the corresponding singleton instance for \ensuremath{\Conid{Nat}} is \ensuremath{\Conid{SNat}}.
+The structure for \ensuremath{\Conid{SNat}} closely flows that of \ensuremath{\Conid{Nat}}.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{data}\codeskip \Conid{SNat}\codeskip (\Varid{n}\mathbin{::}\Conid{Nat})\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{SZero}\mathbin{::}\Conid{SNat}\codeskip \Conid{Zero}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Conid{SSucc}\mathbin{::}\Conid{SNat}\codeskip \Varid{n}\to \Conid{SNat}\codeskip (\Conid{Succ}\codeskip \Varid{n}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+A function that fetches the length of a vector can now definable.
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{25}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{vecLength}_{2}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{SNat}\codeskip \Varid{n}{}\<[E]%
+\\
+\>[B]{}\Varid{vecLength}_{2}\codeskip \Conid{Nil}{}\<[25]%
+\>[25]{}\mathrel{=}\Conid{SZero}{}\<[E]%
+\\
+\>[B]{}\Varid{vecLength}_{2}\codeskip (\Conid{Cons}\codeskip \Varid{x}\codeskip \Varid{xs}){}\<[25]%
+\>[25]{}\mathrel{=}\Conid{SSucc}\codeskip (\Varid{vecLength}_{2}\codeskip \Varid{xs}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+\subsection{Type Families}
+\todo[inline]{Add some refs}
+Now consider the possible scenario of appending two vectors together.
+How would the type signature look? This leads to the problem where two type level Nats need to be added together.
+This is where Type Families become useful, they allow for the definition of functions on types.
+The ideal type signature for appending two vectors together would be,
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{vecAppend}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{m}\to \Conid{Vec}\codeskip \Varid{a}\codeskip (\Varid{n}\mathbin{+}\Varid{m}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent
+This will require a \ensuremath{\mathbin{+}} type family that can add two \ensuremath{\Conid{Nat}}s together.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{6}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{6E}{@{}l@{}}%
+\column{10}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{18}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{18E}{@{}l@{}}%
+\column{21}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{type}\codeskip \Varid{family}\codeskip (\Varid{a}\mathbin{::}\Conid{Nat})\mathbin{:+}(\Varid{b}\mathbin{::}\Conid{Nat})\codeskip \mathbf{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Varid{a}{}\<[6]%
+\>[6]{}\mathbin{:+}{}\<[6E]%
+\>[10]{}\Conid{Zero}{}\<[18]%
+\>[18]{}\mathrel{=}{}\<[18E]%
+\>[21]{}\Varid{a}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Varid{a}{}\<[6]%
+\>[6]{}\mathbin{:+}{}\<[6E]%
+\>[10]{}\Conid{Succ}\codeskip \Varid{b}{}\<[18]%
+\>[18]{}\mathrel{=}{}\<[18E]%
+\>[21]{}\Conid{Succ}\codeskip (\Varid{a}\mathbin{:+}\Varid{b}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+
 \section{Type Families}
 \begin{itemize}
   \item What are they?
@@ -868,7 +1017,6 @@ Expressions can now be built using the constructors, such as \ensuremath{\Varid{
   \item Examples
 \end{itemize}
 
-\section{Dependently Typed Programming}
 \begin{itemize}
   \item What is is?
   \item Singletons, why they needed, examples, using with typefamilies.
