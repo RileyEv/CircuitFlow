@@ -69,7 +69,6 @@ advice or time), and so on.
 
 \mainmatter{}
 
-
 \chapter{Introduction}\label{chap:intro}
 
 % -----------------------------------------------------------------------------
@@ -444,7 +443,7 @@ Although Haskell does not officially support dependently typed programming, ther
 
 
 Through the use of the DataKinds language extension, all data types are promoted to also be kinds and their constructors to be type constructors.
-When constructors are promoted to type constructors, they are prefixed with a '. For example |Zero|
+When constructors are promoted to type constructors, they are prefixed with a '~\todo{I cannot get this to work in lhs2tex :(}. For example |Zero|
 This allows for more interesting and restrictive types.
 
 Consider the example of a vector that also maintains its length.
@@ -455,9 +454,6 @@ This is where numbers are defined as zero or a number n incremented by 1.
 data Nat = Zero
          | Succ Nat
 \end{code}
-
-%format Zero = "'Zero"
-%format Succ = "'Succ"
 
 \noindent
 A vector type can now be defined that makes use of the promoted |Nat| kind.
@@ -482,7 +478,7 @@ safeHead (Cons x _) = x
 \subsection{Singletons}
 \todo[inline]{Add some refs}
 DataKinds are useful for adding extra information back into the types, but how can information be recovered from the types?
-For example could a function that gets the length of a vector be defined?
+For example could a function that gets the length of a vector be defined?\todo{i dont like this.}
 
 \begin{code}
 vecLength :: Vec a n -> Nat

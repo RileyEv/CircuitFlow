@@ -374,7 +374,6 @@ advice or time), and so on.
 
 \mainmatter{}
 
-
 \chapter{Introduction}\label{chap:intro}
 
 % -----------------------------------------------------------------------------
@@ -870,7 +869,7 @@ Although Haskell does not officially support dependently typed programming, ther
 
 
 Through the use of the DataKinds language extension, all data types are promoted to also be kinds and their constructors to be type constructors.
-When constructors are promoted to type constructors, they are prefixed with a '. For example \ensuremath{\Conid{Zero}}
+When constructors are promoted to type constructors, they are prefixed with a '~\todo{I cannot get this to work in lhs2tex :(}. For example \ensuremath{\Conid{Zero}}
 This allows for more interesting and restrictive types.
 
 Consider the example of a vector that also maintains its length.
@@ -888,7 +887,6 @@ This is where numbers are defined as zero or a number n incremented by 1.
 \ColumnHook
 \end{hscode}\resethooks
 
-
 \noindent
 A vector type can now be defined that makes use of the promoted \ensuremath{\Conid{Nat}} kind.
 
@@ -901,11 +899,11 @@ A vector type can now be defined that makes use of the promoted \ensuremath{\Con
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Conid{Nil}{}\<[9]%
-\>[9]{}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip Zero{}\<[E]%
+\>[9]{}\mathbin{::}\Conid{Vec}\codeskip \Varid{a}\codeskip \Conid{Zero}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Conid{Cons}{}\<[9]%
-\>[9]{}\mathbin{::}\Varid{a}\to \Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Vec}\codeskip \Varid{a}\codeskip (Succ\codeskip \Varid{n}){}\<[E]%
+\>[9]{}\mathbin{::}\Varid{a}\to \Conid{Vec}\codeskip \Varid{a}\codeskip \Varid{n}\to \Conid{Vec}\codeskip \Varid{a}\codeskip (\Conid{Succ}\codeskip \Varid{n}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -918,7 +916,7 @@ For a vector a \ensuremath{\Varid{safeHead}} function can be defined that will n
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\Varid{safeHead}\mathbin{::}\Conid{Vector}\codeskip (Succ\codeskip \Varid{n})\codeskip \Varid{a}\to \Varid{a}{}\<[E]%
+\>[B]{}\Varid{safeHead}\mathbin{::}\Conid{Vector}\codeskip (\Conid{Succ}\codeskip \Varid{n})\codeskip \Varid{a}\to \Varid{a}{}\<[E]%
 \\
 \>[B]{}\Varid{safeHead}\codeskip (\Conid{Cons}\codeskip \Varid{x}\codeskip \anonymous )\mathrel{=}\Varid{x}{}\<[E]%
 \ColumnHook
@@ -927,7 +925,7 @@ For a vector a \ensuremath{\Varid{safeHead}} function can be defined that will n
 \subsection{Singletons}
 \todo[inline]{Add some refs}
 DataKinds are useful for adding extra information back into the types, but how can information be recovered from the types?
-For example could a function that gets the length of a vector be defined?
+For example could a function that gets the length of a vector be defined?\todo{i dont like this.}
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -949,10 +947,10 @@ The structure for \ensuremath{\Conid{SNat}} closely flows that of \ensuremath{\C
 \>[B]{}\mathbf{data}\codeskip \Conid{SNat}\codeskip (\Varid{n}\mathbin{::}\Conid{Nat})\codeskip \mathbf{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Conid{SZero}\mathbin{::}\Conid{SNat}\codeskip Zero{}\<[E]%
+\>[3]{}\Conid{SZero}\mathbin{::}\Conid{SNat}\codeskip \Conid{Zero}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Conid{SSucc}\mathbin{::}\Conid{SNat}\codeskip \Varid{n}\to \Conid{SNat}\codeskip (Succ\codeskip \Varid{n}){}\<[E]%
+\>[3]{}\Conid{SSucc}\mathbin{::}\Conid{SNat}\codeskip \Varid{n}\to \Conid{SNat}\codeskip (\Conid{Succ}\codeskip \Varid{n}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1007,16 +1005,16 @@ This requires a \ensuremath{\mathbin{+}} type family that can add two \ensuremat
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Varid{a}{}\<[6]%
 \>[6]{}\mathbin{:+}{}\<[6E]%
-\>[10]{}Zero{}\<[18]%
+\>[10]{}\Conid{Zero}{}\<[18]%
 \>[18]{}\mathrel{=}{}\<[18E]%
 \>[21]{}\Varid{a}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Varid{a}{}\<[6]%
 \>[6]{}\mathbin{:+}{}\<[6E]%
-\>[10]{}Succ\codeskip \Varid{b}{}\<[18]%
+\>[10]{}\Conid{Succ}\codeskip \Varid{b}{}\<[18]%
 \>[18]{}\mathrel{=}{}\<[18E]%
-\>[21]{}Succ\codeskip (\Varid{a}\mathbin{:+}\Varid{b}){}\<[E]%
+\>[21]{}\Conid{Succ}\codeskip (\Varid{a}\mathbin{:+}\Varid{b}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
