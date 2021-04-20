@@ -16,19 +16,17 @@ import           Data.Kind                         (Type)
 
 
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons ::(Eq (f a), Show (f a)) => Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
+  PipeCons ::(Eq (f a), Show (f a)) => Chan (UUID, Maybe (f a)) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
   PipeNil ::PipeList '[] '[] (Apply '[] '[])
 
 
-takeP
-  :: SNat n -> PipeList fs as xs -> PipeList (Take n fs) (Take n as) (Take n xs)
+takeP :: SNat n -> PipeList fs as xs -> PipeList (Take n fs) (Take n as) (Take n xs)
 takeP SZero     _               = PipeNil
 takeP (SSucc _) PipeNil         = PipeNil
 takeP (SSucc n) (PipeCons x xs) = PipeCons x (takeP n xs)
 
 
-dropP
-  :: SNat n -> PipeList fs as xs -> PipeList (Drop n fs) (Drop n as) (Drop n xs)
+dropP :: SNat n -> PipeList fs as xs -> PipeList (Drop n fs) (Drop n as) (Drop n xs)
 dropP SZero     l               = l
 dropP (SSucc _) PipeNil         = PipeNil
 dropP (SSucc n) (PipeCons _ xs) = dropP n xs

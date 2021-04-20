@@ -64,9 +64,7 @@ input x n = do
 
 -- | A variant of 'input', however it will not return the randomly generated identifier.
 input_
-  :: HList' inputsS inputsT
-  -> Network inputsS inputsT inputsA outputsS outputsT outputsA
-  -> IO ()
+  :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
 input_ x n = do
   _ <- input x n
   return ()
@@ -77,5 +75,5 @@ input_ x n = do
 --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output_
   :: Network inputsS inputsT inputsA outputsS outputsT outputsA
-  -> IO (HList' outputsS outputsT)
+  -> IO (Maybe (HList' outputsS outputsT))
 output_ n = output n >>= (\(_, x) -> return x)

@@ -17,7 +17,9 @@ import           Pipeline.Internal.Core.UUID       (UUID)
 import           Control.Concurrent                (ThreadId, killThread)
 import           Control.Concurrent.Chan           (readChan, writeChan)
 
-import           Control.Monad                     (forM_, forever)
+import           Control.Monad                     (forM_, forever, void)
+import           Control.Monad.Trans               (lift)
+import           Control.Monad.Trans.Maybe         (MaybeT (..), runMaybeT)
 
 import           Data.Kind                         (Type)
 
@@ -37,8 +39,7 @@ data Network (inputsStorageType  :: [Type -> Type]) (inputsType  :: [Type]) (inp
 {-|
 Stops the given network
 -}
-stopNetwork
-  :: Network inputS inputsT inputsA outputsS outputsT outputsA -> IO ()
+stopNetwork :: Network inputS inputsT inputsA outputsS outputsT outputsA -> IO ()
 stopNetwork n = forM_ (threads n) killThread
 
 
@@ -50,22 +51,35 @@ taskExecuter
 taskExecuter (Task f outStore) inPipes outPipes = forever
   (do
     (uuid, taskInputs) <- read inPipes
-    r                  <- f uuid taskInputs outStore
-    write uuid (HCons' r HNil') outPipes
+    r                  <-
+      (runMaybeT
+        (do
+          input <- (MaybeT . return) taskInputs
+          r     <- f uuid input outStore
+          return (HCons' r HNil')
+        )
+      )
+    write uuid r outPipes
   )
 
 
-write
-  :: UUID -> HList' inputsS inputsT -> PipeList inputsS inputsT inputsA -> IO ()
-write _ HNil' PipeNil = return ()
-write uuid (HCons' x xs) (PipeCons p ps) =
-  writeChan p (uuid, x) >> write uuid xs ps
+write :: UUID -> Maybe (HList' inputsS inputsT) -> PipeList inputsS inputsT inputsA -> IO ()
+write _    Nothing      PipeNil         = return ()
+write uuid Nothing      (PipeCons p ps) = writeChan p (uuid, Nothing) >> write uuid Nothing ps
+write _    (Just HNil') PipeNil         = return ()
+write uuid (Just (HCons' x xs)) (PipeCons p ps) =
+  writeChan p (uuid, Just x) >> write uuid (Just xs) ps
 
-read
-  :: PipeList outputsS outputsT outputsA -> IO (UUID, HList' outputsS outputsT)
-read PipeNil         = return ("", HNil')
-read (PipeCons p ps) = readChan p
-  >>= \(uuid, x) -> read ps >>= \(_, xs) -> return (uuid, HCons' x xs)
+read :: PipeList outputsS outputsT outputsA -> IO (UUID, Maybe (HList' outputsS outputsT))
+read PipeNil         = return ("", Just HNil')
+read (PipeCons p ps) = do
+  (uuid, x ) <- readChan p
+  (_   , xs) <- read ps
+  case x of
+    Just x' -> case xs of
+      Just xs' -> return (uuid, Just (HCons' x' xs'))
+      Nothing  -> return (uuid, Nothing)
+    Nothing -> return (uuid, Nothing)
 
 -- | A variant of 'input', with a user specified unique identifier.
 inputUUID
@@ -73,12 +87,12 @@ inputUUID
   -> HList' inputsS inputsT -- ^ The input values
   -> Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to input the values in to
   -> IO ()
-inputUUID uuid xs n = write uuid xs (inputs n)
+inputUUID uuid xs n = write uuid (Just xs) (inputs n)
 
 -- | This will read from the outputs of the network.
 --
 --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output
   :: Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to retrieve inputs from
-  -> IO (UUID, HList' outputsS outputsT) -- ^ The identifier for the output and the output values
+  -> IO (UUID, Maybe (HList' outputsS outputsT)) -- ^ The identifier for the output and the output values
 output n = read (outputs n)

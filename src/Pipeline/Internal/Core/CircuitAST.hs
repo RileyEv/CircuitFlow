@@ -1,44 +1,51 @@
-module Pipeline.Internal.Core.CircuitAST (
-  Circuit,
+module Pipeline.Internal.Core.CircuitAST
+  ( Circuit
+  ,
   -- * Constructors
-  Id(..),
-  Replicate(..),
-  Then(..),
-  Beside(..),
-  Swap(..),
-  DropL(..),
-  DropR(..),
-  Task(..)
-) where  
+    Id(..)
+  , Replicate(..)
+  , Then(..)
+  , Beside(..)
+  , Swap(..)
+  , DropL(..)
+  , DropR(..)
+  , Task(..)
+  ) where
 
-import Pipeline.Internal.Core.DataStore (DataStore', DataStore)
-import Pipeline.Internal.Core.PipeList (AppendP)
-import Pipeline.Internal.Core.UUID (UUID)
-import Pipeline.Internal.Common.Nat (Nat(..), (:+), (:=), IsNat(..))
-import Pipeline.Internal.Common.IFunctor (IFix7(..), IFunctor7(..))
-import Pipeline.Internal.Common.IFunctor.Modular ((:+:)(..))
-import Pipeline.Internal.Common.HList (HList'(..))
-import Pipeline.Internal.Common.TypeList (Length, Drop, Take, Apply, (:++))
+import           Pipeline.Internal.Common.HList            (HList' (..))
+import           Pipeline.Internal.Common.IFunctor         (IFix7 (..),
+                                                            IFunctor7 (..))
+import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
+import           Pipeline.Internal.Common.Nat              (IsNat (..),
+                                                            Nat (..), (:+),
+                                                            (:=))
+import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
+                                                            Take, (:++))
+import           Pipeline.Internal.Core.DataStore          (DataStore,
+                                                            DataStore')
+import           Pipeline.Internal.Core.PipeList           (AppendP)
+import           Pipeline.Internal.Core.UUID               (UUID)
 
-import Data.Kind (Type)
+import           Control.Monad.Trans.Maybe                 (MaybeT)
+import           Data.Kind                                 (Type)
 
 
 data Id (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
         (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Id :: (DataStore' '[inputS] '[inputT])
+  Id ::(DataStore' '[inputS] '[inputT])
     => Id iF '[inputS] '[inputT] '[inputS inputT] '[inputS] '[inputT] '[inputS inputT] ('Succ 'Zero)
 
 data Replicate (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
                (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
                (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Replicate :: (DataStore' '[f] '[a])
+  Replicate ::(DataStore' '[f] '[a])
     => Replicate iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a] ('Succ 'Zero)
 
 data Then (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
           (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
           (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Then :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
+  Then ::(DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
     => iF fs as (Apply fs as) gs bs (Apply gs bs) nfs
     -> iF gs bs (Apply gs bs) hs cs (Apply hs cs) ngs
     -> Then iF fs as (Apply fs as) hs cs (Apply hs cs) nfs
@@ -46,7 +53,7 @@ data Then (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
 data Beside (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
             (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
             (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Beside :: (DataStore' fs as,
+  Beside ::(DataStore' fs as,
              DataStore' gs bs,
              DataStore' hs cs,
              DataStore' is ds,
@@ -77,30 +84,30 @@ data Beside (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type
 data Swap (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
           (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
           (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Swap :: (DataStore' '[f, g] '[a, b])
+  Swap ::(DataStore' '[f, g] '[a, b])
     => Swap iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a] ('Succ ('Succ 'Zero))
 
 data DropL (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
            (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
            (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  DropL :: (DataStore' '[f, g] '[a, b])
+  DropL ::(DataStore' '[f, g] '[a, b])
     => DropL iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b] ('Succ ('Succ 'Zero))
 
 data DropR (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
            (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
            (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  DropR :: (DataStore' '[f, g] '[a, b])
+  DropR ::(DataStore' '[f, g] '[a, b])
     => DropR iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a] ('Succ ('Succ 'Zero))
 
 
 data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
            (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
            (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Task :: (Length outputsS := 'Succ 'Zero ~ 'True,
+  Task ::(Length outputsS := 'Succ 'Zero ~ 'True,
            outputsS ~ '[g'], outputsT ~ '[b'], outputsA ~ '[g' b'],
            DataStore' inputsS inputsT,
            DataStore g' b', Eq (g' b'), Show (g' b'))
-       => (UUID -> HList' inputsS inputsT -> g' b' -> IO (g' b'))
+       => (UUID -> HList' inputsS inputsT -> g' b' -> MaybeT IO (g' b'))
        -> g' b'
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
 
@@ -128,7 +135,7 @@ instance IFunctor7 DropR where
 
 instance IFunctor7 Task where
   imap7 _ (Task f output) = Task f output
-  
+
 type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task
 
 {-|

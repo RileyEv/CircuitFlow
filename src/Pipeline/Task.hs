@@ -34,6 +34,9 @@ import           Pipeline.Internal.Core.DataStore          (DataStore (..),
                                                             DataStore' (..))
 import           Pipeline.Internal.Core.UUID               (UUID)
 
+import           Control.Monad.Trans                       (lift)
+import           Control.Monad.Trans.Maybe                 (MaybeT)
+
 {-|
 This allows a function with multiple inputs to be converted into a 'Task'.
 -}
@@ -46,8 +49,8 @@ multiInputTask f output = IIn7
   (inj
     (Task
       (\uuid sources sink -> do
-        input <- (hSequence . fetch' uuid) sources
-        save uuid sink (f input)
+        input <- lift ((hSequence . fetch' uuid) sources)
+        lift (save uuid sink (f input))
       )
       output
     )
@@ -84,7 +87,7 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 -- | Constructor for a task
 task
   :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b))
-  => (UUID -> HList' fs as -> g b -> IO (g b))  -- ^ The function a Task will execute.
+  => (UUID -> HList' fs as -> g b -> MaybeT IO (g b))  -- ^ The function a Task will execute.
   -> g b                                -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
 task f out = IIn7 (inj (Task f out))
