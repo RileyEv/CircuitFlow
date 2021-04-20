@@ -10,7 +10,9 @@ module Pipeline.Internal.Backend.ProcessNetwork
 import           Control.Concurrent                (ThreadId, killThread)
 import           Control.Concurrent.Chan           (readChan, writeChan)
 import           Control.DeepSeq                   (NFData, deepseq)
-import           Control.Exception.Lifted          (SomeException, try)
+import           Control.Exception                 (SomeException,
+                                                    displayException)
+import           Control.Exception.Lifted          (try)
 import           Control.Monad                     (forM_, forever)
 import           Control.Monad.IO.Class            (liftIO)
 import           Control.Monad.Trans               (lift)
@@ -21,8 +23,7 @@ import           GHC.Generics                      (Generic)
 import           Pipeline.Internal.Common.HList    (HList' (..))
 import           Pipeline.Internal.Core.CircuitAST (Task (..))
 import           Pipeline.Internal.Core.Error      (ExceptionMessage (..),
-                                                    TaskError (..),
-                                                    TaskName (..))
+                                                    TaskError (..))
 import           Pipeline.Internal.Core.PipeList   (PipeList (..))
 import           Pipeline.Internal.Core.UUID       (UUID)
 import           Prelude                           hiding (read)
@@ -59,10 +60,8 @@ taskExecuter (Task f outStore) inPipes outPipes = forever
       (runExceptT
         (do
           input <- (ExceptT . return) taskInputs
-          r     <-
-            (catchE (intercept (f uuid input outStore))
-                    (\_ -> throwE (TaskError (TaskName "test") (ExceptionMessage "test mes")))
-            )
+          r     <- catchE (intercept (f uuid input outStore))
+                          (throwE . TaskError . ExceptionMessage . displayException)
           return (HCons' (r `deepseq` r) HNil')
         )
       )

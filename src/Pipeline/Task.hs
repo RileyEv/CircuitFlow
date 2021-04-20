@@ -37,7 +37,6 @@ import           Pipeline.Internal.Common.TypeList         (Apply, Length)
 import           Pipeline.Internal.Core.CircuitAST         (Circuit, Task (..))
 import           Pipeline.Internal.Core.DataStore          (DataStore (..),
                                                             DataStore' (..))
-import           Pipeline.Internal.Core.Error              (TaskError)
 import           Pipeline.Internal.Core.UUID               (UUID)
 
 {-|

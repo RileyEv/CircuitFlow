@@ -51,7 +51,7 @@ divBy0Tests = testGroup
       let i = HCons' (Var 10) HNil'
       o <- singleInputTest functionTaskCircuit i
       print o
-      o @?= Left (TaskError (TaskName "test") (ExceptionMessage "test mes"))
+      o @?= Left (TaskError (ExceptionMessage "divide by zero"))
   ]
 
 functionTaskCircuit'
@@ -77,5 +77,5 @@ divBy0Tests' = testGroup
       let i = HCons' (Var 10) HNil'
       o <- singleInputTest functionTaskCircuit' i
       print o
-      o @?= Left (TaskError (TaskName "test") (ExceptionMessage "test mes"))
+      o @?= Left (TaskError (ExceptionMessage "divide by zero"))
   ]
