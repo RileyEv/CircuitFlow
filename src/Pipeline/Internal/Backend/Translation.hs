@@ -2,6 +2,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Pipeline.Internal.Backend.Translation where
 
+import           Control.Concurrent                        (forkIO)
+import           Control.Concurrent.Chan                   (Chan, dupChan,
+                                                            newChan)
+import           Data.Kind                                 (Type)
+import           Data.List                                 (nub)
 import           Pipeline.Internal.Backend.ProcessNetwork  (Network (..),
                                                             taskExecuter)
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..),
@@ -12,18 +17,11 @@ import           Pipeline.Internal.Common.Nat              (IsNat (..),
 import           Pipeline.Internal.Common.TypeList         (Drop, Length, Take,
                                                             (:++))
 import           Pipeline.Internal.Core.CircuitAST
+import           Pipeline.Internal.Core.Error              (TaskError)
 import           Pipeline.Internal.Core.PipeList           (AppendP (..),
                                                             PipeList (..),
                                                             dropP, takeP)
 import           Pipeline.Internal.Core.UUID               (UUID)
-
-import           Control.Concurrent                        (forkIO)
-import           Control.Concurrent.Chan                   (Chan, dupChan,
-                                                            newChan)
-
-import           Data.List                                 (nub)
-
-import           Data.Kind                                 (Type)
 
 
 -- | Used to build a list of pipes from a list of types.
@@ -32,7 +30,7 @@ class InitialPipes (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [
 
 instance (InitialPipes fs as xs, Eq (f a), Show (f a)) => InitialPipes (f ': fs) (a ': as) (f a ': xs) where
   initialPipes = do
-    c <- newChan :: IO (Chan (UUID, Maybe (f a)))
+    c <- newChan :: IO (Chan (UUID, Either TaskError (f a)))
     PipeCons c <$> (initialPipes :: IO (PipeList fs as xs))
 
 instance InitialPipes '[] '[] '[] where

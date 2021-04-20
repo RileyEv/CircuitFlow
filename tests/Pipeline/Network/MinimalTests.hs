@@ -27,7 +27,10 @@ minimalTests = testGroup
     and then input a value and recieve the output
 -}
 singleInputTest
-  :: (InitialPipes a b c) => Circuit a b c d e f g -> HList' a b -> IO (Maybe (HList' d e))
+  :: (InitialPipes a b c)
+  => Circuit a b c d e f g
+  -> HList' a b
+  -> IO (Either TaskError (HList' d e))
 singleInputTest circuit i = do
   n <- startNetwork circuit
   input_ i n
@@ -54,7 +57,7 @@ idTests = testGroup
   [ testCase "return the same value input" $ do
       let i = HCons' (Var 0) HNil'
       o <- singleInputTest idCircuit i
-      o @?= Just i
+      o @?= Right i
   ]
 
 -- Tests for the 'Replicate' constructor
@@ -75,7 +78,7 @@ replicateTests = testGroup
   [ testCase "return a duplicated input value" $ do
       let i = HCons' (Var 0) HNil'
       o <- singleInputTest replicateCircuit i
-      o @?= Just (HCons' (Var 0) (HCons' (Var 0) HNil'))
+      o @?= Right (HCons' (Var 0) (HCons' (Var 0) HNil'))
   ]
 
 -- Tests for the 'Then' constructor
@@ -96,7 +99,7 @@ thenTests = testGroup
   [ testCase "return a return the same input value" $ do
       let i = HCons' (Var 0) HNil'
       o <- singleInputTest thenCircuit i
-      o @?= Just i
+      o @?= Right i
   ]
 
 -- Tests for the 'Beside' constructor
@@ -117,7 +120,7 @@ besideTests = testGroup
   [ testCase "return a return the same input value" $ do
       let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
       o <- singleInputTest besideCircuit i
-      o @?= Just i
+      o @?= Right i
   ]
 
 
@@ -139,7 +142,7 @@ swapTests = testGroup
   [ testCase "return a return the same input value" $ do
       let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
       o <- singleInputTest swapCircuit i
-      o @?= Just (HCons' (Var "abc") (HCons' (Var 0) HNil'))
+      o @?= Right (HCons' (Var "abc") (HCons' (Var 0) HNil'))
   ]
 
 
@@ -161,7 +164,7 @@ dropLTests = testGroup
   [ testCase "return the input with the left side dropped" $ do
       let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
       o <- singleInputTest dropLCircuit i
-      o @?= Just (HCons' (Var "abc") HNil')
+      o @?= Right (HCons' (Var "abc") HNil')
   ]
 
 -- Tests for the 'DropR' constructor
@@ -182,7 +185,7 @@ dropRTests = testGroup
   [ testCase "return a return the same input value" $ do
       let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
       o <- singleInputTest dropRCircuit i
-      o @?= Just (HCons' (Var 0) HNil')
+      o @?= Right (HCons' (Var 0) HNil')
   ]
 
 -- Tests for the 'Task' constructor
@@ -203,7 +206,7 @@ functionTaskTests = testGroup
   [ testCase "apply the function to the input value" $ do
       let i = HCons' (Var 0) HNil'
       o <- singleInputTest functionTaskCircuit i
-      o @?= Just (HCons' (Var 1) HNil')
+      o @?= Right (HCons' (Var 1) HNil')
   ]
 
 multiInputTaskCircuit
@@ -223,5 +226,5 @@ multiInputTaskTests = testGroup
   [ testCase "apply the function to the input values" $ do
       let i = HCons' (Var 3) (HCons' (Var 5) HNil')
       o <- singleInputTest multiInputTaskCircuit i
-      o @?= Just (HCons' (Var 8) HNil')
+      o @?= Right (HCons' (Var 8) HNil')
   ]

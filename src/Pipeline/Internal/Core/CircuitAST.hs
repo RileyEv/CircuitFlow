@@ -12,6 +12,10 @@ module Pipeline.Internal.Core.CircuitAST
   , Task(..)
   ) where
 
+import           Control.DeepSeq                           (NFData)
+import           Control.Exception                         (SomeException)
+import           Control.Monad.Except                      (ExceptT)
+import           Data.Kind                                 (Type)
 import           Pipeline.Internal.Common.HList            (HList' (..))
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..),
                                                             IFunctor7 (..))
@@ -25,10 +29,6 @@ import           Pipeline.Internal.Core.DataStore          (DataStore,
                                                             DataStore')
 import           Pipeline.Internal.Core.PipeList           (AppendP)
 import           Pipeline.Internal.Core.UUID               (UUID)
-
-import           Control.Monad.Trans.Maybe                 (MaybeT)
-import           Data.Kind                                 (Type)
-
 
 data Id (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
@@ -106,8 +106,8 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
   Task ::(Length outputsS := 'Succ 'Zero ~ 'True,
            outputsS ~ '[g'], outputsT ~ '[b'], outputsA ~ '[g' b'],
            DataStore' inputsS inputsT,
-           DataStore g' b', Eq (g' b'), Show (g' b'))
-       => (UUID -> HList' inputsS inputsT -> g' b' -> MaybeT IO (g' b'))
+           DataStore g' b', Eq (g' b'), Show (g' b'), NFData (g' b'))
+       => (UUID -> HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO (g' b'))
        -> g' b'
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
 

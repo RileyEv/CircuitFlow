@@ -5,18 +5,16 @@ module Pipeline.Internal.Core.PipeList
   , dropP
   ) where
 
+import           Control.Concurrent.Chan           (Chan)
+import           Data.Kind                         (Type)
 import           Pipeline.Internal.Common.Nat      (SNat (..))
 import           Pipeline.Internal.Common.TypeList (Apply, Drop, Take, (:++))
-
+import           Pipeline.Internal.Core.Error      (TaskError)
 import           Pipeline.Internal.Core.UUID       (UUID)
-
-import           Control.Concurrent.Chan           (Chan)
-
-import           Data.Kind                         (Type)
 
 
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons ::(Eq (f a), Show (f a)) => Chan (UUID, Maybe (f a)) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
+  PipeCons ::(Eq (f a), Show (f a)) => Chan (UUID, Either TaskError (f a)) -> PipeList fs as xs -> PipeList (f ': fs) (a ': as) (f a ': xs)
   PipeNil ::PipeList '[] '[] (Apply '[] '[])
 
 
