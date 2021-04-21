@@ -531,20 +531,6 @@ type family (a :: Nat) :+ (b :: Nat) where
 
 
 
-\section{Type Families}
-\begin{itemize}
-  \item What are they?
-  \item DataKinds
-  \item Examples
-\end{itemize}
-
-\begin{itemize}
-  \item What is is?
-  \item Singletons, why they needed, examples, using with typefamilies.
-\end{itemize}
-
-
-
 
 % -----------------------------------------------------------------------------
 
