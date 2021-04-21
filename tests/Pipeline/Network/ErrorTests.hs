@@ -2,19 +2,17 @@ module Pipeline.Network.ErrorTests
   ( errorTests
   ) where
 
+import           Control.Exception.Lifted       (ArithException (..), throwIO)
+import           Control.Monad.Trans            (lift)
+import           Pipeline
+import           Pipeline.Network.HelperCircuit
+import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Prelude                  hiding (id, replicate, (<>))
-
-import           Control.Exception.Lifted (ArithException (..),
-                                           SomeException (..), throwIO)
-import           Control.Monad.Trans      (lift)
-import           Pipeline
-
 errorTests :: TestTree
 errorTests =
-  testGroup "Tests that shouldn't throw a run-time exception" [divBy0Tests', divBy0Tests]
+  testGroup "Tests that shouldn't throw a run-time exception" [divBy0Tests, errorPropagationTests]
 
 {-| Helper function to create a network from the given Circuit
     and then input a value and recieve the output
@@ -33,7 +31,7 @@ singleInputTest circuit i = do
 
 
 -- Tests for the 'Task' constructor
-functionTaskCircuit
+divByZeroCircuit
   :: Circuit
        '[VariableStore]
        '[Int]
@@ -42,19 +40,9 @@ functionTaskCircuit
        '[Int]
        '[VariableStore Int]
        N1
-functionTaskCircuit = functionTask (`div` 0) Empty
+divByZeroCircuit = functionTask (`div` 0) Empty
 
-divBy0Tests :: TestTree
-divBy0Tests = testGroup
-  "functionTask should"
-  [ testCase "apply the function to the input value" $ do
-      let i = HCons' (Var 10) HNil'
-      o <- singleInputTest functionTaskCircuit i
-      print o
-      o @?= Left (TaskError (ExceptionMessage "divide by zero"))
-  ]
-
-functionTaskCircuit'
+divByZeroCircuit'
   :: Circuit
        '[VariableStore]
        '[Int]
@@ -63,19 +51,54 @@ functionTaskCircuit'
        '[Int]
        '[VariableStore Int]
        N1
-functionTaskCircuit' = task
-  (\uuid inputs out -> do
+divByZeroCircuit' = task
+  (\_ _ _ -> do
     _ <- lift (throwIO DivideByZero)
     return (Var 0)
   )
   Empty
 
-divBy0Tests' :: TestTree
-divBy0Tests' = testGroup
-  "functionTask should"
-  [ testCase "apply the function to the input value" $ do
-      let i = HCons' (Var 10) HNil'
-      o <- singleInputTest functionTaskCircuit' i
-      print o
+divBy0Tests :: TestTree
+divBy0Tests =
+  let i = HCons' (Var 10) HNil'
+  in  testGroup
+        "dividing by zero should"
+        [ testCase "throw an error" $ helper i divByZeroCircuit
+        , testCase "throw an error" $ helper i divByZeroCircuit'
+        ]
+ where
+  helper
+    :: HList' '[VariableStore] '[Int]
+    -> Circuit
+         '[VariableStore]
+         '[Int]
+         '[VariableStore Int]
+         '[VariableStore]
+         '[Int]
+         '[VariableStore Int]
+         N1
+    -> IO ()
+  helper i c = do
+    o <- singleInputTest c i
+    o @?= Left (TaskError (ExceptionMessage "divide by zero"))
+
+
+faultyCircuit
+  :: Circuit
+       '[VariableStore , VariableStore]
+       '[Int , Int]
+       '[VariableStore Int , VariableStore Int]
+       '[VariableStore]
+       '[Int]
+       '[VariableStore Int]
+       N2
+faultyCircuit = divByZeroCircuit <> functionTaskCircuit <-> multiInputTaskCircuit
+
+errorPropagationTests :: TestTree
+errorPropagationTests = testGroup
+  "an error should"
+  [ testCase "propagate through the network" $ do
+      let i = HCons' (Var 0) (HCons' (Var 1) HNil')
+      o <- singleInputTest faultyCircuit i
       o @?= Left (TaskError (ExceptionMessage "divide by zero"))
   ]

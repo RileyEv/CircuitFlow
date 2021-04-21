@@ -2,12 +2,11 @@ module Pipeline.Network.MinimalTests
   ( minimalTests
   ) where
 
+import           Pipeline
+import           Pipeline.Network.HelperCircuit
+import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
 import           Test.Tasty.HUnit
-
-import           Prelude          hiding (id, replicate, (<>))
-
-import           Pipeline
 
 minimalTests :: TestTree
 minimalTests = testGroup
@@ -188,18 +187,8 @@ dropRTests = testGroup
       o @?= Right (HCons' (Var 0) HNil')
   ]
 
--- Tests for the 'Task' constructor
-functionTaskCircuit
-  :: Circuit
-       '[VariableStore]
-       '[Int]
-       '[VariableStore Int]
-       '[VariableStore]
-       '[Int]
-       '[VariableStore Int]
-       N1
-functionTaskCircuit = functionTask (+ 1) Empty
 
+-- Tests for the 'Task' constructor
 functionTaskTests :: TestTree
 functionTaskTests = testGroup
   "functionTask should"
@@ -209,16 +198,6 @@ functionTaskTests = testGroup
       o @?= Right (HCons' (Var 1) HNil')
   ]
 
-multiInputTaskCircuit
-  :: Circuit
-       '[VariableStore , VariableStore]
-       '[Int , Int]
-       '[VariableStore Int , VariableStore Int]
-       '[VariableStore]
-       '[Int]
-       '[VariableStore Int]
-       N2
-multiInputTaskCircuit = multiInputTask (\(HCons x (HCons y HNil)) -> x + y) Empty
 
 multiInputTaskTests :: TestTree
 multiInputTaskTests = testGroup
