@@ -2,7 +2,7 @@ module Pipeline.Network.ErrorTests
   ( errorTests
   ) where
 
-import           Control.Exception.Lifted       (ArithException (..), throwIO)
+import           Control.Exception.Lifted       (ArithException (..))
 import           Control.Monad.Trans            (lift)
 import           Pipeline
 import           Pipeline.Network.HelperCircuit
