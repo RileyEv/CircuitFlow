@@ -7,19 +7,26 @@ module Pipeline.Internal.Backend.ProcessNetwork
   , taskExecuter
   ) where
 
-import           Prelude                           hiding (read)
-
-import           Pipeline.Internal.Common.HList    (HList' (..))
-import           Pipeline.Internal.Core.CircuitAST (Task (..))
-import           Pipeline.Internal.Core.PipeList   (PipeList (..))
-import           Pipeline.Internal.Core.UUID       (UUID)
-
 import           Control.Concurrent                (ThreadId, killThread)
 import           Control.Concurrent.Chan           (readChan, writeChan)
-
+import           Control.DeepSeq                   (NFData, deepseq)
+import           Control.Exception                 (SomeException,
+                                                    displayException)
+import           Control.Exception.Lifted          (try)
 import           Control.Monad                     (forM_, forever)
-
+import           Control.Monad.IO.Class            (liftIO)
+import           Control.Monad.Trans               (lift)
+import           Control.Monad.Trans.Except        (ExceptT (..), catchE,
+                                                    runExceptT, throwE)
 import           Data.Kind                         (Type)
+import           GHC.Generics                      (Generic)
+import           Pipeline.Internal.Common.HList    (HList' (..))
+import           Pipeline.Internal.Core.CircuitAST (Task (..))
+import           Pipeline.Internal.Core.Error      (ExceptionMessage (..),
+                                                    TaskError (..))
+import           Pipeline.Internal.Core.PipeList   (PipeList (..))
+import           Pipeline.Internal.Core.UUID       (UUID)
+import           Prelude                           hiding (read)
 
 
 -- | Main type for storing information about the process network.
@@ -37,8 +44,7 @@ data Network (inputsStorageType  :: [Type -> Type]) (inputsType  :: [Type]) (inp
 {-|
 Stops the given network
 -}
-stopNetwork
-  :: Network inputS inputsT inputsA outputsS outputsT outputsA -> IO ()
+stopNetwork :: Network inputS inputsT inputsA outputsS outputsT outputsA -> IO ()
 stopNetwork n = forM_ (threads n) killThread
 
 
@@ -50,22 +56,46 @@ taskExecuter
 taskExecuter (Task f outStore) inPipes outPipes = forever
   (do
     (uuid, taskInputs) <- read inPipes
-    r                  <- f uuid taskInputs outStore
-    write uuid (HCons' r HNil') outPipes
+    r                  <-
+      (runExceptT
+        (do
+          input <- (ExceptT . return) taskInputs
+          r     <- catchE (intercept (f uuid input outStore))
+                          (throwE . TaskError . ExceptionMessage . displayException)
+          return (HCons' (r `deepseq` r) HNil')
+        )
+      )
+    write uuid r outPipes
   )
 
 
+intercept :: ExceptT SomeException IO a -> ExceptT SomeException IO a
+intercept a = do
+  r <- try a
+  case r of
+    Right x -> return x
+    Left  e -> throwE e
+
+
 write
-  :: UUID -> HList' inputsS inputsT -> PipeList inputsS inputsT inputsA -> IO ()
-write _ HNil' PipeNil = return ()
-write uuid (HCons' x xs) (PipeCons p ps) =
-  writeChan p (uuid, x) >> write uuid xs ps
+  :: UUID -> Either TaskError (HList' inputsS inputsT) -> PipeList inputsS inputsT inputsA -> IO ()
+write _    (Left  e    ) PipeNil         = return ()
+write uuid (Left  e    ) (PipeCons p ps) = writeChan p (uuid, Left e) >> write uuid (Left e) ps
+write _    (Right HNil') PipeNil         = return ()
+write uuid (Right (HCons' x xs)) (PipeCons p ps) =
+  writeChan p (uuid, Right x) >> write uuid (Right xs) ps
 
 read
-  :: PipeList outputsS outputsT outputsA -> IO (UUID, HList' outputsS outputsT)
-read PipeNil         = return ("", HNil')
-read (PipeCons p ps) = readChan p
-  >>= \(uuid, x) -> read ps >>= \(_, xs) -> return (uuid, HCons' x xs)
+  :: PipeList outputsS outputsT outputsA -> IO (UUID, Either TaskError (HList' outputsS outputsT))
+read PipeNil         = return ("", Right HNil')
+read (PipeCons p ps) = do
+  (uuid, x ) <- readChan p
+  (_   , xs) <- read ps
+  case x of
+    Right x' -> case xs of
+      Right xs' -> return (uuid, Right (HCons' x' xs'))
+      Left  e   -> return (uuid, Left e)
+    Left e -> return (uuid, Left e)
 
 -- | A variant of 'input', with a user specified unique identifier.
 inputUUID
@@ -73,12 +103,12 @@ inputUUID
   -> HList' inputsS inputsT -- ^ The input values
   -> Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to input the values in to
   -> IO ()
-inputUUID uuid xs n = write uuid xs (inputs n)
+inputUUID uuid xs n = write uuid (Right xs) (inputs n)
 
 -- | This will read from the outputs of the network.
 --
 --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output
   :: Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to retrieve inputs from
-  -> IO (UUID, HList' outputsS outputsT) -- ^ The identifier for the output and the output values
+  -> IO (UUID, Either TaskError (HList' outputsS outputsT)) -- ^ The identifier for the output and the output values
 output n = read (outputs n)

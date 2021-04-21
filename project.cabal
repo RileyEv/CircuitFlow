@@ -23,12 +23,14 @@ library
       Pipeline
     , Pipeline.Circuit
     , Pipeline.DataStore
+    , Pipeline.Error
     , Pipeline.Network
     , Pipeline.Task
     , Pipeline.Nat
   other-modules:
       Pipeline.Internal.Core.DataStore
     , Pipeline.Internal.Core.CircuitAST
+    , Pipeline.Internal.Core.Error
     , Pipeline.Internal.Core.PipeList
     , Pipeline.Internal.Core.UUID
     , Pipeline.Internal.Common.IFunctor
@@ -51,6 +53,8 @@ library
     , PolyKinds
     , TypeFamilies
     , MultiParamTypeClasses
+    , DeriveGeneric
+    , DeriveAnyClass
 
   build-depends:
       base >=4 && <5
@@ -61,6 +65,10 @@ library
     , mtl
     , uuid
     , filepath
+    , transformers
+    , either
+    , lifted-base
+    , deepseq
   hs-source-dirs: src
   default-language: Haskell2010
 
@@ -76,9 +84,12 @@ test-suite test
     , containers
     , mtl
     , project
+    , lifted-base
   other-modules:
       Pipeline.Network.Tests
     , Pipeline.Network.MinimalTests
+    , Pipeline.Network.ErrorTests
+    , Pipeline.Network.HelperCircuit
   default-extensions:
       GADTs
     , DataKinds

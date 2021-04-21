@@ -13,10 +13,12 @@ module Pipeline
   , module Pipeline.Nat
   , module Pipeline.Network
   , module Pipeline.Task
+  , module Pipeline.Error
   ) where
 
 import           Pipeline.Circuit
 import           Pipeline.DataStore
+import           Pipeline.Error
 import           Pipeline.Nat
 import           Pipeline.Network
 import           Pipeline.Task

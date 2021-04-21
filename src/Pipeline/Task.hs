@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-|
 Module      : Pipeline.Task
 Description : To create tasks
@@ -20,8 +21,13 @@ module Pipeline.Task
   -- * Misc
     HList(..)
   , HList'(..)
+  , ExceptT
   ) where
 
+import           Control.DeepSeq                           (NFData, deepseq)
+import           Control.Exception.Lifted                  (SomeException)
+import           Control.Monad.Except                      (ExceptT)
+import           Control.Monad.Trans                       (lift)
 import           Pipeline.Internal.Common.HList            (HList (..),
                                                             HList' (..),
                                                             IOList (..))
@@ -38,7 +44,7 @@ import           Pipeline.Internal.Core.UUID               (UUID)
 This allows a function with multiple inputs to be converted into a 'Task'.
 -}
 multiInputTask
-  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b))
+  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b), NFData b)
   => (HList as -> b) -- ^ The function to execute
   -> g b             -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
@@ -46,8 +52,10 @@ multiInputTask f output = IIn7
   (inj
     (Task
       (\uuid sources sink -> do
-        input <- (hSequence . fetch' uuid) sources
-        save uuid sink (f input)
+        input <- lift ((hSequence . fetch' uuid) sources)
+        let outputValue   = f input
+            !outputValue' = outputValue `deepseq` outputValue
+        lift (save uuid sink outputValue')
       )
       output
     )
@@ -57,7 +65,7 @@ multiInputTask f output = IIn7
 This allows a single @a -> b@ to be converted into a 'Task'.
 -}
 functionTask
-  :: (DataStore f a, DataStore g b, Eq (g b), Show (g b))
+  :: (DataStore f a, DataStore g b, Eq (g b), Show (g b), NFData (g b), NFData b)
   => (a -> b) -- ^ The function to execute
   -> g b      -- ^ The output 'DataStore'
   -> Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] ( 'Succ 'Zero)
@@ -83,8 +91,8 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 
 -- | Constructor for a task
 task
-  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b))
-  => (UUID -> HList' fs as -> g b -> IO (g b))  -- ^ The function a Task will execute.
+  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b))
+  => (UUID -> HList' fs as -> g b -> ExceptT SomeException IO (g b))  -- ^ The function a Task will execute.
   -> g b                                -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
 task f out = IIn7 (inj (Task f out))

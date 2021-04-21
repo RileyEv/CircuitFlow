@@ -41,5 +41,4 @@ instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' '[f] '[a] where
 
 instance (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
   fetch' uuid (HCons' x xs) = IOCons (fetch uuid x) (fetch' uuid xs)
-  save' uuid (HCons' ref rs) (HCons x xs) =
-    IOCons (save uuid ref x) (save' uuid rs xs)
+  save' uuid (HCons' ref rs) (HCons x xs) = IOCons (save uuid ref x) (save' uuid rs xs)

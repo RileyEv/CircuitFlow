@@ -28,6 +28,9 @@ module Pipeline.DataStore
   -- ** CSVStore
     CSVStore(..)
   , NamedCSVStore(..)
+  -- ** Defining DataStores
+  , Generic
+  , NFData
   ) where
 
 
@@ -35,6 +38,7 @@ import           Pipeline.Internal.Core.DataStore (DataStore (..),
                                                    DataStore' (..))
 import           Pipeline.Internal.Core.UUID      (UUID)
 
+import           Control.DeepSeq                  (NFData)
 import qualified Data.ByteString.Lazy             as B (readFile, writeFile)
 import           Data.Csv                         (DefaultOrdered,
                                                    FromNamedRecord, FromRecord,
@@ -43,13 +47,14 @@ import           Data.Csv                         (DefaultOrdered,
                                                    decode, decodeByName, encode,
                                                    encodeDefaultOrderedByName)
 import qualified Data.Vector                      as V (toList)
+import           GHC.Generics                     (Generic)
 import           System.FilePath                  (splitFileName, (</>))
-
 
 {-|
   A 'VariableStore' is a simple in memory 'DataStore'.
 -}
-data VariableStore a = Var a | Empty deriving (Eq, Show)
+data VariableStore a = Var a | Empty deriving (Eq, Show, Generic, NFData)
+
 
 instance DataStore VariableStore a where
   fetch _ (Var x) = return x
@@ -63,7 +68,7 @@ instance DataStore VariableStore a where
   Fetching from an empty store will read input from stdin and writing to a
   store will cause the output to be wrote to stdout.
 -}
-data IOStore a = IOVar a | IOEmpty deriving (Eq, Show)
+data IOStore a = IOVar a | IOEmpty deriving (Eq, Show, Generic, NFData)
 
 {-|
   An instance is only defined for String types
@@ -80,15 +85,14 @@ instance DataStore IOStore String where
 
 addUUIDToFileName :: String -> UUID -> String
 addUUIDToFileName fpath uuid =
-  let (directory, fname) = splitFileName fpath
-  in  directory </> uuid ++ "-" ++ fname
+  let (directory, fname) = splitFileName fpath in directory </> uuid ++ "-" ++ fname
 
 
 {-|
   A 'FileStore' is able to write a string to a file for intermediate
   between tasks
 -}
-newtype FileStore a = FileStore String deriving (Eq, Show)
+newtype FileStore a = FileStore String deriving (Eq, Show, Generic, NFData)
 
 {-|
   You are able to write a String to a FileStore.
@@ -118,7 +122,7 @@ instance DataStore FileStore [String] where
 {-|
   A 'CSVStore' is able to write data to a csv file.
 -}
-newtype CSVStore a = CSVStore String deriving (Eq, Show)
+newtype CSVStore a = CSVStore String deriving (Eq, Show, Generic, NFData)
 
 {-|
   A list of any type can be wrote to a CSV as long as it has a 'ToRecord'
@@ -142,7 +146,7 @@ instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
 {-|
   A 'NamedCSVStore' is able to write data to a csv file, with a header.
 -}
-newtype NamedCSVStore a = NamedCSVStore String deriving (Eq, Show)
+newtype NamedCSVStore a = NamedCSVStore String deriving (Eq, Show, Generic, NFData)
 
 {-|
   A list of any type can be wrote to a CSV as long as it has a 'ToNamedRecord',
