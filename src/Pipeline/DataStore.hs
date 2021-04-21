@@ -28,6 +28,9 @@ module Pipeline.DataStore
   -- ** CSVStore
     CSVStore(..)
   , NamedCSVStore(..)
+  -- ** Defining DataStores
+  , Generic
+  , NFData
   ) where
 
 
