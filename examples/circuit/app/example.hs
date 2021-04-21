@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fprint-potential-instances #-}
+{-# LANGUAGE DeriveAnyClass    #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -15,24 +16,24 @@ import           Text.Printf
 
 import           Control.Monad    (forM, forM_, mzero)
 
-newtype Artist = Artist {artistName :: String} deriving (Eq, Generic, Ord)
+newtype Artist = Artist {artistName :: String} deriving (Eq, Generic, Ord, NFData)
 
 data Track = Track
   { artist      :: Artist
   , contentName :: String
   }
-  deriving (Eq, Generic, Ord)
+  deriving (Eq, Generic, Ord, NFData)
 
 data TrackCount = TrackCount
   { _track  :: Track
   , countTC :: Int
   }
-  deriving (Eq, Generic, Ord)
+  deriving (Eq, Generic, Ord, NFData)
 data ArtistCount = ArtistCount
   { _artist :: Artist
   , countAC :: Int
   }
-  deriving (Eq, Generic, Ord)
+  deriving (Eq, Generic, Ord, NFData)
 
 
 data Listen = Listen
@@ -66,7 +67,7 @@ data Listen = Listen
   , storeCountryName            :: String
   , utcOffsetInSeconds          :: Float
   }
-  deriving Generic
+  deriving (Generic, NFData)
 
 instance FromNamedRecord Listen where
   parseNamedRecord r =
@@ -196,7 +197,7 @@ instance ToField Bool where
   toField False = "FALSE"
 
 top10Task
-  :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a)
+  :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a, NFData a)
   => FilePath
   -> Circuit
        '[NamedCSVStore]
@@ -300,7 +301,7 @@ getUserTop10
   -> UUID
   -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
 getUserTop10 n _ = do
-  (HCons' ac (HCons' tc HNil')) <- output_ n
+  (Right (HCons' ac (HCons' tc HNil'))) <- output_ n
   return (ac, tc)
 
 main :: IO ()
