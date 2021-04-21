@@ -21,6 +21,7 @@ module Pipeline.Task
   -- * Misc
     HList(..)
   , HList'(..)
+  , ExceptT
   ) where
 
 import           Control.DeepSeq                           (NFData, deepseq)

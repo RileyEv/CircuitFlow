@@ -1,7 +1,6 @@
 module Main where
 
-import           Control.Monad.Trans       (lift)
-import           Control.Monad.Trans.Maybe (MaybeT)
+import           Control.Monad.Trans (lift)
 import           Pipeline
 import           System.Process
 
@@ -28,7 +27,11 @@ lhs2TexTask
        N1
 lhs2TexTask = task f (FileStore "dissertation.tex")
  where
-  f :: UUID -> HList' '[FileStore] '[String] -> FileStore String -> MaybeT IO (FileStore String)
+  f
+    :: UUID
+    -> HList' '[FileStore] '[String]
+    -> FileStore String
+    -> ExceptT SomeException IO (FileStore String)
   f _ (HCons' (FileStore fInName) HNil') fOut@(FileStore fOutName) = do
     lift (callCommand ("lhs2tex -o " ++ fOutName ++ " " ++ fInName ++ " > lhs2tex.log"))
     return fOut
@@ -44,7 +47,11 @@ buildTexTask
        N1
 buildTexTask = task f (FileStore "dissertation.pdf")
  where
-  f :: UUID -> HList' '[FileStore] '[String] -> FileStore String -> MaybeT IO (FileStore String)
+  f
+    :: UUID
+    -> HList' '[FileStore] '[String]
+    -> FileStore String
+    -> ExceptT SomeException IO (FileStore String)
   f _ (HCons' (FileStore fInName) HNil') fOut@(FileStore _) = do
     lift
       (callCommand

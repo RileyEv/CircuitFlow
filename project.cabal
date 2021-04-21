@@ -23,6 +23,7 @@ library
       Pipeline
     , Pipeline.Circuit
     , Pipeline.DataStore
+    , Pipeline.Error
     , Pipeline.Network
     , Pipeline.Task
     , Pipeline.Nat
