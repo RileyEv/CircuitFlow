@@ -1,4 +1,6 @@
 import luigi
+import time
+
 # import luigi.contrib.sqla
 import pandas as pd
 
@@ -19,8 +21,10 @@ class AggregateArtists(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            "output/artist_streams_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
-            format=luigi.format.Nop
+            "output/artist_streams_{}_{}.csv".format(
+                self.user_id, "-".join(self.months)
+            ),
+            format=luigi.format.Nop,
         )
 
     def requires(self):
@@ -36,11 +40,16 @@ class AggregateArtists(luigi.Task):
                 else:
                     main_df = main_df.append(df)
 
+        counts = (
+            main_df.groupby("Artist Name")
+            .count()["Apple Id Number"]
+            .sort_values(ascending=False)
+            .rename("Count")
+        )
 
-        counts = main_df.groupby('Artist Name').count()['Apple Id Number'].sort_values(ascending=False).rename('Count')
-                    
-        with self.output().open('w') as out_file:
+        with self.output().open("w") as out_file:
             counts.to_csv(out_file)
+
 
 class AggregateSongs(luigi.Task):
 
@@ -49,8 +58,8 @@ class AggregateSongs(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            "output/song_streams_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
-            format=luigi.format.Nop
+            "output/song_streams_{}_{}.csv".format(self.user_id, "-".join(self.months)),
+            format=luigi.format.Nop,
         )
 
     def requires(self):
@@ -66,13 +75,17 @@ class AggregateSongs(luigi.Task):
                 else:
                     main_df = main_df.append(df)
 
+        counts = (
+            main_df.groupby(["Artist Name", "Content Name"])
+            .count()["Apple Id Number"]
+            .sort_values(ascending=False)
+            .rename("Count")
+        )
 
-        counts = main_df.groupby(['Artist Name', 'Content Name']).count()['Apple Id Number'].sort_values(ascending=False).rename('Count')
-                    
-        with self.output().open('w') as out_file:
+        with self.output().open("w") as out_file:
             counts.to_csv(out_file)
 
-            
+
 class Top10Artists(luigi.Task):
 
     months = luigi.ListParameter()
@@ -82,17 +95,20 @@ class Top10Artists(luigi.Task):
         return AggregateArtists(self.months, self.user_id)
 
     def output(self):
-        return luigi.LocalTarget("output/top_artists_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
-            format=luigi.format.Nop)
+        return luigi.LocalTarget(
+            "output/top_artists_{}_{}.csv".format(self.user_id, "-".join(self.months)),
+            format=luigi.format.Nop,
+        )
 
     def run(self):
         with self.input().open("r") as in_file:
             df = pd.read_csv(in_file)
 
-        df = df.iloc[:,:10]
-        with self.output().open('w') as out_file:
+        df = df.iloc[:, :10]
+        with self.output().open("w") as out_file:
             df.to_csv(out_file, index=False)
-            
+
+
 class Top10Songs(luigi.Task):
 
     months = luigi.ListParameter()
@@ -102,15 +118,17 @@ class Top10Songs(luigi.Task):
         return AggregateSongs(self.months, self.user_id)
 
     def output(self):
-        return luigi.LocalTarget("output/top_songs_{}_{}.csv".format(self.user_id, '-'.join(self.months)),
-            format=luigi.format.Nop)
+        return luigi.LocalTarget(
+            "output/top_songs_{}_{}.csv".format(self.user_id, "-".join(self.months)),
+            format=luigi.format.Nop,
+        )
 
     def run(self):
         with self.input().open("r") as in_file:
             df = pd.read_csv(in_file)
 
-        df = df.iloc[:,:10]
-        with self.output().open('w') as out_file:
+        df = df.iloc[:, :10]
+        with self.output().open("w") as out_file:
             df.to_csv(out_file, index=False)
 
 
@@ -139,5 +157,15 @@ class Top10Songs(luigi.Task):
 
 if __name__ == "__main__":
     months = ["jan", "feb", "mar"]
-    luigi.build([task for user in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-                      for task in [Top10Artists(months, user), Top10Songs(months, user)]], workers=4, local_scheduler=True)
+    tstart = time.time()
+    luigi.build(
+        [
+            task
+            for user in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            for task in [Top10Artists(months, user), Top10Songs(months, user)]
+        ],
+        workers=4,
+        local_scheduler=True,
+    )
+    tend = time.time()
+    print("Total Runtime (s): {:.6f}".format(tend - tstart))
