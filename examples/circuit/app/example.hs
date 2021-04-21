@@ -16,24 +16,24 @@ import           Text.Printf
 
 import           Control.Monad    (forM, forM_, mzero)
 
-newtype Artist = Artist {artistName :: String} deriving (Eq, Generic, Ord, NFData)
+newtype Artist = Artist {artistName :: String} deriving (Eq, Show, Generic, Ord, NFData)
 
 data Track = Track
   { artist      :: Artist
   , contentName :: String
   }
-  deriving (Eq, Generic, Ord, NFData)
+  deriving (Eq, Show, Generic, Ord, NFData)
 
 data TrackCount = TrackCount
   { _track  :: Track
   , countTC :: Int
   }
-  deriving (Eq, Generic, Ord, NFData)
+  deriving (Eq, Show, Generic, Ord, NFData)
 data ArtistCount = ArtistCount
   { _artist :: Artist
   , countAC :: Int
   }
-  deriving (Eq, Generic, Ord, NFData)
+  deriving (Eq, Show, Generic, Ord, NFData)
 
 
 data Listen = Listen
@@ -200,9 +200,9 @@ top10Task
   :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a, NFData a)
   => FilePath
   -> Circuit
-       '[NamedCSVStore]
+       '[VariableStore]
        '[[a]]
-       '[NamedCSVStore [a]]
+       '[VariableStore [a]]
        '[NamedCSVStore]
        '[[a]]
        '[NamedCSVStore [a]]
@@ -217,11 +217,11 @@ aggArtistsTask
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
-       '[NamedCSVStore]
+       '[VariableStore]
        '[[ArtistCount]]
-       '[NamedCSVStore [ArtistCount]]
+       '[VariableStore [ArtistCount]]
        N3
-aggArtistsTask = multiInputTask f (NamedCSVStore "output/aggArtists.csv")
+aggArtistsTask = multiInputTask f Empty
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [ArtistCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
@@ -234,11 +234,11 @@ aggSongsTask
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
-       '[NamedCSVStore]
+       '[VariableStore]
        '[[TrackCount]]
-       '[NamedCSVStore [TrackCount]]
+       '[VariableStore [TrackCount]]
        N3
-aggSongsTask = multiInputTask f (NamedCSVStore "output/aggSongs.csv")
+aggSongsTask = multiInputTask f Empty
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [TrackCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
