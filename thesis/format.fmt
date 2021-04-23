@@ -14,10 +14,12 @@
 \newcommand\idsym[1]{\mathbin{\id{#1}}}
 \newcommand{\vertrule}[1][1.0ex]{\rule[-0.0ex]{.45pt}{#1}}
 
+%if style /= newcode
 %format `comp_` = "\cdot "
 %subst space        = "\codeskip "
 %subst char a       = "\text{\ttfamily{\textquotesingle}" a "\textquotesingle}"
 %subst backquoted a = "\mathbin{\text{\`{}}" a "\text{\`{}}}"
+%endif
 
 \renewcommand\Varid[1]{\codefont{#1}}
 \let\Conid\Varid

@@ -11,28 +11,32 @@ year={2021}
   
 %% \usepackage{libertine}
 \usepackage{todonotes}
+\setlength{\marginparwidth}{2cm}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{amsmath}
 \usepackage{tikz-cd}
 \usepackage{latexsym}
+\usepackage{acronym}
 
 % lhs2tex setup
 
 %include format.fmt
-%options ghci
+%options ghci -pgmL lhs2tex -optL--pre
 
 \begin{document}
-  
-%if False
 
+%to ignore a code block in latex...
+\long\def\ignore#1{}
+
+\ignore{
 \begin{code}
-{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances, DataKinds #-}
+{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances, DataKinds, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeFamilies, PolyKinds #-}
 module Dissertation where
 import Prelude hiding (or)
 import Data.Kind (Type)
 \end{code}
-%endif
+}
 
 \maketitle
 
@@ -41,7 +45,7 @@ import Data.Kind (Type)
 \frontmatter
 \makedecl{}
 \tableofcontents
-\listoftodos
+\listoffigures
 
 % -----------------------------------------------------------------------------
 
@@ -49,7 +53,17 @@ import Data.Kind (Type)
 
 % % -----------------------------------------------------------------------------
 
-% \chapter*{Notation and Acronyms}
+\chapter*{Notation and Acronyms}
+
+\begin{acronym}
+  \acro{DSL}{Domain Specific Language}
+  \acro{EDSL}{Embedded DSL}
+  \acro{FIFO}{First-In First-Out}
+  \acro{KPN}{Kahn Process Network}
+  \acro{GPL}{General Purpose Language}
+  \acro{DPN}{Data Process Network}
+  \acro{AST}{Abstract Syntax Tree}
+\end{acronym}
 
 % maybe?
 
@@ -57,6 +71,7 @@ import Data.Kind (Type)
 
 \chapter*{Acknowledgements}
 
+\todo[inline]{Change this to something meaningful}
 \noindent
 It is common practice (although totally optional) to acknowledge any
 third-party advice, contribution or influence you have found useful
@@ -70,6 +85,7 @@ advice or time), and so on.
 \mainmatter{}
 
 \chapter{Introduction}\label{chap:intro}
+\todo[inline]{Write an introduction (do near the end)}
 
 % -----------------------------------------------------------------------------
 
@@ -79,20 +95,31 @@ advice or time), and so on.
 Dataflow programming is a paradigm that models applications as a directed graph.
 The nodes of the graph have inputs and outputs and are pure functions, therefore have no side effects.
 It is possible for a node to be a: source; sink; or processing node.
+A source is a read-only storage: it can be used to feed inputs into processes.
+A sink is a write-only storage: it can be used to store the outputs of processes.
+Processes will read from either a source or the output of another process,
+and then produce a result which is either passed to another process or saved in a sink.
 Edges connect these nodes together, and define the flow of information.
-\todo[inline]{this feels a little light on detail }
 
 
 \paragraph{Example - Data Pipelines}
 A common use of dataflow programming is in pipelines that process data.
 This paradigm is particularly helpful as it helps the developer to focus on each specific transformation on the data as a single component.
 Avoiding the need for long and laborious scripts that could be hard to maintain.
+\todo[inline]{Add an example diagram of something simple}
 
 \paragraph{Example - Quartz Composer}
 Apple developed a tool included in XCode, named Quartz Composer, which is a node-based visual programming language~\cite{quartz}.
 It allows for quick development of programs that process and render graphical data.
 By using visual programming it allows the user to build programs, without having to write a single line of code.
 This means that even non-programmers are able to use the tool.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.3]{diagrams/quartz_composer.png}
+  \caption{Quartz composer~\cite{costello_2012}}
+\end{figure}
+
 
 \paragraph{Example - Spreadsheets}
 A widely used example of dataflow programming is in spreadsheets.
@@ -106,13 +133,12 @@ Work has also done to visualise spreadsheets using dataflow diagrams, to help de
 \paragraph{Visual}
 The dataflow paradigm uses graphs, which make programming visual.
 It allows the end-user programmer to see how data passes through the program, much easier than in an imperative approach.
-In many cases, dataflow programming languages use drag and drop blocks with a graphical user interface to build programs,
-for example Tableau Prep~\cite{tableauPrep}.
-This makes programming more accessible to users who do not have programming skills.
+In many cases, dataflow programming languages use drag and drop blocks with a graphical user interface to build programs.
+For example, Tableau Prep~\cite{tableauPrep}, that makes programming more accessible to users who do not have programming skills.
 
 \paragraph{Implicit Parallelism}
 Moore's law states that the number of transistors on a computer chip doubles every two years~\cite{4785860}.
-This meant that the chips processing speeds also increased in alignment with Moore's law.
+This meant that the chips' processing speeds also increased in alignment with Moore's law.
 However, in recent years this is becoming harder for chip manufacturers to achieve~\cite{bentley_2020}.
 Therefore, chip manufactures have had to turn to other approaches to increase the speed of new chips, such as multiple cores.
 It is this approach the dataflow programming can effectively make use of.
@@ -122,7 +148,10 @@ Thus eliminating the ability for a deadlock to occur.
 
 \subsection{Dataflow Diagrams}
 Dataflow programs are typically viewed as a graph.
-An example dataflow graph along with its corresponding imperative approach, is visible in Figure~\ref{fig:dataflow-example}.
+An example dataflow graph along with its corresponding imperative approach, can be found in Figure~\ref{fig:dataflow-example}.
+The nodes $100$, $X$, and $Y$ are sources as they are only read from. $C$ is a sink as it is wrote to.
+The remaining nodes are all processes, as they have some number of inputs and compute a result.
+
 In this diagram is possible to see how implicit parallelisation is possible.
 Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated after they are complete.
 
@@ -152,130 +181,156 @@ Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated
 \end{figure}
 
 
-\subsection{Kahn Process Networks}
-A method introduced by Gilles Kahn, called Kahn Process Networks (KPN) realised this concept through the use of threads
-and unbounded FIFO queues~\cite{DBLP:conf/ifip/Kahn74}.
+\subsection{\ac{KPN}}
+A method introduced by Gilles Kahn, \acfp{KPN} realised the concept of dataflow networks
+through the use of threads and unbounded \ac{FIFO} queues~\cite{DBLP:conf/ifip/Kahn74}.
+The \ac{FIFO} queue is one where the items are output in the same order that they are added.
 A node in the dataflow becomes a thread in the process network.
-These threads are then able to communicate through FIFO queues.
+Each \ac{FIFO} queue represents the edges connecting the nodes in a graph.
+The threads are then able to communicate through \ac{FIFO} queues.
 The node can have multiple input queues and is able to read any number of values from them.
 It will then compute a result and add it to an output queue.
-A requirement of KPNs is that a thread is suspended if it attempts to fetch a value from an empty queue.
-It is not possible for a process to test for the presence of data in a queue.
+Kahn imposed a restriction on a process in a \acp{KPN} that the thread is suspended if it attempts to fetch a value from an empty queue.
+The thread is not allowed to test for the presence of data in a queue.
 
-Parks described a variant of KPNs, called Data Processing networks~\cite{381846}.
+Parks described a variant of \acp{KPN}, called \acp{DPN}~\cite{381846}.
 They recognise that if functions have no side effects then they have no values to be shared between each firing.
 Therefore, a pool of threads can be used with a central scheduler instead.
 
+\todo[inline]{Look in Parks' thesis, for a way to visualise a KPN. Add an example diagram with some inputs. One on Page 34 looks good, showing how a node fires.}
 
 
-
-\section{Domain Specific Languages (DSLs)}
-A Domain Specific Language (DSL) is a programming language unit that has a specialised domain or use-case.
-This differs from a General Purpose Language (GPL), which can be applied across a larger set of domains.
-HTML is an example of a DSL, it is good for describing the appearance of websites, however,
+\section{\acp{DSL}}
+A \ac{DSL} is a programming language that has a specialised domain or use-case.
+This differs from a \ac{GPL}, which can be applied across a larger set of domains, and are generally turing complete.
+HTML is an example of a \ac{DSL}: it is good for describing the appearance of websites, however,
 it cannot be used for more generic purposes, such as adding two numbers together.
 
 \paragraph{Approaches to Implementation}
 DSLs are typically split into two categories: standalone and embedded.
 Standalone DSLs require their own compiler and typically their own syntax; HTML would be an example of a standalone DSL.
-Embedded DSLs use an existing language as a host, therefore they use the syntax and compiler from the host.
+\acp{EDSL} use an existing language as a host, therefore they use the syntax and compiler from the host.
 This means that they are easier to maintain and often quicker to develop than standalone DSLs.
-An embedded DSL, can be implemented using two differing techniques: shallow and deep embeddings.
+An \ac{EDSL}, can be implemented using two differing techniques: deep and shallow embeddings.
 
 \todo[inline]{Add something about why embedded DSLs are used in Haskell}
 
+%if style /= newcode
+%format Parser_d
+%format Parser_s
+%format parse_d
+%format parse_s
+%format Satisfy_d
+%format Or_d
+%format aorb_d
+%format or_s
+%format satisfy_s
+%format aorb_s
+%format parse_s
+%endif
 
 \subsection{Deep Embeddings}
-A deep embedding is when the terms of the DSL will construct an Abstract Syntax Tree (AST) as a host language datatype.
-Semantics can then be provided later on with an |eval| function.
+A deep embedding is when the terms of the \ac{DSL} will construct an \ac{AST} as a host language datatype.
+Semantics can then be provided later on with evaluation functions.
 Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
 
 
 \begin{code}
-data Parser (a :: Type) where
-  Satisfy  :: (Char -> Bool) -> Parser Char
-  Or       :: Parser a       -> Parser a -> Parser a
+data Parser_d (a :: Type) where
+  Satisfy_d  :: (Char -> Bool)  -> Parser_d Char
+  Or_d       :: Parser_d a   -> Parser_d a -> Parser_d a
 \end{code}
 
 \noindent
 This can be used to build a parser that can parse the characters |'a'| or |'b'|.
 
 \begin{code}
-aorb :: Parser Char
-aorb = Satisfy (== 'a') `Or` Satisfy (== 'b')
+aorb_d :: Parser_d Char
+aorb_d = Satisfy_d (== 'a') `Or_d` Satisfy_d (== 'b')
 \end{code}
 
 \noindent
 However, this parser does not have any semantics, therefore this needs to be provided by the evaluation function |parse|.
 
 \begin{code}
-parse :: Parser a -> String -> [(a, String)]
-parse (Satisfy p) = \case
+parse_d :: Parser_d a -> String -> [(a, String)]
+parse_d (Satisfy_d p)  = \case
   []       -> []
   (t:ts')  -> [(t, ts') | p t]
-parse (Or px py) = \ts -> parse px ts ++ parse py ts
+parse_d (Or_d px py)   = \ts -> parse_d px ts ++ parse_d py ts
 \end{code}
 
 \noindent
-The program can then be evaluated by the |parse| function.
-For example, |parse aorb "a"| evaluates to \eval{parse aorb "a"}, and |parse aorb "c"| evaluates to \eval{parse aorb "c"}.
+The program can then be evaluated by the |parse_d| function.
+For example, |parse_d aorb_d "a"| evaluates to \eval{parse_d aorb_d "a"}, and |parse_d aorb_d "c"| evaluates to \eval{parse_d aorb_d "c"}.
 
-A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code: Parsley makes use of such techniques to create optimised parsers~\cite{parsley}.
+A key benefit for deep embeddings is that the structure can be inspected, and then modified to optimise the user code: Parsley~\cite{parsley} makes use of such techniques to create optimised parsers.
+Another benefit, is that you can provide multiple interpretations, by specifying different evaluation functions.
 However, they also have drawbacks - it can be laborious to add a new constructor to the language.
 Since it requires that all functions that use the deep embedding be modified to add a case for the new constructor \cite{SVENNINGSSON2015143}.
 
-
 \subsection{Shallow Embeddings}
-In contrast, a shallow approach is when the terms of the DSL are defined as first class components of the language.
+In contrast, a shallow approach is when the terms of the \ac{DSL} are defined as first class components of the language.
 For example, a function in Haskell.
 Components can then be composed together and evaluated to provide the semantics of the language.
 Again a simple parser example can be considered.
 
+%if style /= newcode
 %format Parser2
 %format aorb2
 %format parse2
+%endif
 
 \begin{code}
-newtype Parser2 a = Parser2 {parse2 :: String -> [(a, String)]}
+newtype Parser_s a = Parser_s {parse_s :: String -> [(a, String)]}
 
-or :: Parser2 a -> Parser2 a -> Parser2 a
-or (Parser2 px) (Parser2 py) = Parser2 (\ts -> px ts ++ py ts)
+or_s :: Parser_s a -> Parser_s a -> Parser_s a
+or_s (Parser_s px) (Parser_s py) = Parser_s (\ts -> px ts ++ py ts)
 
-satisfy :: (Char -> Bool) -> Parser2 Char
-satisfy p = Parser2 (\case
+satisfy_s :: (Char -> Bool) -> Parser_s Char
+satisfy_s p = Parser_s (\case
   []       -> []
   (t:ts')  -> [(t, ts') | p t])
 \end{code}
 
 \noindent
-The same |aorb| parser can be created directly from these functions, avoiding the need for an intermediate AST.
+The same |aorb_s| parser can be constructed from these functions, avoiding the need for an intermediate \ac{AST}.
 
 \begin{code}
-aorb2 :: Parser2 Char
-aorb2 = satisfy (== 'a') `or` satisfy (== 'b')
+aorb_s :: Parser_s Char
+aorb_s = satisfy_s (== 'a') `or_s` satisfy_s (== 'b')
 \end{code}
 
 
-Using a shallow implementation has the benefit of being able add new `constructors' to a DSL, without having to modify any other functions.
+Using a shallow implementation has the benefit of being able add new `constructors' to a \ac{DSL}, without having to modify any other functions.
 Since each `constructor', produces the desired result directly.
-However, this causes one of the main disadvantages of a shallow embedding - you cannot inspect the structure.
+However, this causes one of the main disadvantages of a shallow embedding - the structure cannot be inspected.
 This means that optimisations cannot be made to the structure before evaluating it.
 
 
 \section{Higher Order Functors}
 
-%format Parser3
+\todo[inline]{Restructre section: Functor/Fix then problem IFunctor as solution.}
+
+%if style /= newcode
+%format Parser_fixed
 %format ~> = "\leadsto"
+%endif
 
 It is possible to capture the shape of an abstract datatype as a |Functor|.
 The use of a |Functor| allows for the specification of where a datatype recurses.
+
+
+
 There is, however, one problem: a |Functor| expressing the parser language is required to be typed.
 Parsers require the type of the tokens being parsed.
 For example, a parser reading tokens that make up an expression could have the type |Parser Expr|.
 A |Functor| does not retain the type of a parser.
+
 Instead a type class called |IFunctor| can be used, which is able to maintain the type indicies~\cite{mcbride2011functional}.
 This makes use of |~>|, which represents a natural transformation from |f| to |g|.
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it~\cite{lane1998categories}.
+\todo[inline]{Emphasise that there is another layer to get the info needed.. Functor - changing all values in a structure. IFunctor changing structures inside a structure, while maintaining the values.}
 
 
 \begin{code}
@@ -287,7 +342,7 @@ class IFunctor iF where
 \noindent
 The shape of |Parser| can be seen in |ParserF| where the |f| marks the recursive spots.
 The type |f| represents the type of the children of that node.
-In most cases this will be
+In most cases this will be itself.
 
 \begin{code}
 data ParserF (f :: * -> *) (a :: *) where
@@ -316,11 +371,11 @@ newtype IFix iF a = IIn (iF (IFix iF) a)
 The fixed point of |ParserF| is |Parser3|.
 
 \begin{code}
-type Parser3 = IFix ParserF
+type Parser_fixed = IFix ParserF
 \end{code}
 
-In a deep embedding, the AST is traversed and modified to make optimisations, however, it may not be the best representation when evaluating it.
-This means that it is usually transformed to a different representation. In the case of a parser, this could be a stack machine.
+In a deep embedding, the \ac{AST} can be traversed and modified to make optimisations, however, it may not be the best representation when evaluating it.
+This means that it might be transformed to a different representation. In the case of a parser, this could be a stack machine.
 Now that the recursion in the datatype has been generalised, it is possible to create a mechanism to perform this transformation.
 An indexed \textit{catamorphism} is one such way to do this, it is a generalised way of folding an abstract datatype.
 The commutative diagram below describes how to define a catamorphism, that folds an |IFix iF a| to a |f a|.
@@ -342,24 +397,33 @@ icata :: IFunctor iF => (iF f ~> f) -> IFix iF ~> f
 icata alg (IIn x) = alg (imap (icata alg) x)
 \end{code}
 
+\todo[inline]{thing jamie sent me about how icata is good for abstracting recursion.}
+
+\todo[inline]{f to be a Functor -> syntactic?}
+
 \noindent
-The resulting type of |icata| is |f a|, this requires the |f| to be a |Functor|.
-This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the AST.
+The resulting type of |icata| is |f a|\todo{but uses |~>| so is actually f! might be confusing}, this requires the |f| to be a |Functor|.
+\todo{explain that |IFix ParserF| is a functor.}
+This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
 
 \section{Data types \`{a} la carte}
-When building a DSL one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
+\todo[inline]{CITE THE PAPER FFS!}
+When building a \ac{DSL} one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
 The expression problem is a trade off between a deep and shallow embedding.
-In a deep embedding, it is easy to add multiple interpretations to the DSL - just add a new evaluation function.
+In a deep embedding, it is easy to add multiple interpretations to the \ac{DSL} - just add a new evaluation function.
 However, it is not easy to add a new constructor, since all functions will need to be modified to add a new case for the constructor.
 The opposite is true in a shallow embedding.
 
+\todo[inline]{how does this solve the expression problem?}
 One possible attempt at fixing the expression problem is data types \`{a} la carte.
 It combines constructors using the coproduct of their signatures.
-This is defined as,
+This is defined as:
 
+%if style /= newcode
 %format :+: = ":\!\!+\!\!:"
 %format :<: = ":\prec:"
+%endif
 
 \begin{code}
 data (f :+: g) a = L (f a) | R (g a)
@@ -369,8 +433,8 @@ data (f :+: g) a = L (f a) | R (g a)
 For each constructor it is possible to define a new data type.
 
 \begin{code}
-data Val f = Val Int
-data Mul f = Mul f f
+data ValF f = ValF Int
+data MulF f = MulF f f
 \end{code}
 
 \noindent
@@ -385,8 +449,8 @@ data Expr = Add Expr Expr
 One problem that now exist, however, is that it is now rather difficult to create expressions, take a simple example of $12 \times 34$.
 
 \begin{code}
-exampleExpr :: Fix (Val :+: Mul)
-exampleExpr = In (R (Mul (In (L (Val 12))) (In (L (Val 34)))))
+exampleExpr :: Fix (ValF :+: MulF)
+exampleExpr = In (R (MulF (In (L (ValF 12))) (In (L (ValF 34)))))
 \end{code}
 
 \noindent
@@ -414,25 +478,28 @@ Using this type class, smart constructors can be defined.
 inject :: (g :<: f) => g (Fix f) -> Fix f
 inject = In . inj
 
-val :: (Val :<: f) => Int -> Expr f
-val x = inject (Val x)
+val :: (ValF :<: f) => Int -> Fix f
+val x = inject (ValF x)
 
-(*) :: (Mul :<: f) => Fix f -> Fix f -> Fix f
-x * y = inject (Mul x y)
+(*) :: (MulF :<: f) => Fix f -> Fix f -> Fix f
+x * y = inject (MulF x y)
 \end{code}
 
 \noindent
 Expressions can now be built using the constructors, such as |val 12 * val 34|.
 
+\todo[inline]{Add an algebra over these!}
 
-%% \noindent
-%% It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
 
-%% \begin{code}
-%% instance (Functor f, Functor g) => Functor (f :+: g) where
-%%   fmap f (L x) = L (fmap f x)
-%%   fmap f (R y) = R (fmap f y)
-%% \end{code}
+\todo[inline]{Stuff below needs adding properly into the text}
+\noindent
+It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
+
+\begin{code}
+instance (Functor f, Functor g) => Functor (f :+: g) where
+  fmap f (L x) = L (fmap f x)
+  fmap f (R y) = R (fmap f y)
+\end{code}
 
 
 \section{Dependently Typed Programming}
@@ -442,8 +509,15 @@ Although Haskell does not officially support dependently typed programming, ther
 \todo[inline]{Add some refs}
 
 
-Through the use of the DataKinds language extension, all data types are promoted to also be kinds and their constructors to be type constructors.
-When constructors are promoted to type constructors, they are prefixed with a '~\todo{I cannot get this to work in lhs2tex :(}. For example |Zero|
+%if style == newcode
+%format (Q(x)) = "''" x
+%else
+%format TICK = "''"
+%format (Q(x)) = TICK x
+%endif
+
+Through the use of the DataKinds language extension, all data types can be promoted to also be kinds and their constructors to be type constructors.
+When constructors are promoted to type constructors, they are prefixed with a |TICK|.
 This allows for more interesting and restrictive types.
 
 Consider the example of a vector that also maintains its length.
@@ -458,33 +532,34 @@ data Nat = Zero
 \noindent
 A vector type can now be defined that makes use of the promoted |Nat| kind.
 
+
 \begin{code}
 data Vec :: Type -> Nat -> Type where
-  Nil   :: Vec a Zero
-  Cons  :: a -> Vec a n -> Vec a (Succ n)
+  Nil   :: Vec a (Q(Zero))
+  Cons  :: a -> Vec a n -> Vec a ((Q(Succ)) n)
 \end{code}
 
 The use of DataKinds can enforce stronger types.
 For example a function can now require that a specific length of vector is given as an argument.
 With standard lists, this would not be possible, which could result in run-time errors when the incorrect length is used.
-One case where this could be is getting the head of a list. If you attempt to get the head of an empty list an error will be thrown.
-For a vector a |safeHead| function can be defined that will not type check if the vector is empty.
+For example, getting the head of a list. Getting the head of an empty list an error will be thrown.
+For a vector, a |safeHead| function can be defined that will not type check if the vector is empty.
 
 \begin{code}
-safeHead :: Vector (Succ n) a -> a
+safeHead :: Vec a ((Q(Succ)) n) -> a
 safeHead (Cons x _) = x
 \end{code}
 
 \subsection{Singletons}
 \todo[inline]{Add some refs}
 DataKinds are useful for adding extra information back into the types, but how can information be recovered from the types?
-For example could a function that gets the length of a vector be defined?\todo{i dont like this.}
+For example, could a function that gets the length of a vector be defined?\todo{i dont like this.}
 
-\begin{code}
+\begin{spec}
 vecLength :: Vec a n -> Nat
-\end{code}
+\end{spec}
 
-It turns out this is possible through the use of singletons.
+This is enabled through the use of singletons.
 A singleton in Haskell is a type that has just one inhabitant.
 They are written in such a way that pattern matching reveals the type parameter.
 For example, the corresponding singleton instance for |Nat| is |SNat|.
@@ -492,14 +567,16 @@ The structure for |SNat| closely flows that of |Nat|.
 
 \begin{code}
 data SNat (n :: Nat) where
-  SZero :: SNat Zero
-  SSucc :: SNat n -> SNat (Succ n)
+  SZero :: SNat (Q(Zero))
+  SSucc :: SNat n -> SNat ((Q(Succ)) n)
 \end{code}
 
 \noindent
 A function that fetches the length of a vector can now definable.
 
+%if style /= newcode
 %format vecLength2
+%endif
 
 \begin{code}
 vecLength2 :: Vec a n -> SNat n
@@ -513,22 +590,23 @@ vecLength2 (Cons x xs)  = SSucc (vecLength2 xs)
 Now consider the possible scenario of appending two vectors together.
 How would the type signature look? This leads to the problem where two type level Nats need to be added together.
 This is where Type Families become useful, they allow for the definition of functions on types.
-The ideal type signature for appending two vectors together would be,
+The ideal type signature for appending two vectors together would be: \todo{Need to do type level arithmetic}
 
-\begin{code}
-vecAppend :: Vec a n -> Vec a m -> Vec a (n + m)
-\end{code}
+\begin{spec}
+vecAppend :: Vec a n -> Vec a m -> Vec a (n :+ m)
+\end{spec}
 
 \noindent
 This requires a |+| type family that can add two |Nat|s together.
 
 \begin{code}
 type family (a :: Nat) :+ (b :: Nat) where
-  a  :+  Zero    =  a
-  a  :+  Succ b  =  Succ (a :+ b)
+  a  :+  (Q(Zero))    =  a
+  a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
 \end{code}
 
 
+\todo[inline]{Maybe add a summary of how all these features combined results in DTP}
 
 
 
@@ -549,6 +627,8 @@ type family (a :: Nat) :+ (b :: Nat) where
 % =============================================================================
 
 \backmatter{}
+
+\listoftodos
 
 \bibliography{dissertation}
 
