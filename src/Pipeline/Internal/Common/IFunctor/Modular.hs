@@ -16,6 +16,12 @@ infixr :+:
 instance (IFunctor7 iF, IFunctor7 iG) => IFunctor7 (iF :+: iG) where
   imap7 f (L x) = L (imap7 f x)
   imap7 f (R y) = R (imap7 f y)
+  imapM7 f (L x) = do
+    x' <- imapM7 f x
+    return (L x')
+  imapM7 f (R y) = do
+    y' <- imapM7 f y
+    return (R y')
 
 
 class (IFunctor7 iF, IFunctor7 iG) => iF :<: iG where

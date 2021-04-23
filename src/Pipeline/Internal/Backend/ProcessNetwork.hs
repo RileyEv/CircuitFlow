@@ -27,7 +27,7 @@ import           Pipeline.Internal.Core.Error      (ExceptionMessage (..),
 import           Pipeline.Internal.Core.PipeList   (PipeList (..))
 import           Pipeline.Internal.Core.UUID       (UUID)
 import           Prelude                           hiding (read)
-
+import Pipeline.Internal.Common.Nat (Nat)
 
 -- | Main type for storing information about the process network.
 --
@@ -40,6 +40,14 @@ data Network (inputsStorageType  :: [Type -> Type]) (inputsType  :: [Type]) (inp
     outputs :: PipeList outputsStorage outputsType outputsAp }
     -> Network inputsStorage inputsType inputsAp outputsStorage outputsType outputsAp
 
+data Network' (inputsStorageType  :: [Type -> Type]) (inputsType  :: [Type]) (inputsAp  :: [Type])
+              (outputsStorageType :: [Type -> Type]) (outputsType :: [Type]) (outputsAp :: [Type])
+              (ninputs :: Nat) where
+  Network' ::{
+    threads' :: [ThreadId],
+    inputs' :: PipeList inputsStorage inputsType inputsAp,
+    outputs' :: PipeList outputsStorage outputsType outputsAp }
+    -> Network' inputsStorage inputsType inputsAp outputsStorage outputsType outputsAp ninputs
 
 {-|
 Stops the given network

@@ -10,7 +10,7 @@ import           Data.List                                 (nub)
 import           Pipeline.Internal.Backend.ProcessNetwork  (Network (..),
                                                             taskExecuter)
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..),
-                                                            IFunctor7)
+                                                            IFunctor7, icataM7)
 import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
 import           Pipeline.Internal.Common.Nat              (IsNat (..),
                                                             SNat (..))
@@ -161,3 +161,16 @@ circuitInputs :: (Length inputsS ~ Length inputsT,
               => Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs
               -> SNat (Length inputsS)
 circuitInputs _ = nat
+
+
+
+buildNetwork' = icataM7 buildNetworkAlg
+
+
+class BuildNetworkAlg iF where
+  buildNetworkAlg :: iF f' a b c d e f g -> Network' a b c d e f g -> IO (Network' a b c d e f g)
+
+
+instance (BuildNetworkAlg iF, BuildNetworkAlg iG) => BuildNetworkAlg (iF :+: iG) where
+  buildNetworkAlg (L x) = buildNetworkAlg x
+  buildNetworkAlg (R y) = buildNetworkAlg y
