@@ -1,5 +1,6 @@
 module Pipeline.Internal.Core.CircuitAST
   ( Circuit
+  , CircuitF
   ,
   -- * Constructors
     Id(..)

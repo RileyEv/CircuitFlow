@@ -25,7 +25,7 @@ instance (IFunctor7 iF, IFunctor7 iG) => IFunctor7 (iF :+: iG) where
 
 
 class (IFunctor7 iF, IFunctor7 iG) => iF :<: iG where
-  inj :: iF f' a b c d e f g -> iG f' a b c d e f g
+  inj :: iF f' a b c d e f g -> iG f' a b c d e f (g :: Nat)
 
 instance IFunctor7 iF => iF :<: iF where
   inj = id
