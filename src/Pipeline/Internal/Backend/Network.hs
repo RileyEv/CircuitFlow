@@ -14,10 +14,13 @@ import           Pipeline.Internal.Core.PipeList   (PipeList (..))
 import           Pipeline.Internal.Core.UUID       (UUID)
 import           Prelude                           hiding (read)
 
-
+-- | Network typeclass
 class Network n where
   -- | Starts a network with the given 'Circuit' as specification.
-  startNetwork  :: InitialPipes inS inT inA => Circuit inS inT inA outS outT outA nin -> IO (n inS inT inA outS outT outA)
+  startNetwork  :: InitialPipes inS inT inA
+    => Circuit inS inT inA outS outT outA nin -- ^ The 'Circuit' used to create the network
+    -> IO (n inS inT inA outS outT outA) -- ^ The created network
+
   -- | Stops the given network
   stopNetwork   :: n inS inT inA outS outT outA -> IO ()
   -- | This will read from the outputs of the network.

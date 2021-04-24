@@ -34,7 +34,6 @@ import           Pipeline.Internal.Backend.BasicNetwork (BasicNetwork)
 import           Pipeline.Internal.Backend.Network      (InitialPipes,
                                                          Network (..))
 import           Pipeline.Internal.Common.HList         (HList' (..))
-import           Pipeline.Internal.Core.CircuitAST      (Circuit)
 import           Pipeline.Internal.Core.Error           (TaskError)
 import           Pipeline.Internal.Core.UUID            (UUID, genUUID)
 import           Prelude                                hiding (read)
@@ -63,7 +62,7 @@ input_ x n = do
   return ()
 
 
--- | A variant of 'output', that does not return the unique identifier.
+-- | A variant of 'read', that does not return the unique identifier.
 --
 --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output_
