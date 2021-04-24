@@ -38,8 +38,8 @@ library
     , Pipeline.Internal.Common.HList
     , Pipeline.Internal.Common.Nat
     , Pipeline.Internal.Common.TypeList
-    , Pipeline.Internal.Backend.ProcessNetwork
-    , Pipeline.Internal.Backend.Translation
+    , Pipeline.Internal.Backend.Network
+    , Pipeline.Internal.Backend.BasicNetwork
 
   default-extensions:
       GADTs
