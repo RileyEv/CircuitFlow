@@ -34,10 +34,8 @@ module Pipeline.Network
 import           Pipeline.Internal.Backend.ProcessNetwork (Network, inputUUID,
                                                            output, stopNetwork)
 import           Pipeline.Internal.Backend.Translation    (InitialPipes,
-                                                           buildNetwork,
-                                                           initialNetwork)
+                                                           buildNetwork)
 import           Pipeline.Internal.Common.HList           (HList' (..))
-import           Pipeline.Internal.Common.IFunctor        (IFix7 (..))
 import           Pipeline.Internal.Core.CircuitAST        (Circuit)
 import           Pipeline.Internal.Core.Error             (TaskError)
 import           Pipeline.Internal.Core.UUID              (UUID, genUUID)
@@ -48,9 +46,8 @@ startNetwork
   :: InitialPipes inputsS inputsT inputsA
   => Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs -- ^ The 'Circuit' used to create the network
   -> IO (Network inputsS inputsT inputsA outputsS outputsT outputsA) -- ^ The created network
-startNetwork (IIn7 c) = do
-  n <- initialNetwork
-  buildNetwork n c
+startNetwork = buildNetwork
+
 
 -- | Input values into a network.
 -- This will return a randomly generated identifier for the inputs.
@@ -62,6 +59,7 @@ input x n = do
   uuid <- genUUID
   inputUUID uuid x n
   return uuid
+
 
 -- | A variant of 'input', however it will not return the randomly generated identifier.
 input_

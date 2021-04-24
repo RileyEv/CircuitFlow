@@ -2,8 +2,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Pipeline.Internal.Common.IFunctor where
 
-import           Data.Kind                    (Type)
-import           Pipeline.Internal.Common.Nat (Nat)
 
 class IFunctor iF where
   imap :: (forall a. f a -> g a) -> iF f a -> iF g a
@@ -18,12 +16,12 @@ class IFunctor4 iF where
 class IFunctor6 iF where
   imap6 :: (forall a b c d e f. f' a b c d e f -> g' a b c d e f) -> iF f' a b c d e f -> iF g' a b c d e f
 
-class IFunctor7 (iF :: (aK -> bK -> cK -> dK -> eK -> fK -> Nat -> Type) -> aK -> bK -> cK -> dK -> eK -> fK -> Nat -> Type) where
+class IFunctor7 iF where
   imap7 :: (forall a b c d e f g. f' a b c d e f g -> g' a b c d e f g) -> iF f' a b c d e f g -> iF g' a b c d e f g
-  imapM7 :: forall f' g' (a :: aK) (b :: bK) (c :: cK) (d :: dK) (e :: eK) (f :: fK) (g :: Nat) m . Monad m
-    => (forall (a :: aK) (b :: bK) (c :: cK) (d :: dK) (e :: eK) (f :: fK) (g :: Nat). f' a b c d e f (g :: Nat) -> m (g' a b c d e f (g :: Nat)))
-    -> iF f' a b c d e f (g :: Nat)
-    -> m (iF g' a b c d e f (g :: Nat))
+  imapM7 :: Monad m
+    => (forall a b c d e f g. f' a b c d e f g -> m (g' a b c d e f g))
+    -> iF f' a b c d e f g
+    -> m (iF g' a b c d e f g)
 
 newtype Fix f = In (f (Fix f))
 newtype IFix  iF a = IIn  (iF (IFix  iF) a)
@@ -32,7 +30,7 @@ newtype IFix3 iF a b c = IIn3 (iF (IFix3 iF) a b c)
 newtype IFix4 iF a b c d = IIn4 (iF (IFix4 iF) a b c d)
 newtype IFix5 iF a b c d e = IIn5 (iF (IFix5 iF) a b c d e)
 newtype IFix6 iF a b c d e f = IIn6 (iF (IFix6 iF) a b c d e f)
-newtype IFix7 iF a b c d e f (g :: Nat) = IIn7 (iF (IFix7 iF) a b c d e f g)
+newtype IFix7 iF a b c d e f g = IIn7 (iF (IFix7 iF) a b c d e f g)
 
 icata :: IFunctor iF => (forall a . iF f a -> f a) -> IFix iF a -> f a
 icata alg (IIn x) = alg (imap (icata alg) x)
@@ -53,9 +51,9 @@ icata7 alg (IIn7 x) = alg (imap7 (icata7 alg) x)
 
 icataM7
   :: (IFunctor7 iF, Monad m)
-  => (forall a b c d e f (g :: Nat) . iF f' a b c d e f g -> m (f' a b c d e f g))
-  -> IFix7 iF a b c d e f (g :: Nat)
-  -> m (f' a b c d e f (g :: Nat))
+  => (forall a b c d e f g . iF f' a b c d e f g -> m (f' a b c d e f g))
+  -> IFix7 iF a b c d e f g
+  -> m (f' a b c d e f g)
 icataM7 algM (IIn7 x) = algM =<< imapM7 (icataM7 algM) x
 
 
