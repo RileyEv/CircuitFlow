@@ -1,5 +1,6 @@
 module Pipeline.Internal.Core.CircuitAST
   ( Circuit
+  , CircuitF
   ,
   -- * Constructors
     Id(..)
@@ -114,27 +115,41 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
 -- IFunctor instances
 instance IFunctor7 Id where
   imap7 _ Id = Id
+  imapM7 _ Id = return Id
 
 instance IFunctor7 Replicate where
   imap7 _ Replicate = Replicate
+  imapM7 _ Replicate = return Replicate
 
 instance IFunctor7 Then where
   imap7 f (Then x y) = Then (f x) (f y)
+  imapM7 f (Then x y) = do
+    x' <- f x
+    y' <- f y
+    return (Then x' y')
 
 instance IFunctor7 Beside where
   imap7 f (Beside l r) = Beside (f l) (f r)
+  imapM7 f (Beside l r) = do
+    l' <- f l
+    r' <- f r
+    return (Beside l' r')
 
 instance IFunctor7 Swap where
   imap7 _ Swap = Swap
+  imapM7 _ Swap = return Swap
 
 instance IFunctor7 DropL where
   imap7 _ DropL = DropL
+  imapM7 _ DropL = return DropL
 
 instance IFunctor7 DropR where
   imap7 _ DropR = DropR
+  imapM7 _ DropR = return DropR
 
 instance IFunctor7 Task where
   imap7 _ (Task f output) = Task f output
+  imapM7 _ (Task f output) = return $ Task f output
 
 type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task
 
@@ -153,7 +168,7 @@ for example @'['Pipeline.DataStore.VariableStore', 'Pipeline.DataStore.CSVStore'
 @inputTypes@ is a type-list of the types stored in the storage,
 for example @'['Int', [('String', 'Float')]]@.
 
-@inputsApplied@ is a type-list of the storage types appiled to the types stored,
+@inputsApplied@ is a type-list of the storage types applied to the types stored,
 for example @'['Pipeline.DataStore.VariableStore' 'Int', 'Pipeline.DataStore.CSVStore' [('String', 'Float')]]@.
 
 @outputsStorageTypes@, @inputTypes@ and @outputsApplied@ mirror the examples above, but for the outputs instead.

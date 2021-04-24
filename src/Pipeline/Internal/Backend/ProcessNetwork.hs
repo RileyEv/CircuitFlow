@@ -9,25 +9,22 @@ module Pipeline.Internal.Backend.ProcessNetwork
 
 import           Control.Concurrent                (ThreadId, killThread)
 import           Control.Concurrent.Chan           (readChan, writeChan)
-import           Control.DeepSeq                   (NFData, deepseq)
+import           Control.DeepSeq                   (deepseq)
 import           Control.Exception                 (SomeException,
                                                     displayException)
 import           Control.Exception.Lifted          (try)
 import           Control.Monad                     (forM_, forever)
-import           Control.Monad.IO.Class            (liftIO)
-import           Control.Monad.Trans               (lift)
 import           Control.Monad.Trans.Except        (ExceptT (..), catchE,
                                                     runExceptT, throwE)
 import           Data.Kind                         (Type)
-import           GHC.Generics                      (Generic)
 import           Pipeline.Internal.Common.HList    (HList' (..))
+import           Pipeline.Internal.Common.Nat      (Nat)
 import           Pipeline.Internal.Core.CircuitAST (Task (..))
 import           Pipeline.Internal.Core.Error      (ExceptionMessage (..),
                                                     TaskError (..))
 import           Pipeline.Internal.Core.PipeList   (PipeList (..))
 import           Pipeline.Internal.Core.UUID       (UUID)
 import           Prelude                           hiding (read)
-
 
 -- | Main type for storing information about the process network.
 --
@@ -79,7 +76,7 @@ intercept a = do
 
 write
   :: UUID -> Either TaskError (HList' inputsS inputsT) -> PipeList inputsS inputsT inputsA -> IO ()
-write _    (Left  e    ) PipeNil         = return ()
+write _    (Left  _    ) PipeNil         = return ()
 write uuid (Left  e    ) (PipeCons p ps) = writeChan p (uuid, Left e) >> write uuid (Left e) ps
 write _    (Right HNil') PipeNil         = return ()
 write uuid (Right (HCons' x xs)) (PipeCons p ps) =
