@@ -10,9 +10,10 @@ Contains the tools needed to create, interact with and stop a network.
 module Pipeline.Network
   (
   -- * Network
-    Network
-  , startNetwork
-  , stopNetwork
+    Network(..)
+  ,
+  -- * Basic Network
+    BasicNetwork
   ,
   -- * Network IO
     UUID
@@ -20,59 +21,52 @@ module Pipeline.Network
   -- ** Input
     input
   , input_
-  , inputUUID
   ,
   -- ** Output
-    output
-  , output_
+    output_
   , module Pipeline.Internal.Common.HList
   ,
   -- * Misc
     InitialPipes
   ) where
 
-import           Pipeline.Internal.Backend.ProcessNetwork (Network, inputUUID,
-                                                           output, stopNetwork)
-import           Pipeline.Internal.Backend.Translation    (InitialPipes,
-                                                           buildNetwork)
-import           Pipeline.Internal.Common.HList           (HList' (..))
-import           Pipeline.Internal.Core.CircuitAST        (Circuit)
-import           Pipeline.Internal.Core.Error             (TaskError)
-import           Pipeline.Internal.Core.UUID              (UUID, genUUID)
-
-
--- | This will create a new 'Network' for the given 'Circuit'
-startNetwork
-  :: InitialPipes inputsS inputsT inputsA
-  => Circuit inputsS inputsT inputsA outputsS outputsT outputsA ninputs -- ^ The 'Circuit' used to create the network
-  -> IO (Network inputsS inputsT inputsA outputsS outputsT outputsA) -- ^ The created network
-startNetwork = buildNetwork
+import           Pipeline.Internal.Backend.BasicNetwork (BasicNetwork)
+import           Pipeline.Internal.Backend.Network      (InitialPipes,
+                                                         Network (..))
+import           Pipeline.Internal.Common.HList         (HList' (..))
+import           Pipeline.Internal.Core.Error           (TaskError)
+import           Pipeline.Internal.Core.UUID            (UUID, genUUID)
+import           Prelude                                hiding (read)
 
 
 -- | Input values into a network.
 -- This will return a randomly generated identifier for the inputs.
 input
-  :: HList' inputsS inputsT -- ^ Inputs to the network
-  -> Network inputsS inputsT inputsA outputsS outputsT outputsA -- ^ Network to insert the values in
+  :: Network n
+  => HList' inputsS inputsT -- ^ Inputs to the network
+  -> n inputsS inputsT inputsA outputsS outputsT outputsA -- ^ Network to insert the values in
   -> IO UUID -- ^ Randomly generated identifier
 input x n = do
   uuid <- genUUID
-  inputUUID uuid x n
+  write uuid x n
   return uuid
 
 
 -- | A variant of 'input', however it will not return the randomly generated identifier.
 input_
-  :: HList' inputsS inputsT -> Network inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
+  :: HList' inputsS inputsT
+  -> BasicNetwork inputsS inputsT inputsA outputsS outputsT outputsA
+  -> IO ()
 input_ x n = do
   _ <- input x n
   return ()
 
 
--- | A variant of 'output', that does not return the unique identifier.
+-- | A variant of 'read', that does not return the unique identifier.
 --
 --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output_
-  :: Network inputsS inputsT inputsA outputsS outputsT outputsA
+  :: Network n
+  => n inputsS inputsT inputsA outputsS outputsT outputsA
   -> IO (Either TaskError (HList' outputsS outputsT))
-output_ n = output n >>= (\(_, x) -> return x)
+output_ n = read n >>= (\(_, x) -> return x)

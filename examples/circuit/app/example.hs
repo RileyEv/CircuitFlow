@@ -273,7 +273,7 @@ pipeline =
     <>  top10Task "output/top10Songs.csv"
 
 addUser
-  :: Network
+  :: BasicNetwork
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
@@ -282,7 +282,7 @@ addUser
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
   -> UUID
   -> IO ()
-addUser n uuid = inputUUID
+addUser n uuid = write
   uuid
   (HCons'
     (NamedCSVStore "../data/jan.csv")
@@ -291,7 +291,7 @@ addUser n uuid = inputUUID
   n
 
 getUserTop10
-  :: Network
+  :: BasicNetwork
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
