@@ -90,6 +90,7 @@ test-suite test
     , Pipeline.Network.MinimalTests
     , Pipeline.Network.ErrorTests
     , Pipeline.Network.HelperCircuit
+    , Pipeline.Network.Helper
   default-extensions:
       GADTs
     , DataKinds

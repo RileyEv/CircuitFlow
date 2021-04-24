@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Pipeline.Network.ErrorTests
   ( errorTests
   ) where
@@ -5,6 +6,7 @@ module Pipeline.Network.ErrorTests
 import           Control.Exception.Lifted       (ArithException (..))
 import           Control.Monad.Trans            (lift)
 import           Pipeline
+import           Pipeline.Network.Helper
 import           Pipeline.Network.HelperCircuit
 import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
@@ -14,20 +16,6 @@ errorTests :: TestTree
 errorTests =
   testGroup "Tests that shouldn't throw a run-time exception" [divBy0Tests, errorPropagationTests]
 
-{-| Helper function to create a network from the given Circuit
-    and then input a value and recieve the output
--}
-singleInputTest
-  :: (InitialPipes a b c)
-  => Circuit a b c d e f g
-  -> HList' a b
-  -> IO (Either TaskError (HList' d e))
-singleInputTest circuit i = do
-  n <- startNetwork circuit
-  input_ i n
-  out <- output_ n
-  stopNetwork n
-  return out
 
 
 -- Tests for the 'Task' constructor

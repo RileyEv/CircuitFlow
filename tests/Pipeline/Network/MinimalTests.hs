@@ -3,6 +3,7 @@ module Pipeline.Network.MinimalTests
   ) where
 
 import           Pipeline
+import           Pipeline.Network.Helper
 import           Pipeline.Network.HelperCircuit
 import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
@@ -21,21 +22,6 @@ minimalTests = testGroup
   , functionTaskTests
   , multiInputTaskTests
   ]
-
-{-| Helper function to create a network from the given Circuit
-    and then input a value and recieve the output
--}
-singleInputTest
-  :: (InitialPipes a b c)
-  => Circuit a b c d e f g
-  -> HList' a b
-  -> IO (Either TaskError (HList' d e))
-singleInputTest circuit i = do
-  n <- startNetwork circuit
-  input_ i n
-  out <- output_ n
-  stopNetwork n
-  return out
 
 
 -- Tests for the 'Id' constructor

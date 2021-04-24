@@ -2,8 +2,8 @@ module Main where
 
 import           Control.Monad.Trans (lift)
 import           Pipeline
+import           Prelude             hiding (read)
 import           System.Process
-
 
 buildDissPipeline
   :: Circuit
@@ -63,11 +63,20 @@ buildTexTask = task f (FileStore "dissertation.pdf")
 
 main :: IO ()
 main = do
-  n <- startNetwork buildDissPipeline
+  n <-
+    startNetwork buildDissPipeline :: IO
+      ( BasicNetwork
+          '[FileStore]
+          '[String]
+          '[FileStore String]
+          '[FileStore]
+          '[String]
+          '[FileStore String]
+      )
 
   input_ (HCons' (FileStore "dissertation.lhs") HNil') n
 
-  o <- output n
+  o <- read n
   print o
 
   stopNetwork n
