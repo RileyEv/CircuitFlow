@@ -35,7 +35,8 @@ module Pipeline.DataStore
 
 
 import           Pipeline.Internal.Core.DataStore (DataStore (..),
-                                                   DataStore' (..))
+                                                   DataStore' (..),
+                                                   VariableStore (..))
 import           Pipeline.Internal.Core.UUID      (UUID)
 
 import           Control.DeepSeq                  (NFData)
@@ -50,16 +51,6 @@ import qualified Data.Vector                      as V (toList)
 import           GHC.Generics                     (Generic)
 import           System.FilePath                  (splitFileName, (</>))
 
-{-|
-  A 'VariableStore' is a simple in memory 'DataStore'.
--}
-data VariableStore a = Var a | Empty deriving (Eq, Show, Generic, NFData)
-
-
-instance DataStore VariableStore a where
-  fetch _ (Var x) = return x
-  fetch _ Empty   = error "empty source"
-  save _ _ x = return (Var x)
 
 
 {-|

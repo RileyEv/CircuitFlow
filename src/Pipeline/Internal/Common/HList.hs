@@ -1,6 +1,5 @@
 module Pipeline.Internal.Common.HList where
 
-
 import           Data.Kind (Type)
 
 -- | A heterogeneous list used as input/output to a task.
@@ -28,3 +27,11 @@ instance Show (HList' fs as) where
 instance Eq (HList' fs as) where
   HNil'         == HNil'         = True
   (HCons' x xs) == (HCons' y ys) = x == y && xs == ys
+
+
+hSequence :: IOList as -> IO (HList as)
+hSequence IONil         = return HNil
+hSequence (IOCons x xs) = do
+  x'  <- x
+  xs' <- hSequence xs
+  return $ x' `HCons` xs'
