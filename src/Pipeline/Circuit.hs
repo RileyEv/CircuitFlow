@@ -159,7 +159,9 @@ dropR
   :: (DataStore' '[f , g] '[a , b]) => Circuit '[f , g] '[a , b] '[f a , g b] '[f] '[a] '[f a] N2
 dropR = (IIn7 . inj) DropR
 
-
+{-|
+Maps a circuit on the inputs
+-}
 mapC
   :: ( DataStore' '[f] '[a]
      , DataStore' '[f] '[[a]]
