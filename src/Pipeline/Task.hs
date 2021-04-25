@@ -30,7 +30,8 @@ import           Control.Monad.Except                      (ExceptT)
 import           Control.Monad.Trans                       (lift)
 import           Pipeline.Internal.Common.HList            (HList (..),
                                                             HList' (..),
-                                                            IOList (..))
+                                                            IOList (..),
+                                                            hSequence)
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (Nat (..))
@@ -98,9 +99,3 @@ task
 task f out = IIn7 (inj (Task f out))
 
 
-hSequence :: IOList as -> IO (HList as)
-hSequence IONil         = return HNil
-hSequence (IOCons x xs) = do
-  x'  <- x
-  xs' <- hSequence xs
-  return $ x' `HCons` xs'

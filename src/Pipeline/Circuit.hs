@@ -21,6 +21,7 @@ module Pipeline.Circuit
   , swap
   , dropL
   , dropR
+  , mapC
   ) where
 
 
@@ -31,7 +32,9 @@ import           Pipeline.Internal.Common.Nat              (IsNat, N1, N2,
 import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
                                                             Take, (:++))
 import           Pipeline.Internal.Core.CircuitAST
-import           Pipeline.Internal.Core.DataStore          (DataStore')
+import           Pipeline.Internal.Core.DataStore          (DataStore,
+                                                            DataStore',
+                                                            VariableStore)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
 
 import           Prelude                                   hiding (id,
@@ -57,9 +60,7 @@ In diagram form it would look like,
 > /\
 
 -}
-replicate
-  :: (DataStore' '[f] '[a])
-  => Circuit '[f] '[a] '[f a] '[f , f] '[a , a] '[f a , f a] N1
+replicate :: (DataStore' '[f] '[a]) => Circuit '[f] '[a] '[f a] '[f , f] '[a , a] '[f a , f a] N1
 replicate = (IIn7 . inj) Replicate
 
 {-|
@@ -93,32 +94,40 @@ A diagram representing @a \<\> b@ or \"a next to b\" can be seen below,
 > | ... | ... |  -- outputs a ++ outputs b
 
 -}
-(<>) :: (DataStore' fs as,
-         DataStore' gs bs,
-         DataStore' hs cs,
-         DataStore' is ds,
-         nfs ~ Length fs,
-         IsNat nfs,
-         IsNat nhs,
-         Length fs ~ Length as,
-         Length fs ~ Length (Apply fs as),
-         Length gs ~ Length bs,
-         Length gs ~ Length (Apply gs bs),
-         Length hs ~ Length cs,
-         Length hs ~ Length (Apply hs cs),
-         Length is ~ Length ds,
-         Length is ~ Length (Apply is ds),
-         Take (Length as) (Apply fs as :++ Apply hs cs) ~ Apply fs as,
-         Take (Length as) (as :++ cs) ~ as,
-         Take (Length as) (fs :++ hs) ~ fs,
-         Drop (Length as) (Apply fs as :++ Apply hs cs) ~ Apply hs cs,
-         Drop (Length as) (as :++ cs) ~ cs,
-         Drop (Length as) (fs :++ hs) ~ hs,
-         AppendP gs bs (Apply gs bs) is ds (Apply is ds))
-       => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ Left circuit
-       -> Circuit hs cs (Apply hs cs) is ds (Apply is ds) nhs -- ^ Right circuit
-       -> Circuit (fs :++ hs) (as :++ cs) (Apply fs as :++ Apply hs cs)
-                   (gs :++ is) (bs :++ ds) (Apply gs bs :++ Apply is ds) (nfs :+ nhs)
+(<>)
+  :: ( DataStore' fs as
+     , DataStore' gs bs
+     , DataStore' hs cs
+     , DataStore' is ds
+     , nfs ~ Length fs
+     , IsNat nfs
+     , IsNat nhs
+     , Length fs ~ Length as
+     , Length fs ~ Length (Apply fs as)
+     , Length gs ~ Length bs
+     , Length gs ~ Length (Apply gs bs)
+     , Length hs ~ Length cs
+     , Length hs ~ Length (Apply hs cs)
+     , Length is ~ Length ds
+     , Length is ~ Length (Apply is ds)
+     , Take (Length as) (Apply fs as :++ Apply hs cs) ~ Apply fs as
+     , Take (Length as) (as :++ cs) ~ as
+     , Take (Length as) (fs :++ hs) ~ fs
+     , Drop (Length as) (Apply fs as :++ Apply hs cs) ~ Apply hs cs
+     , Drop (Length as) (as :++ cs) ~ cs
+     , Drop (Length as) (fs :++ hs) ~ hs
+     , AppendP gs bs (Apply gs bs) is ds (Apply is ds)
+     )
+  => Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ Left circuit
+  -> Circuit hs cs (Apply hs cs) is ds (Apply is ds) nhs -- ^ Right circuit
+  -> Circuit
+       (fs :++ hs)
+       (as :++ cs)
+       (Apply fs as :++ Apply hs cs)
+       (gs :++ is)
+       (bs :++ ds)
+       (Apply gs bs :++ Apply is ds)
+       (nfs :+ nhs)
 (<>) l r = IIn7 (inj (Beside l r))
 infixr 5 <>
 
@@ -140,14 +149,31 @@ swap = (IIn7 . inj) Swap
 Takes two values as input and drops the left input.
 -}
 dropL
-  :: (DataStore' '[f , g] '[a , b])
-  => Circuit '[f , g] '[a , b] '[f a , g b] '[g] '[b] '[g b] N2
+  :: (DataStore' '[f , g] '[a , b]) => Circuit '[f , g] '[a , b] '[f a , g b] '[g] '[b] '[g b] N2
 dropL = (IIn7 . inj) DropL
 
 {-|
 Takes two values as input and drops the right input.
 -}
 dropR
-  :: (DataStore' '[f , g] '[a , b])
-  => Circuit '[f , g] '[a , b] '[f a , g b] '[f] '[a] '[f a] N2
+  :: (DataStore' '[f , g] '[a , b]) => Circuit '[f , g] '[a , b] '[f a , g b] '[f] '[a] '[f a] N2
 dropR = (IIn7 . inj) DropR
+
+{-|
+Maps a circuit on the inputs
+-}
+mapC
+  :: ( DataStore' '[f] '[a]
+     , DataStore' '[f] '[[a]]
+     , DataStore' '[g] '[b]
+     , DataStore' '[g] '[[b]]
+     , DataStore g [b]
+     , Eq (g [b])
+     , Show (g [b])
+     , Eq a
+     , Show a
+     )
+  => Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
+  -> g [b]
+  -> Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
+mapC c o = (IIn7 . inj) (Map c o)

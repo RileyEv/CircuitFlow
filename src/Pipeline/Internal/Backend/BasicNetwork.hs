@@ -3,38 +3,40 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Pipeline.Internal.Backend.BasicNetwork where
 
-import           Control.Concurrent                        (ThreadId, forkIO,
-                                                            killThread)
-import           Control.Concurrent.Chan                   (dupChan, newChan,
-                                                            readChan, writeChan)
-import           Control.DeepSeq                           (deepseq)
-import           Control.Exception                         (SomeException,
-                                                            displayException)
-import           Control.Exception.Lifted                  (try)
-import           Control.Monad                             (forM_, forever)
-import           Control.Monad.Trans.Except                (ExceptT (..),
-                                                            catchE, runExceptT,
-                                                            throwE)
-import           Data.Kind                                 (Type)
-import           Data.List                                 (nub)
-import           Pipeline.Internal.Backend.Network         (BuildNetworkAlg (..),
-                                                            InitialPipes (..),
-                                                            N (..),
-                                                            Network (..))
-import           Pipeline.Internal.Common.HList            (HList' (..))
-import           Pipeline.Internal.Common.IFunctor         (IFunctor7, icataM7)
-import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
-import           Pipeline.Internal.Common.Nat              (IsNat (..), Nat,
-                                                            SNat (..))
-import           Pipeline.Internal.Common.TypeList         (Drop, Length, Take,
-                                                            (:++))
+import           Control.Concurrent                (ThreadId, forkIO,
+                                                    killThread)
+import           Control.Concurrent.Chan           (dupChan, newChan, readChan,
+                                                    writeChan)
+import           Control.DeepSeq                   (deepseq)
+import           Control.Exception                 (SomeException,
+                                                    displayException)
+import           Control.Exception.Lifted          (try)
+import           Control.Monad                     (forM_, forever)
+import           Control.Monad.Trans               (lift)
+import           Control.Monad.Trans.Except        (ExceptT (..), catchE,
+                                                    runExceptT, throwE)
+import           Data.Kind                         (Type)
+import           Data.List                         (nub)
+import           Pipeline.Internal.Backend.Network (BuildNetworkAlg (..),
+                                                    InitialPipes (..), N (..),
+                                                    Network (..))
+import           Pipeline.Internal.Common.HList    (HList (..), HList' (..),
+                                                    IOList (..), hSequence)
+import           Pipeline.Internal.Common.IFunctor (icataM7)
+import           Pipeline.Internal.Common.Nat      (IsNat (..), N1, Nat,
+                                                    SNat (..))
+import           Pipeline.Internal.Common.TypeList (Apply, Drop, Length, Take,
+                                                    (:++))
 import           Pipeline.Internal.Core.CircuitAST
-import           Pipeline.Internal.Core.Error              (ExceptionMessage (..),
-                                                            TaskError (..))
-import           Pipeline.Internal.Core.PipeList           (AppendP (..),
-                                                            PipeList (..),
-                                                            dropP, takeP)
-import           Pipeline.Internal.Core.UUID               (UUID)
+import           Pipeline.Internal.Core.DataStore  (DataStore (..),
+                                                    DataStore' (..),
+                                                    VariableStore (Var))
+import           Pipeline.Internal.Core.Error      (ExceptionMessage (..),
+                                                    TaskError (..))
+import           Pipeline.Internal.Core.PipeList   (AppendP (..), PipeList (..),
+                                                    dropP, takeP)
+import           Pipeline.Internal.Core.UUID       (UUID)
+import           Prelude                           hiding (read)
 
 -- | Main type for storing information about the process network.
 --
@@ -152,6 +154,65 @@ instance BuildNetworkAlg BasicNetwork Task where
       threadId <- forkIO (taskExecuter (Task t out) (outputs n) output)
       return $ BasicNetwork (threadId : threads n) (inputs n) output
     )
+
+instance BuildNetworkAlg BasicNetwork Map where
+  buildNetworkAlg (Map (c :: Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] N1) outputStore) =
+    return $ N
+      (\n -> do
+        outChan <- newChan
+        let output = PipeCons outChan PipeNil
+
+
+        threadId <- forkIO
+          (do
+            mapNetwork <-
+              startNetwork c :: IO
+                ( BasicNetwork
+                    '[VariableStore]
+                    '[a]
+                    '[VariableStore a]
+                    '[VariableStore]
+                    '[b]
+                    '[VariableStore b]
+                )
+            _ <- forever
+              (do
+                (uuid, mapInputs) <- readPipes (outputs n)
+                r                 <-
+                  (runExceptT
+                    (do
+                      inputs             <- (ExceptT . return) mapInputs
+                      HCons inputs' HNil <- (lift . hSequence . fetch' uuid) inputs
+
+                      mapM_ (\x -> lift (write uuid (HCons' (Var x) HNil') mapNetwork)) inputs'
+                      -- input each value into the mapNetwork
+                      output <- mapM
+                        (\x -> do
+                          (uuid, r)             <- lift (read mapNetwork)
+                          HCons' (Var r') HNil' <- (ExceptT . return) r -- Check for failure
+                          return r'
+                        )
+                        inputs'
+                      -- get each value out from the mapNetwork
+                      saved <- lift (save uuid outputStore output)
+                      return (HCons' saved HNil')
+                    )
+                  )
+                writePipes uuid r output
+              )
+            stopNetwork mapNetwork
+          )
+
+        -- threadId <- forkIO (taskExecuter (Task t out) (outputs n) output)
+
+        return $ BasicNetwork (threadId : threads n) (inputs n) output
+      )
+
+
+-- test :: [HList' '[VariableStore] '[b]] -> HList' '[VariableStore] '[[b]]
+-- test xs                            = HCons' (helper xs) HNil'
+
+-- test ((HCons' (Var x) HNil') : xs) = HCons'
 
 instance BuildNetworkAlg BasicNetwork Replicate where
   buildNetworkAlg Replicate = return $ N

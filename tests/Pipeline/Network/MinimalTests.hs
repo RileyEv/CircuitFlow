@@ -21,6 +21,7 @@ minimalTests = testGroup
   , dropRTests
   , functionTaskTests
   , multiInputTaskTests
+  , mapTests
   ]
 
 
@@ -192,4 +193,24 @@ multiInputTaskTests = testGroup
       let i = HCons' (Var 3) (HCons' (Var 5) HNil')
       o <- singleInputTest multiInputTaskCircuit i
       o @?= Right (HCons' (Var 8) HNil')
+  ]
+
+mapCircuit
+  :: Circuit
+       '[VariableStore]
+       '[[Int]]
+       '[VariableStore [Int]]
+       '[VariableStore]
+       '[[Int]]
+       '[VariableStore [Int]]
+       N1
+mapCircuit = mapC functionTaskCircuit Empty
+
+mapTests :: TestTree
+mapTests = testGroup
+  "map should"
+  [ testCase "map a circuit on the input values" $ do
+      let i = HCons' (Var [0, 1, 2, 3, 4, 5, 6, 7, 8]) HNil'
+      o <- singleInputTest mapCircuit i
+      o @?= Right (HCons' (Var [1, 2, 3, 4, 5, 6, 7, 8, 9]) HNil')
   ]

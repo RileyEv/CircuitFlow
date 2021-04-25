@@ -11,6 +11,7 @@ module Pipeline.Internal.Core.CircuitAST
   , DropL(..)
   , DropR(..)
   , Task(..)
+  , Map(..)
   ) where
 
 import           Control.DeepSeq                           (NFData)
@@ -21,13 +22,14 @@ import           Pipeline.Internal.Common.HList            (HList' (..))
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..),
                                                             IFunctor7 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
-import           Pipeline.Internal.Common.Nat              (IsNat (..),
+import           Pipeline.Internal.Common.Nat              (IsNat (..), N1, N2,
                                                             Nat (..), (:+),
                                                             (:=))
 import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
                                                             Take, (:++))
 import           Pipeline.Internal.Core.DataStore          (DataStore,
-                                                            DataStore')
+                                                            DataStore',
+                                                            VariableStore)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
 import           Pipeline.Internal.Core.UUID               (UUID)
 
@@ -35,13 +37,13 @@ data Id (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] ->
         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
         (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
   Id ::(DataStore' '[inputS] '[inputT])
-    => Id iF '[inputS] '[inputT] '[inputS inputT] '[inputS] '[inputT] '[inputS inputT] ('Succ 'Zero)
+    => Id iF '[inputS] '[inputT] '[inputS inputT] '[inputS] '[inputT] '[inputS inputT] N1
 
 data Replicate (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
                (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
                (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
   Replicate ::(DataStore' '[f] '[a])
-    => Replicate iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a] ('Succ 'Zero)
+    => Replicate iF '[f] '[a] '[f a] '[f, f] '[a, a] '[f a, f a] N1
 
 data Then (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
           (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
@@ -86,19 +88,19 @@ data Swap (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
           (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
           (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
   Swap ::(DataStore' '[f, g] '[a, b])
-    => Swap iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a] ('Succ ('Succ 'Zero))
+    => Swap iF '[f, g] '[a, b] '[f a, g b] '[g, f] '[b, a] '[g b, f a] N2
 
 data DropL (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
            (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
            (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
   DropL ::(DataStore' '[f, g] '[a, b])
-    => DropL iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b] ('Succ ('Succ 'Zero))
+    => DropL iF '[f, g] '[a, b] '[f a, g b] '[g] '[b] '[g b] N2
 
 data DropR (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
            (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
            (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
   DropR ::(DataStore' '[f, g] '[a, b])
-    => DropR iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a] ('Succ ('Succ 'Zero))
+    => DropR iF '[f, g] '[a, b] '[f a, g b] '[f] '[a] '[f a] N2
 
 
 data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
@@ -111,6 +113,16 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
        => (UUID -> HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO (g' b'))
        -> g' b'
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
+
+
+data Map (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
+         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
+         (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
+  Map ::(DataStore' '[f] '[a], DataStore' '[f] '[[a]], DataStore' '[g] '[b], DataStore' '[g] '[[b]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
+    => Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
+    -> g [b]
+    -> Map iF '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
+
 
 -- IFunctor instances
 instance IFunctor7 Id where
@@ -151,7 +163,11 @@ instance IFunctor7 Task where
   imap7 _ (Task f output) = Task f output
   imapM7 _ (Task f output) = return $ Task f output
 
-type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task
+instance IFunctor7 Map where
+  imap7 _ (Map c out) = Map c out
+  imapM7 _ (Map c out) = return $ Map c out
+
+type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task :+: Map
 
 {-|
 The core type for a Circuit. It takes 7 different type arguments
