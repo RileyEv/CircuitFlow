@@ -45,6 +45,7 @@ jobs:
         FOLDERPATH=$(dirname $FILEPATH)
         echo $FOLDERPATH
         cp -a $FOLDERPATH ./html
+        echo "circuitflow.rly.rocks" > ./html/CNAME
     - name: Publish Docs
       if: github.event_name == 'push'
       uses: peaceiris/actions-gh-pages@v3

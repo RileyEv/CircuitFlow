@@ -17,7 +17,9 @@ import           Control.Monad.Trans.Except                (ExceptT (..),
                                                             throwE)
 import           Data.Kind                                 (Type)
 import           Data.List                                 (nub)
-import           Pipeline.Internal.Backend.Network         (InitialPipes (..),
+import           Pipeline.Internal.Backend.Network         (BuildNetworkAlg (..),
+                                                            InitialPipes (..),
+                                                            N (..),
                                                             Network (..))
 import           Pipeline.Internal.Common.HList            (HList' (..))
 import           Pipeline.Internal.Common.IFunctor         (IFunctor7, icataM7)
@@ -123,8 +125,9 @@ circuitInputs
      , Length bsA ~ Length bsS
      , ninputs ~ Length bsS
      , IsNat ninputs
+     , Network n
      )
-  => (N asS asT asA) bsS bsT bsA csS csT csA (ninputs :: Nat)
+  => (N n asS asT asA) bsS bsT bsA csS csT csA (ninputs :: Nat)
   -> SNat (Length bsS)
 circuitInputs _ = nat
 
@@ -136,24 +139,12 @@ buildBasicNetwork x = do
   unN n n'
 
 
-newtype N asS asT asA a b c d e f g = N
-  { unN :: BasicNetwork asS asT asA a b c -> IO (BasicNetwork asS asT asA d e f)
-  }
-
--- | The accumulating fold to build the network.
-class IFunctor7 iF => BuildNetworkAlg iF where
-  buildNetworkAlg :: iF (N asS asT asA) bsS bsT bsA csS csT csA (nbs :: Nat) -> IO ((N asS asT asA) bsS bsT bsA csS csT csA (nbs :: Nat))
 
 
-instance (BuildNetworkAlg iF, BuildNetworkAlg iG) => BuildNetworkAlg (iF :+: iG) where
-  buildNetworkAlg (L x) = buildNetworkAlg x
-  buildNetworkAlg (R y) = buildNetworkAlg y
-
-
-instance BuildNetworkAlg Id where
+instance BuildNetworkAlg BasicNetwork Id where
   buildNetworkAlg Id = return (N return)
 
-instance BuildNetworkAlg Task where
+instance BuildNetworkAlg BasicNetwork Task where
   buildNetworkAlg (Task t out) = return $ N
     (\n -> do
       c <- newChan
@@ -162,7 +153,7 @@ instance BuildNetworkAlg Task where
       return $ BasicNetwork (threadId : threads n) (inputs n) output
     )
 
-instance BuildNetworkAlg Replicate where
+instance BuildNetworkAlg BasicNetwork Replicate where
   buildNetworkAlg Replicate = return $ N
     (\n -> do
       output <- dupOutput (outputs n)
@@ -174,14 +165,14 @@ instance BuildNetworkAlg Replicate where
       c' <- dupChan c
       return $ PipeCons c (PipeCons c' PipeNil)
 
-instance BuildNetworkAlg Then where
+instance BuildNetworkAlg BasicNetwork Then where
   buildNetworkAlg (Then (N x) (N y)) = return $ N
     (\n -> do
       nx <- x n
       y nx
     )
 
-instance BuildNetworkAlg Swap where
+instance BuildNetworkAlg BasicNetwork Swap where
   buildNetworkAlg Swap = return $ N
     (\n -> do
       output <- swapOutput (outputs n)
@@ -192,7 +183,7 @@ instance BuildNetworkAlg Swap where
       :: PipeList '[f , g] '[a , b] '[f a , g b] -> IO (PipeList '[g , f] '[b , a] '[g b , f a])
     swapOutput (PipeCons c1 (PipeCons c2 PipeNil)) = return $ PipeCons c2 (PipeCons c1 PipeNil)
 
-instance BuildNetworkAlg DropL where
+instance BuildNetworkAlg BasicNetwork DropL where
   buildNetworkAlg DropL = return $ N
     (\n -> do
       output <- dropLOutput (outputs n)
@@ -203,7 +194,7 @@ instance BuildNetworkAlg DropL where
     dropLOutput (PipeCons _ (PipeCons c2 PipeNil)) = return $ PipeCons c2 PipeNil
 
 
-instance BuildNetworkAlg DropR where
+instance BuildNetworkAlg BasicNetwork DropR where
   buildNetworkAlg DropR = return $ N
     (\n -> do
       output <- dropROutput (outputs n)
@@ -214,13 +205,13 @@ instance BuildNetworkAlg DropR where
     dropROutput (PipeCons c1 (PipeCons _ PipeNil)) = return $ PipeCons c1 PipeNil
 
 
-instance BuildNetworkAlg Beside where
+instance BuildNetworkAlg BasicNetwork Beside where
   buildNetworkAlg = beside
 
 beside
   :: forall asS asT asA bsS bsT bsA csS csT csA (nbs :: Nat)
-   . Beside (N asS asT asA) bsS bsT bsA csS csT csA nbs
-  -> IO ((N asS asT asA) bsS bsT bsA csS csT csA nbs) -- IO (Network asS asT asA csS csT csA)
+   . Beside (N BasicNetwork asS asT asA) bsS bsT bsA csS csT csA nbs
+  -> IO ((N BasicNetwork asS asT asA) bsS bsT bsA csS csT csA nbs) -- IO (Network asS asT asA csS csT csA)
 beside (Beside l r) = return $ N
   (\n -> do
     let ninputs = circuitInputs l
@@ -247,8 +238,22 @@ beside (Beside l r) = return $ N
     -> ( BasicNetwork asS asT asA (Take nbsL bsS) (Take nbsL bsT) (Take nbsL bsA)
        , BasicNetwork asS asT asA (Drop nbsL bsS) (Drop nbsL bsT) (Drop nbsL bsA)
        )
-    -> ( (N asS asT asA) (Take nbsL bsS) (Take nbsL bsT) (Take nbsL bsA) csLS csLT csLA nbsL
-       , (N asS asT asA) (Drop nbsL bsS) (Drop nbsL bsT) (Drop nbsL bsA) csRS csRT csRA nbsR
+    -> ( (N BasicNetwork asS asT asA)
+           (Take nbsL bsS)
+           (Take nbsL bsT)
+           (Take nbsL bsA)
+           csLS
+           csLT
+           csLA
+           nbsL
+       , (N BasicNetwork asS asT asA)
+           (Drop nbsL bsS)
+           (Drop nbsL bsT)
+           (Drop nbsL bsA)
+           csRS
+           csRT
+           csRA
+           nbsR
        )
     -> IO
          (BasicNetwork asS asT asA csLS csLT csLA, BasicNetwork asS asT asA csRS csRT csRA)

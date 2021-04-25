@@ -3,16 +3,20 @@
 module Pipeline.Internal.Backend.Network
   ( Network(..)
   , InitialPipes(..)
+  , N(..)
+  , BuildNetworkAlg(..)
   ) where
 
-import           Control.Concurrent.Chan           (Chan, newChan)
-import           Data.Kind                         (Type)
-import           Pipeline.Internal.Common.HList    (HList' (..))
-import           Pipeline.Internal.Core.CircuitAST (Circuit)
-import           Pipeline.Internal.Core.Error      (TaskError)
-import           Pipeline.Internal.Core.PipeList   (PipeList (..))
-import           Pipeline.Internal.Core.UUID       (UUID)
-import           Prelude                           hiding (read)
+import           Control.Concurrent.Chan                   (Chan, newChan)
+import           Data.Kind                                 (Type)
+import           Pipeline.Internal.Common.HList            (HList' (..))
+import           Pipeline.Internal.Common.IFunctor         (IFunctor7)
+import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
+import           Pipeline.Internal.Core.CircuitAST         (Circuit)
+import           Pipeline.Internal.Core.Error              (TaskError)
+import           Pipeline.Internal.Core.PipeList           (PipeList (..))
+import           Pipeline.Internal.Core.UUID               (UUID)
+import           Prelude                                   hiding (read)
 
 -- | Network typeclass
 class Network n where
@@ -46,3 +50,17 @@ instance (InitialPipes fs as xs, Eq (f a), Show (f a)) => InitialPipes (f ': fs)
 
 instance InitialPipes '[] '[] '[] where
   initialPipes = return PipeNil
+
+
+newtype N n asS asT asA a b c d e f g = N
+  { unN :: n asS asT asA a b c -> IO (n asS asT asA d e f)
+  }
+
+-- | The accumulating fold to build the network.
+class (IFunctor7 iF, Network n) => BuildNetworkAlg n iF where
+  buildNetworkAlg :: iF (N n asS asT asA) bsS bsT bsA csS csT csA nbs -> IO ((N n asS asT asA) bsS bsT bsA csS csT csA nbs)
+
+
+instance (BuildNetworkAlg n iF, BuildNetworkAlg n iG) => BuildNetworkAlg n (iF :+: iG) where
+  buildNetworkAlg (L x) = buildNetworkAlg x
+  buildNetworkAlg (R y) = buildNetworkAlg y
