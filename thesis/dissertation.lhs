@@ -76,25 +76,23 @@ advice or time), and so on.
 
 \mainmatter{}
 
-%if style == poly
-\subfileinclude{introduction}
-%endif
+\subfileinclude{chapters/introduction}
 
 % -----------------------------------------------------------------------------
 
-%if style == poly
-\subfileinclude{background}
-%endif
+\subfileinclude{chapters/background}
 
 % -----------------------------------------------------------------------------
 
-\chapter{Project Execution}\label{chap:execution}
-
-
+\subfileinclude{chapters/the-language}
 
 % -----------------------------------------------------------------------------
 
-\chapter{Critical Evaluation}\label{chap:evaluation}
+\subfileinclude{chapters/process-network}
+
+% -----------------------------------------------------------------------------
+
+\subfileinclude{chapters/evaluation}
 
 % -----------------------------------------------------------------------------
 

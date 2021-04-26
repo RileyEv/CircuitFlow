@@ -1,0 +1,8 @@
+mainFile: dissertation.lhs
+outputName: dissertation
+lhsFiles: [dissertation.lhs
+         , chapters/introduction.lhs
+         , chapters/background.lhs
+         , chapters/the-language.lhs
+         , chapters/process-network.lhs
+         , chapters/evaluation.lhs]
