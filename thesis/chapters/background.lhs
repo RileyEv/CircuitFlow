@@ -495,13 +495,6 @@ This helps to solve the expression problem.
 
 
 
-
-
-
-
-
-
-
 \section{Dependently Typed Programming}
 Although Haskell does not officially support dependently typed programming, there are techniques available that together can be used to replicate the experience.
 
@@ -574,6 +567,7 @@ A function that fetches the length of a vector can now definable.
 
 %if style /= newcode
 %format vecLength2
+%format :+ = ":\!\!+"
 %endif
 
 \begin{code}
