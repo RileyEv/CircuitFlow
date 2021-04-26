@@ -34,18 +34,29 @@ Edges connect these nodes together, and define the flow of information.
 A common use of dataflow programming is in pipelines that process data.
 This paradigm is particularly helpful as it helps the developer to focus on each specific transformation on the data as a single component.
 Avoiding the need for long and laborious scripts that could be hard to maintain.
-\todo[inline]{Add an example diagram of something simple}
+One example of a data pipeline tool that makes use of dataflow programming is Luigi~\cite{spotify_luigi}.
+An example dataflow graph produced by the tool is shown in Figure~\ref{fig:luigi-example}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.4]{diagrams/luigi-example.png}
+  \caption{Luigi dependency graph~\cite{hu_2015}}
+  \label{fig:luigi-example}
+\end{figure}
+
+
 
 \paragraph{Example - Quartz Composer}
 Apple developed a tool included in XCode, named Quartz Composer, which is a node-based visual programming language~\cite{quartz}.
-It allows for quick development of programs that process and render graphical data.
-By using visual programming it allows the user to build programs, without having to write a single line of code.
+As seen in Figure~\ref{fig:quartz-composer}, it uses a visual approach to programming connecting nodes with edges.
+This allows for quick development of programs that process and render graphical data, without the user having to write a single line of code.
 This means that even non-programmers are able to use the tool.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[scale=0.3]{diagrams/quartz_composer.png}
   \caption{Quartz composer~\cite{costello_2012}}
+  \label{fig:quartz-composer}
 \end{figure}
 
 
@@ -54,7 +65,7 @@ A widely used example of dataflow programming is in spreadsheets.
 A cell in a spreadsheet can be thought of as a single node.
 It is possible to specify dependencies to other cells through the use of formulas.
 Whenever a cell is updated it sends its new value to those who depend on it, and so on.
-Work has also done to visualise spreadsheets using dataflow diagrams, to help debug ones that are complex\cite{hermans2011breviz}.
+Work has also done to visualise spreadsheets using dataflow diagrams, to help debug ones that are complex~\cite{hermans2011breviz}.
 
 
 \subsection{The Benefits}
@@ -80,10 +91,6 @@ An example dataflow graph along with its corresponding imperative approach, can 
 The nodes $100$, $X$, and $Y$ are sources as they are only read from. $C$ is a sink as it is wrote to.
 The remaining nodes are all processes, as they have some number of inputs and compute a result.
 
-In this diagram is possible to see how implicit parallelisation is possible.
-Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated after they are complete.
-
-
 \begin{figure}[ht]
   \centering
   \begin{subfigure}{0.3\textwidth}
@@ -108,8 +115,11 @@ Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated
     \label{fig:dataflow-example}
 \end{figure}
 
+In this diagram is possible to see how implicit parallelisation is possible.
+Both $A$ and $B$ can be calculated simultaneously, with $C$ able to be evaluated after they are complete.
 
-\subsection{\ac{KPN}}
+
+\subsection{\acfp{KPN}}
 A method introduced by Gilles Kahn, \acfp{KPN} realised the concept of dataflow networks
 through the use of threads and unbounded \ac{FIFO} queues~\cite{DBLP:conf/ifip/Kahn74}.
 The \ac{FIFO} queue is one where the items are output in the same order that they are added.
@@ -121,14 +131,20 @@ It will then compute a result and add it to an output queue.
 Kahn imposed a restriction on a process in a \acp{KPN} that the thread is suspended if it attempts to fetch a value from an empty queue.
 The thread is not allowed to test for the presence of data in a queue.
 
+\begin{figure}[ht]
+  \centering
+  \input{diagrams/kpn-firing}
+  \caption{A sequence of node firings in a \ac{KPN}}
+  \label{fig:kpn-firing}
+\end{figure}
+
 Parks described a variant of \acp{KPN}, called \acp{DPN}~\cite{381846}.
 They recognise that if functions have no side effects then they have no values to be shared between each firing.
 Therefore, a pool of threads can be used with a central scheduler instead.
 
-\todo[inline]{Look in Parks' thesis, for a way to visualise a KPN. Add an example diagram with some inputs. One on Page 34 looks good, showing how a node fires.}
 
 
-\section{\acp{DSL}}
+\section{\acfp{DSL}}
 A \ac{DSL} is a programming language that has a specialised domain or use-case.
 This differs from a \ac{GPL}, which can be applied across a larger set of domains, and are generally turing complete.
 HTML is an example of a \ac{DSL}: it is good for describing the appearance of websites, however,
@@ -136,12 +152,11 @@ it cannot be used for more generic purposes, such as adding two numbers together
 
 \paragraph{Approaches to Implementation}
 DSLs are typically split into two categories: standalone and embedded.
-Standalone DSLs require their own compiler and typically their own syntax; HTML would be an example of a standalone DSL.
+Standalone DSLs require their own compiler and typically their own syntax; HTML would be an example of a standalone \ac{DSL}.
 \acp{EDSL} use an existing language as a host, therefore they use the syntax and compiler from the host.
-This means that they are easier to maintain and often quicker to develop than standalone DSLs.
+This means that they are easier to maintain and often quicker to develop than standalone \acp{DSL}.
 An \ac{EDSL}, can be implemented using two differing techniques: deep and shallow embeddings.
 
-\todo[inline]{Add something about why embedded DSLs are used in Haskell}
 
 %if style /= newcode
 %format Parser_d
@@ -236,10 +251,7 @@ However, this causes one of the main disadvantages of a shallow embedding - the 
 This means that optimisations cannot be made to the structure before evaluating it.
 
 
-\section{Higher Order Functors}
-
-\todo[inline]{Restructre section: Functor/Fix then problem IFunctor as solution.}
-
+\section{Higher Order Functors}\label{sec:higher-order-functors}
 %if style /= newcode
 %format Parser_fixed
 %format ~> = "\leadsto"
@@ -247,18 +259,43 @@ This means that optimisations cannot be made to the structure before evaluating 
 
 It is possible to capture the shape of an abstract datatype as a |Functor|.
 The use of a |Functor| allows for the specification of where a datatype recurses.
+Consider an example on a small expression language:
 
+\begin{code}
+data Expr  =  Add  Expr Expr
+           |  Val  Int
+\end{code}
 
+The recursion within the |Expr| datatype can be removed to form |ExprF|.
+The recursive steps can then be specified in the |Functor| instance.
 
-There is, however, one problem: a |Functor| expressing the parser language is required to be typed.
+\begin{code}
+data ExprF f  =  AddF  f f
+              |  ValF  Int
+
+instance Functor ExprF where
+  fmap f (AddF x y)  = AddF  (f x) (f y)
+  fmap f (ValF x)    = ValF  x
+\end{code}
+
+To regain a datatype that is isomorphic to the original datatype, the recursive knot need to be tied.
+This can be done with |Fix|, to get the fixed point of |ExprF|:
+
+\begin{code}
+data Fix f  = In (f (Fix f))
+type Expr'  = Fix ExprF
+\end{code}
+
+There is, however, one problem: a |Functor| expressing the a parser language is required to be typed.
 Parsers require the type of the tokens being parsed.
 For example, a parser reading tokens that make up an expression could have the type |Parser Expr|.
-A |Functor| does not retain the type of a parser.
+A |Functor| does not retain this type information needed in a parser.
 
-Instead a type class called |IFunctor| can be used, which is able to maintain the type indicies~\cite{mcbride2011functional}.
+\paragraph{IFunctors}
+Instead a type class called |IFunctor| --- also known as |HFunctor| --- can be used, which is able to maintain the type indicies~\cite{mcbride2011functional}.
 This makes use of |~>|, which represents a natural transformation from |f| to |g|.
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it~\cite{lane1998categories}.
-\todo[inline]{Emphasise that there is another layer to get the info needed.. Functor - changing all values in a structure. IFunctor changing structures inside a structure, while maintaining the values.}
+Whereas a functor changes the values inside a structure.
 
 
 \begin{code}
@@ -291,7 +328,6 @@ instance IFunctor ParserF where
 |Fix| is used to get the fixed point of a |Functor|, to get the indexed fixed point |IFix| can be used.
 
 \begin{code}
-newtype Fix f = In (f (Fix f))
 newtype IFix iF a = IIn (iF (IFix iF) a)
 \end{code}
 
@@ -306,6 +342,9 @@ In a deep embedding, the \ac{AST} can be traversed and modified to make optimisa
 This means that it might be transformed to a different representation. In the case of a parser, this could be a stack machine.
 Now that the recursion in the datatype has been generalised, it is possible to create a mechanism to perform this transformation.
 An indexed \textit{catamorphism} is one such way to do this, it is a generalised way of folding an abstract datatype.
+The use of a catamorphism removes the recursion from any folding of the datatype.
+This means that the algebra can focus on one layer at a time.
+This also ensures that there is no re-computation of recursive calls, as this is all handled by the catamorphism.
 The commutative diagram below describes how to define a catamorphism, that folds an |IFix iF a| to a |f a|.
 
 \begin{figure}[h]
@@ -318,39 +357,38 @@ The commutative diagram below describes how to define a catamorphism, that folds
 
 \noindent
 |icata| is able to fold an |IFix iF a| and produce an item of type |f a|.
-It uses the algebra argument as a specification of how to transform a layer of the datatype.
+It uses the algebra argument as a specification of how to transform a single layer of the datatype.
 
 \begin{code}
 icata :: IFunctor iF => (iF f ~> f) -> IFix iF ~> f
 icata alg (IIn x) = alg (imap (icata alg) x)
 \end{code}
 
-\todo[inline]{thing jamie sent me about how icata is good for abstracting recursion.}
 
-\todo[inline]{f to be a Functor -> syntactic?}
+
 
 \noindent
-The resulting type of |icata| is |f a|\todo{but uses |~>| so is actually f! might be confusing}, this requires the |f| to be a |Functor|.
-\todo{explain that |IFix ParserF| is a functor.}
+The resulting type of |icata| is |f a|, therefore the |f| is a syntactic |Functor|.
+\todo{is this the right terminology?}
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
 
 \section{Data types \`{a} la carte}
-\todo[inline]{CITE THE PAPER FFS!}
 When building a \ac{DSL} one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
 The expression problem is a trade off between a deep and shallow embedding.
 In a deep embedding, it is easy to add multiple interpretations to the \ac{DSL} - just add a new evaluation function.
 However, it is not easy to add a new constructor, since all functions will need to be modified to add a new case for the constructor.
 The opposite is true in a shallow embedding.
 
-\todo[inline]{how does this solve the expression problem?}
-One possible attempt at fixing the expression problem is data types \`{a} la carte.
-It combines constructors using the coproduct of their signatures.
+One possible attempt at fixing the expression problem is data types \`{a} la carte~\cite{swierstra_2008}.
+It combines constructors using the co-product of their signatures.
 This is defined as:
 
 %if style /= newcode
 %format :+: = ":\!\!+\!\!:"
 %format :<: = ":\prec:"
+%format ValF2
+%format MulF2
 %endif
 
 \begin{code}
@@ -358,27 +396,38 @@ data (f :+: g) a = L (f a) | R (g a)
 \end{code}
 
 \noindent
-For each constructor it is possible to define a new data type.
+It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
 
 \begin{code}
-data ValF f = ValF Int
-data MulF f = MulF f f
+instance (Functor f, Functor g) => Functor (f :+: g) where
+  fmap f (L x) = L (fmap f x)
+  fmap f (R y) = R (fmap f y)
+\end{code}
+
+
+\noindent
+For each constructor it is possible to define a new data type and a |Functor| instance specifying where is recurses.
+
+\begin{code}
+data ValF2 f = ValF2 Int
+data MulF2 f = MulF2 f f
+
+instance Functor ValF2 where
+  fmap f (ValF2 x) = ValF2 x
+
+instance Functor MulF2 where
+  fmap f (MulF2 x y) = MulF2 (f x) (f y)
 \end{code}
 
 \noindent
-By using |Fix| to tie the recursive knot, the |Fix (Val :+: Mul)| data type would be isomorphic to a standard |Expr| data type.
-
-\begin{code}
-data Expr = Add Expr Expr
-          | Val Int
-\end{code}
+By using |Fix| to tie the recursive knot, the |Fix (Val :+: Mul)| data type would be isomorphic to the original |Expr| datatype found in Section~\ref{sec:higher-order-functors}.
 
 \noindent
 One problem that now exist, however, is that it is now rather difficult to create expressions, take a simple example of $12 \times 34$.
 
 \begin{code}
-exampleExpr :: Fix (ValF :+: MulF)
-exampleExpr = In (R (MulF (In (L (ValF 12))) (In (L (ValF 34)))))
+exampleExpr :: Fix (ValF2 :+: MulF2)
+exampleExpr = In (R (MulF2 (In (L (ValF2 12))) (In (L (ValF2 34)))))
 \end{code}
 
 \noindent
@@ -406,36 +455,57 @@ Using this type class, smart constructors can be defined.
 inject :: (g :<: f) => g (Fix f) -> Fix f
 inject = In . inj
 
-val :: (ValF :<: f) => Int -> Fix f
-val x = inject (ValF x)
+val :: (ValF2 :<: f) => Int -> Fix f
+val x = inject (ValF2 x)
 
-(*) :: (MulF :<: f) => Fix f -> Fix f -> Fix f
-x * y = inject (MulF x y)
+mul :: (MulF2 :<: f) => Fix f -> Fix f -> Fix f
+mul x y = inject (MulF2 x y)
 \end{code}
 
 \noindent
-Expressions can now be built using the constructors, such as |val 12 * val 34|.
+Expressions can now be built using the constructors, such as |val 12 `mul` val 34|.
 
-\todo[inline]{Add an algebra over these!}
-
-
-\todo[inline]{Stuff below needs adding properly into the text}
-\noindent
-It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
+A modular algebra can now be defined that provides an interpretation of this datatype.
 
 \begin{code}
-instance (Functor f, Functor g) => Functor (f :+: g) where
-  fmap f (L x) = L (fmap f x)
-  fmap f (R y) = R (fmap f y)
+class Functor f => EvalAlg f where
+  evalAlg :: f Int -> Int
+
+instance (EvalAlg f, EvalAlg g) => EvalAlg (f :+: g) where
+  evalAlg (L x) = evalAlg x
+  evalAlg (R y) = evalAlg y
+
+instance EvalAlg MulF2 where
+  evalAlg (MulF2 x y) = x * y
+
+instance EvalAlg ValF2 where
+  evalAlg (ValF2 x) = x
+
+cata :: Functor f => (f a -> a) -> Fix f -> a
+cata alg (In x) = alg (fmap (cata alg) x)
+
+eval :: EvalAlg f => Fix f -> Int
+eval = cata evalAlg
 \end{code}
+
+One benefit to this approach is that is an interpretation is only needed for expressions that only use |MulF| and |ValF|.
+If a new constructor such as |SubF| was added to the language and it would never be given to this fold, then it would not require an instance.
+This helps to solve the expression problem.
+
+
+
+
+
+
+
+
+
 
 
 \section{Dependently Typed Programming}
 Although Haskell does not officially support dependently typed programming, there are techniques available that together can be used to replicate the experience.
 
 \subsection{DataKinds Language Extension}
-\todo[inline]{Add some refs}
-
 
 %if style == newcode
 %format (Q(x)) = "''" x
@@ -444,7 +514,7 @@ Although Haskell does not officially support dependently typed programming, ther
 %format (Q(x)) = TICK x
 %endif
 
-Through the use of the DataKinds language extension, all data types can be promoted to also be kinds and their constructors to be type constructors.
+Through the use of the DataKinds language extension~\cite{10.1145/2103786.2103795}, all data types can be promoted to also be kinds and their constructors to be type constructors.
 When constructors are promoted to type constructors, they are prefixed with a |TICK|.
 This allows for more interesting and restrictive types.
 
@@ -479,16 +549,16 @@ safeHead (Cons x _) = x
 \end{code}
 
 \subsection{Singletons}
-\todo[inline]{Add some refs}
 DataKinds are useful for adding extra information back into the types, but how can information be recovered from the types?
-For example, could a function that gets the length of a vector be defined?\todo{i dont like this.}
+For example, could a function that gets the length of a vector be defined?
 
 \begin{spec}
 vecLength :: Vec a n -> Nat
 \end{spec}
 
-This is enabled through the use of singletons.
+This is enabled through the use of singletons~\cite{10.1145/2364506.2364522}.
 A singleton in Haskell is a type that has just one inhabitant.
+That is that there is only one possible value for each type.
 They are written in such a way that pattern matching reveals the type parameter.
 For example, the corresponding singleton instance for |Nat| is |SNat|.
 The structure for |SNat| closely flows that of |Nat|.
@@ -514,18 +584,17 @@ vecLength2 (Cons x xs)  = SSucc (vecLength2 xs)
 
 
 \subsection{Type Families}
-\todo[inline]{Add some refs}
 Now consider the possible scenario of appending two vectors together.
-How would the type signature look? This leads to the problem where two type level Nats need to be added together.
-This is where Type Families become useful, they allow for the definition of functions on types.
-The ideal type signature for appending two vectors together would be: \todo{Need to do type level arithmetic}
+How would the type signature look? This leads to the problem where two type-level |Nat|s need to be added together.
+This is where Type Families~\cite{10.1145/1411204.1411215} become useful, they allow for the definition of functions on types.
+Consider the example of appending two vectors together, this would require type-level arithmetic --- adding the lengths together.
 
 \begin{spec}
 vecAppend :: Vec a n -> Vec a m -> Vec a (n :+ m)
 \end{spec}
 
 \noindent
-This requires a |+| type family that can add two |Nat|s together.
+This requires a |:+| type family that can add two |Nat|s together.
 
 \begin{code}
 type family (a :: Nat) :+ (b :: Nat) where
@@ -533,8 +602,15 @@ type family (a :: Nat) :+ (b :: Nat) where
   a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
 \end{code}
 
+\subsection{Summary}
+Together these features allow for dependently typed programming in Haskell:
 
-\todo[inline]{Maybe add a summary of how all these features combined results in DTP}
+\begin{itemize}
+  \item DataKinds allow for values to be promoted to types
+  \item Singletons allow types to be demoted to values
+  \item Type Families can be used to define functions that manipulate types.
+\end{itemize}
+
 
 \end{document}
 
