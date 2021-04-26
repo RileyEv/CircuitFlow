@@ -16,7 +16,7 @@ ${TARGETS} : %.pdf : %.tex $(wildcard %.bib)
 all      : ${TARGETS}
 
 clean    :
-	@rm -f *.{aux,bbl,blg,loa,lof,log,lol,lot,nav,out,snm,toc,fls,fdb_latexmk}
+	@rm -f *.{aux,bbl,blg,loa,lof,log,lol,lot,nav,out,snm,toc,fls,fdb_latexmk,tdo,sta,ptb}
 
 spotless : clean
 	@rm -f ${TARGETS}

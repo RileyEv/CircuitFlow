@@ -65,7 +65,8 @@ executable BuildDiss
                     circuitflow,
                     process,
                     mtl,
-                    transformers
+                    transformers,
+                    filepath
 
     -- Directories containing source files.
   hs-source-dirs:   app
