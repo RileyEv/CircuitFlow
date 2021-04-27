@@ -13,6 +13,15 @@
 
 \section{Use of Library}
 Something about how DataStores prevent the need for luigi.ExternalTask at the beginning.
+\subsection{Other Libraries}
+How does it compare?
+\paragraph{Luigi}
+Object-orientated approach
+Python library
+
+\paragraph{Funflow}
+Uses arrows to compose flows sequentially.
+
 
 \section{Type saftey}
 

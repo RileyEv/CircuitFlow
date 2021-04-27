@@ -8,6 +8,16 @@
 
 \chapter{Process Network}\label{chap:intro}
 
+\section{Requirements}
+
+\begin{itemize}
+  \item Typesafe
+  \item Parallel
+  \item Competitive Speed
+  \item Failure Tolerance
+\end{itemize}
+
+
 \section{Scheduler \& Typed Graph}
 \subsection{Problems representing a typed graph as a AST}
 
