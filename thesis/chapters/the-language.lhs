@@ -37,6 +37,9 @@ Tasks could take many different forms, for example they could be:
   \item An external operation - interacting with some external system. For example, calling a terminal command.
 \end{itemize}
 
+\todo[inline]{Haskell is good for pure functions}
+
+
 A task could have a single input or multiple inputs, however, for now just a single input task will be considered.
 Multi-input tasks are explained further in Sub-Section~\ref{sec:multi-input-tasks}
 
@@ -109,6 +112,7 @@ data Task (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
 
 When a |Task| is executed the stored function is executed, with the input being passed in as the first argument and the output ``pointer'' as the second argument.
 This returns an output |DataStore| that can be passed on to another |Task|
+
 
 
 \section{Chains}
@@ -261,14 +265,31 @@ registerTask :: Task f a g b -> Workflow (Chain' f a g b)
 One benefit to this approach is that if the user would like to use a task again in a different place,
 they can simply register it again and use the new PID value.
 
-\subsection{Benefits}
+\subsection{Evaluation}
+\paragraph{Easy to Build}
+The concept of chains are easy for a user to grapple with.
+Chains can be any length and represent paths along a dataflow graph.
+The chains can be any length that the user requires.
+This gives them the choice of how to structure the program.
+In one case they could specify a minimal number of chains that describe the dataflow graph.
+However, another approach from the user could be to just focus dependencies between each tasks,
+and specifying a chain for each edge in the dataflow graph.
 
 
+\paragraph{Type-safe}
+Although a |Chain| can be well typed, the use of existential types to join chains together pose a problem.
+This causes the types to be `hidden', this means that when executing these tasks, the types need to be recovered.
+This is possible through the use of |gcast| from the |Data.Typeable| library.
+However, this has to perform a reflection at run-time to compare the types.
+There is the possibility that the types could not matching and this would only be discovered at run-time.
+There is a mechanism to handle the failed match case, however, this does not fulfil the criteria of being fully type-safe.
 
-\subsection{Problems}
-existential types... needs gcast! which is technically typesafe, but it still has risk.
 
 \section{Circuit}
+This approach was inspired by the parallel prefix circuits as described by Hinze~\cite{scans}.
+
+
+
 \subsection{Idea}
 More likened to a way to construct a workflow by its corresponding dataflow graph.
 \subsection{Typing}
