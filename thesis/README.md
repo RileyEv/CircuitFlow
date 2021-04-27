@@ -9,7 +9,7 @@ To build, first install the build tool:
 Now build the project with the command 
 
 ``` sh
-BuildDiss
+lhs2tex-build
 ```
 
 To add new files modify the build file `dissertation.tex-build`.

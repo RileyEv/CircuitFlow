@@ -8,8 +8,9 @@
 \long\def\ignore#1{}
 \ignore{
 \begin{code}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, KindSignatures, GADTs, RankNTypes #-}
 module Language where
+import Data.Kind (Type)
 \end{code}
 }
 
@@ -103,7 +104,7 @@ This allows the task to make use of the |fetch| and |save| functions.
 
 \begin{code}
 data Task (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
-  Task :: (DataSource f a, DataSource g b) => (f a -> g b -> IO (g b)) -> g b -> Task f a g b
+  Task :: (DataStore f a, DataStore g b) => (f a -> g b -> IO (g b)) -> g b -> Task f a g b
 \end{code}
 
 When a |Task| is executed the stored function is executed, with the input being passed in as the first argument and the output ``pointer'' as the second argument.
@@ -113,19 +114,159 @@ This returns an output |DataStore| that can be passed on to another |Task|
 \section{Chains}
 In a dataflow programming, one of the key aspects is the definition of dependencies between tasks in the flow.
 One possible approach to encoding this concept in the language is to make use of sequences of tasks --- also referred to as chains.
-These chains compose tasks, based on their dependencies.
-For example a chain operator |>>>| can be defined:
+These chains compose tasks, based on their dependencies. A chain can be modelled with an abstract datatype:
+
+\begin{code}
+data Chain (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
+  Chain  ::  Task   f  a  g  b  ->  Chain  f  a  g  b
+  Then   ::  Chain  f  a  g  b  ->  Chain  g  b  h  c -> Chain f a h c
+\end{code}
+
+%if style /= newcode
+%format >>> = ">\!\!>\!\!>"
+%endif
+
+This allows for a |Task| to be combined with others to form a chain. To make this easier to use a chain operator |>>>| can be defined:
+
+\begin{code}
+(>>>) :: Chain f a g b -> Chain g b h c -> Chain f a h c
+(>>>) = Then
+\end{code}
+
+This can be now be used to join sequences of tasks together, for example:
 
 \begin{spec}
-(>>>) :: Task f a g b -> Task g b h c -> Task f a h c
+task1  ::  Task  VariableStore  Int       VariableStore  String
+task2  ::  Task  VariableStore  String    FileStore      [String]
+task3  ::  Task  FileStore      [String]  VariableStore  Int
+
+sequence :: Chain VariableStore Int VariableStore Int
+sequence = Chain task1 >>> Chain task2 >>> Chain task3
 \end{spec}
 
-\subsection{Idea behind them}
-\subsection{Joining Chains into a tree}
-\paragraph{PIDs}
-\subsection{Examples}
+|sequence| will perform the three tasks in order, starting with |task1| and finishing with |task3|.
+
+
+\subsection{Trees as Chains}
+Now that tasks can be performed in sequence, the next logical step will be to introduce the concept of branching out.
+This results in a tasks output being given to multiple tasks, rather than just 1.
+
+To do this a new abstract datatype is required.
+This will be used to form a list of |Chain|s, conventionally the |[]| type would be used,
+however this is not possible as each chain will have a different type.
+This means that existential types will need to be used.~\todo{cite where this comes from?}
+
+\begin{code}
+data Pipe where
+  Pipe  ::  forall f a g b. (DataStore f a, DataStore g b) => Chain f a g b -> Pipe
+  And   ::  Pipe -> Pipe -> Pipe
+\end{code}
+
+The |And| constructor can be used to combine multiple chains together.
+Figure~\ref{fig:pipe-dataflow-example} shows the previous |sequence|, with a new |task4| which also uses the input from |task2|.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{0.7\textwidth}
+\centering
+\begin{spec}
+task4 :: Task FileStore [String] VariableStore String
+
+branchExample :: Pipe
+branchExample =  Pipe (Chain task1  >>> Chain  task2 >>> Chain task3)
+                 `And`
+                 Pipe (Chain task2  >>> Chain  task4)
+\end{spec}
+\vspace{-7mm}
+\caption{}
+\vspace{5mm}
+\end{subfigure}
+\begin{subfigure}{0.7\textwidth}
+\centering
+\begin{tikzpicture}[node distance={24mm}, main/.style = {draw, circle, thick}]
+\node[main] (task1) {|task1|};
+\node[main] (task2) [right of=task1] {|task2|};
+\node[main] (task3) [right of=task2] {|task3|};
+\node[main] (task4) [below of=task3, right of=task2] {|task4|};
+\node (input) [left of=task1] {$ $};
+\node (out1)  [right of=task3] {$ $};
+\node (out2)  [right of=task4] {$ $};
+
+\draw[->, >=stealth] (input) -- (task1);
+\draw[->, >=stealth] (task1) -- (task2);
+\draw[->, >=stealth] (task2) -- (task3);
+\draw[->, >=stealth] (task2) -- (task4);
+\draw[->, >=stealth] (task3) -- (out1);
+\draw[->, >=stealth] (task4) -- (out2);
+
+\end{tikzpicture}
+\caption{}
+\end{subfigure}
+\caption{A |Pipe| (a) and its corresponding dataflow diagram (b).}
+\label{fig:pipe-dataflow-example}
+\end{figure}
+
+There is, however, one problem with this approach.
+To be able to form a network similar to that shown in Figure~\ref{fig:pipe-dataflow-example},
+the language will need to know where to join two |Chain|s together.
+However, with the current definition of a Task, it is not possible to easily check the equivalence of two functions.
+Similarly, if a user wanted to use the same task multiple times, it would not be possible to differentiate between them.
+
+\paragraph{\acfp{PID}}
+This is where the concept of \acfp{PID} are useful.
+A Chain can be modified so that instead of storing a |Task| it instead stores a |PID|.
+The |PID| data type can make use of phantom type parameters, to retain the same information as a |Task|,
+whilst storing just an |Int| that can be used to identify it.
+
+%if style /= newcode
+%format Chain'
+%format Then'
+%endif
+
+\begin{code}
+data PID (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
+  PID :: Int -> PID f a g b
+
+data Chain' (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
+  Chain'  ::  PID     f  a  g  b  ->  Chain'  f  a  g  b
+  Then'   ::  Chain'  f  a  g  b  ->  Chain'  g  b  h  c -> Chain' f a h c
+\end{code}
+
+This however leaves a key question, how do |Task|s get mapped to |PID|s.
+This can be done by employing the State monad.
+This state stores a map from PID to task and a counter for PIDs.
+As |Task|s each have a different type again a new datatype is required to use existential types, so that just one type is stored in the map.
+By creating a type alias for the State monad, the |Workflow| monad can now be used.
+
+\begin{code}
+data TaskWrap = forall f a g b. TaskWrap (Task f a g b)
+
+data WorkflowState = WorkflowState {
+  pidCounter :: Int,
+  tasks :: M.Map Int TaskWrap
+}
+
+type Workflow = State WorkflowState
+\end{code}
+
+There is only one operation that is defined in the monad --- |registerTask|.
+This takes a |Task| and returns a |Chain| that stores a |PID| inside it.
+Whenever a user would like to add a new task to the workflow, they register it.
+They can then use this returned value to construct multiple chains, which can now be joined easily by comparing the stored \ac{PID}.
+
+\begin{spec}
+registerTask :: Task f a g b -> Workflow (Chain' f a g b)
+\end{spec}
+
+One benefit to this approach is that if the user would like to use a task again in a different place,
+they can simply register it again and use the new PID value.
+
 \subsection{Benefits}
+
+
+
 \subsection{Problems}
+existential types... needs gcast! which is technically typesafe, but it still has risk.
 
 \section{Circuit}
 \subsection{Idea}
