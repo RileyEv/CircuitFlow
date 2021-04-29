@@ -24,4 +24,9 @@
 %format return = "\keyw{return}"
 %endif
 
-
+%if style == newcode
+%format (Q(x)) = "''" x
+%else
+%format TICK = "''"
+%format (Q(x)) = TICK x
+%endif

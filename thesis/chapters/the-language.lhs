@@ -9,7 +9,7 @@
 \long\def\ignore#1{}
 \ignore{
 \begin{code}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, KindSignatures, GADTs, RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, KindSignatures, GADTs, RankNTypes, DataKinds, TypeFamilies, PolyKinds #-}
 module Language where
 import Data.Kind (Type)
 \end{code}
@@ -48,6 +48,8 @@ Multi-input tasks are explained further in Sub-Section~\ref{sec:multi-input-task
 Data stores are used to pass values between different tasks, this ensures that the input and output of tasks are closely controlled.
 A data store can be defined as a type class, with two methods |fetch| and |save|:
 
+\todo[inline]{Motivate further why a |DataStore| needs to exist --- prevents the user from reading from a source incorrectly.}
+
 \begin{code}
 class DataStore f a where
   fetch  :: f a  ->  IO a
@@ -60,6 +62,7 @@ The |fetch| method takes a DataStore as input and will return the value stores i
 However, the |save| method may not be as self explanatory, since it has an extra |f a| argument.
 This argument can be thought of as a pointer to a |DataStore|: it contains the information needed to save.
 For example, in the case of a file store it could be the file name.
+
 
 By implementing as a type class, there can be many different implementations of a |DataStore|.
 The library comes with several pre-defined |DataStore|s, such as a |VariableStore|.
@@ -93,7 +96,6 @@ If a user attempts to store anything other than these two types then a compiler 
 @ghci> @|save (FileStore "test.txt") (123 :: Int)|
 
 @> No instance for (@|DataStore FileStore Int|@) arising from a use of `@|save|@'@
-
 
 Although a small set of |DataStore|s are included in the library, the user is also able to add new instances of the type class with their own |DataStore|s.
 Some example expansions, could be supporting writing to a database table, or a Hadoop file system.
@@ -291,11 +293,10 @@ This approach was inspired by the parallel prefix circuits as described by Hinze
 It uses constructors similar to those used by Hinze to create a circuit that represents the \ac{DAG}, used in the dataflow.
 The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in a graph.
 
-
-%format <-> = "<\!\!-\!\!>"
+%format <-> = "<\!\!\!\!-\!\!\!\!>"
 
 \newcommand{\centered}[1]{\begin{tabular}{l} #1 \end{tabular}}
-\begin{figure}[ht]
+\begin{figure}[hbt]
 \centering
 \begin{subfigure}{0.4\textwidth}
 \centering
@@ -332,15 +333,240 @@ The constructors seen in Figure~\ref{fig:circuit-constructors} represent the beh
 \label{fig:circuit-constructors}
 \end{figure}
 
+%format DataStore'
 
-\subsection{Idea}
-More likened to a way to construct a workflow by its corresponding dataflow graph.
-\subsection{Typing}
-\subsection{Tasks with multiple inputs}\label{sec:multi-input-tasks}
-\paragraph{Apply}
+\subsection{Constructors}
+Each of these constructors use strong types to ensure that they are combined correctly.
+A |Circuit| has 7 different type parameters:
+
+\begin{spec}
+Circuit  (inputsStorageTypes   :: [Type -> Type])  (inputsTypes   :: [Type])  (inputsApplied   :: [Type])
+         (outputsStorageTypes  :: [Type -> Type])  (outputsTypes  :: [Type])  (outputsApplied  :: [Type])
+         (nInputs :: Nat)
+\end{spec}
+
+A |Circuit| can be thought of as a list of inputs, which are processed and a resulting list of outputs are produced.
+To represent this it makes use of the |DataKinds| language extension, to use type-level lists and natural numbers.\todo{cite}
+Each parameter represents a certain piece of information needed to construct a circuit:
+
+\begin{itemize}
+\item |inputStorageTypes| is a type-list of storage types, for example |(Q([VariableStore, CSVStore]))|.
+\item |inputTypes| is a type-list of the types stored in the storage, for example |(Q([Int, [(String, Float)]]))|.
+\item |inputsApplied| is a type-list of the storage types applied to the types stored, for example\\ |(Q([VariableStore Int, CSVStore [(String, Float)]]))|.
+\item |outputsStorageTypes|, |outputTypes| and |outputsApplied| mirror the examples above, but for the outputs instead.
+\item |nInputs| is a type-level Nat that is the length of the input lists.
+\end{itemize}
+
+In the language there are two different types of constructor, those that recurse and those that can be considered leaf nodes.
+The behaviour of both types of constructor is recorded within the types.
+For example, the |id| constructor has the type:
+
+\begin{spec}
+id :: DataStore' (Q([f])) (Q([a])) => Circuit (Q([f])) (Q([a])) (Q([f a])) (Q([f]) (Q([a])) (Q([f a])) N1
+\end{spec}
+
+It can be seen how the type information for this constructor states that it has 1 input value of type |f a| and it returns that same value.
+Some more interesting examples would be the |swap| and |replicate|:
+
+\begin{spec}
+replicate  :: DataStore'  (Q([f]))     (Q([a]))     => Circuit  (Q([f]))     (Q([a]))     (Q([f a]))       (Q([f,  f]))  (Q([a, a]))  (Q([f  a,  f a]))  N1
+swap       :: DataStore'  (Q([f, g]))  (Q([a, b]))  => Circuit  (Q([f, g]))  (Q([a, b]))  (Q([f a, g b]))  (Q([g,  f]))  (Q([b, a]))  (Q([g  b,  f a]))  N2
+\end{spec}
+
+The |replicate| constructor states that a single input value of type |f a| should be input, and that value should then be duplicated and output.
+The |swap| constructor takes two values as input: |f a| and |g b|. It will then swap these values over, such that the output will now be: |g b| and |f a|.
+
+All three of these constructors are leaf nodes in the \ac{AST}. To be able to make use of them they need to be combined in some way.
+To do this two new constructors named `beside' and `then' will be used.
+However, before defining these constructors there are some tools that are required.
+This is due to the types no longer being concrete. \todo{might be a bit hand wavy description...? }
+For example, the input type list is no longer known: it can only be referred to as |fs| and |as|.
+This means it is much harder to specify the new type of the |Circuit|.
+
+
+% Both of these two constructors, however, have multiple inputs and/or multiple outputs.
+% But currently it is not possible to place two circuits next to each other to receive these two inputs.
+% This is where the |<>| operator is needed. It allows two circuits to be placed next to each other.
+% \todo{also mention then}
+
+
+\paragraph{Apply Type Family}
+It would not be possible to use a new type variable |xs| for the |inputsApplied| parameter.
+This is because it needs to be constrained so that it is equivalent to |fs| applied to |as|.
+To solve this a new type family is created that is able to apply the two type lists together.
+This type family pairwise applies a list of types storing with kind |* -> *| to a list of types with kind |*| to form a new list containing types of kind |*|.
+For example, |Apply (Q([f, g, h])) (Q([a, b, c])) ~ (Q([f a, g b, h c]))|.
+
+
+%format :+ = ":\!\!+"
+%format :++ = ":\!\!+\!\!+"
+
+\todo[inline]{': looks awful }
+
+\begin{spec}
+type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
+  Apply  (Q([]))       (Q([]))       = (Q([]))
+  Apply  (f (Q(:)) fs) (a (Q(:)) as) = f a (Q(:)) Apply fs as
+\end{spec}
+
+
+\paragraph{Append Type Family}
+There will also be the need to append two type level lists together.
+To do this an append type family can be used:
+
+%format l'
+
+\begin{spec}
+type family (:++) (l1 :: [k]) (l2 :: [k]) :: [k] where
+  (:++)  (Q([]))       l  = l
+  (:++)  (e (Q(:)) l)  l' = e (Q(:)) (l :++ l')
+\end{spec}
+
+This type family makes use of the language extension |PolyKinds| to allow for the append to be polymorphic on the kind stored in the type list.\todo{cite}
+This will avoid defining multiple versions to append |fs| with |gs|, and |as| with |bs|.
+
+\paragraph{The `Then' Constructor}
+This constructor --- denoted by |<->| --- is used to stack two circuits on top of each other.
+Through types it enforces that the output of the top circuit is the same as the input to the bottom circuit.
+
+\begin{spec}
+(<->) :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
+  => Circuit  fs  as  (Apply  fs  as)  gs  bs  (Apply  gs  bs)  nfs
+  -> Circuit  gs  bs  (Apply  gs  bs)  hs  cs  (Apply  hs  cs)  ngs
+  -> Circuit  fs  as  (Apply  fs  as)  hs  cs  (Apply  hs  cs)  nfs
+\end{spec}
+
+\paragraph{The `Beside' Constructor}
+Denoted by |<>|, the beside constructor is used to place two circuits side-by-side.
+The resulting |Circuit| has the types of left and right circuits appended together.
+
+\begin{spec}
+(<>) :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs, DataStore' is ds)
+  =>  Circuit  fs  as  (Apply  fs  as)  gs  bs  (Apply  gs  bs)  nfs
+  ->  Circuit  hs  cs  (Apply  hs  cs)  is  ds  (Apply  is  ds)  nhs
+  ->  Circuit  (fs  :++  hs)   (as  :++  cs)  (Apply  fs  as  :++ Apply  hs  cs)
+               (gs  :++  is)   (bs  :++  ds)  (Apply  gs  bs  :++ Apply  is  ds)
+               (nfs :+ nhs)
+\end{spec}
+
+\subsection{Combined DataStores}
+
+%format HList'
+
+A keen eyed reader may notice that all of these constructors have not been using the original |DataStore| type class.
+Instead they have all used the |DataStore'| type class.
+This is a special case of a |DataStore|, it allows for them to also be defined over type lists, not just a single type.
+Combined DataStores make it easier for tasks to fetch from multiple inputs.
+Users will just have to call a single |fetch'| function, rather than multiple.
+
+To be able to define |DataStore'|, heterogeneous lists\todo{cite} are needed --- specifically three different forms.
+|HList| is as defined by TODO, |HList'| stores values of type |f a| and is parameterised by two type lists |fs| and |as|.
+|IOList| stores items of type |IO a| and is parameterised by a type list |as|. Their definitions are:
+
+%format HCons'
+%format HNil'
+
+\begin{spec}
+data HList (xs :: [Type]) where
+  HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
+  HNil   :: HList (Q([]))
+
+data HList' (fs :: [Type -> Type]) (as :: [Type]) where
+  HCons'  :: f a -> HList' fs as -> HList' (f (Q(:)) fs) (a (Q(:)) as)
+  HNil'   :: HList' (Q([])) (Q([]))
+
+data IOList (xs :: [Type]) where
+  IOCons  :: IO x -> IOList xs -> IOList (x (Q(:)) xs)
+  IONil   :: IOList (Q([]))
+\end{spec}
+
+Now that there is a mechanism to represent a list of different types, it is possible to define |DataStore'|:
+
+%format fetch'
+%format save'
+
+\begin{spec}
+class DataStore' (fs :: [Type -> Type]) (as :: [Type]) where
+  fetch'  :: HList' fs as ->  IOList  as
+  save'   :: HList' fs as ->  HList   as -> IOList (Apply fs as)
+\end{spec}
+
+However, it would be cumbersome to ask the user to define an instance of |DataStore'| for every possible combination of data stores.
+Instead, it is possible to make use of the previous |DataStore| type class.
+To do this instances can be defined for |DataStore'| that make use of the existing |DataStore| instances:
+
+\begin{spec}
+instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' (Q([f])) (Q([a])) where
+  fetch'  (HCons' x    HNil')                 = IOCons  (fetch x)     IONil
+  save'   (HCons' ref  HNil') (HCons x HNil)  = IOCons  (save ref x)  IONil
+
+instance (DataStore f a, DataStore' fs as) => DataStore' (f (Q(:)) fs) (a (Q(:)) as)  where
+  fetch'  (HCons' x    xs)               = IOCons  (fetch uuid x)  (fetch' xs)
+  save'   (HCons' ref  rs) (HCons x xs)  = IOCons  (save ref x)    (save' rs xs)
+\end{spec}
+
+This means that a user does not need to create any instances of |DataStore'|.
+They can instead focus on each single case, with the knowledge that they will automatically be able to combine them with other |DataStore|s.
+
+
+\subsection{Tasks}\label{sec:multi-input-tasks}
+With a |Circuit| it is possible to represent a \ac{DAG}.
+This means that a node in the graph can now have multiple dependencies, as seen in Figure~\ref{fig:multi-depen-task}.
+
+\begin{figure}[ht]
+\centering
+% \missingfigure{Add a figure showing a task with multiple inputs}
+\input{diagrams/circuit-constructors/multi-input}
+\caption{A graphical representation of a task with multiple dependencies}
+\label{fig:multi-depen-task}
+\end{figure}
+
+To support this a modification can be made to the |task| constructor.
+Rather than have an input value type of |f a|.
+It can now have an input value type of |HList' fs as|.
+The function executed in the task can now use |fetch'| to fetch all inputs with one function call.
+
+\todo[inline]{What is Length???}
+
+\begin{spec}
+task :: (DataStore' fs as, DataStore g b)
+  => (HList' fs as -> g b -> IO (g b))
+  -> g b
+  -> Circuit fs as (Apply fs as) (Q([g])) (Q([b])) (Q([g b])) (Length fs)
+\end{spec}
+
+\paragraph{Smart Constructors}
+There could be many times that the flexibility provided by defining your own tasks from scratch could cause a large amount of boiler plate code.
+For example, there may be times that a user already has pre-defined function and would like to convert it to a task.
+Therefore there are also two smart constructors that they are able to use:
+
+\begin{spec}
+multiInputTask :: (DataStore' fs as, DataStore g b)
+  => (HList as -> b)
+  -> g b
+  -> Circuit fs as (Apply fs as) (Q([g])) (Q([b])) (Q([g b])) (Length fs)
+
+functionTask :: (DataStore f a, DataStore g b)
+  => (a -> b)
+  -> g b
+  -> Circuit (Q([f])) (Q([a])) (Q([f a])) (Q([g])) (Q([b]) (Q([g b])) N1
+\end{spec}
+
+The first allows for a simple function with multiple inputs to be defined.
+With the fetching and saving handled by the smart constructor.
+The second allows for a simple |a -> b| function to be turned into a |Task|.
+
+
+\section{Circuit AST}
+gotta do all of this too...
+
 \subsection{Examples}
 \paragraph{Song aggregation}
 \paragraph{lhs2tex Build System}
+
+\subsection{Completeness}
+something about the stuff Alex said.
+
 \subsection{Benefits}
 \subsection{Problems}
 

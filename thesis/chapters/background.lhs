@@ -500,12 +500,6 @@ Although Haskell does not officially support dependently typed programming, ther
 
 \subsection{DataKinds Language Extension}
 
-%if style == newcode
-%format (Q(x)) = "''" x
-%else
-%format TICK = "''"
-%format (Q(x)) = TICK x
-%endif
 
 Through the use of the DataKinds language extension~\cite{10.1145/2103786.2103795}, all data types can be promoted to also be kinds and their constructors to be type constructors.
 When constructors are promoted to type constructors, they are prefixed with a |TICK|.
