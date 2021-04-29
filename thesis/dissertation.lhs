@@ -27,8 +27,6 @@ year={2021}
 
 \begin{document}
 
-%to ignore a code block in latex...
-
 
 \maketitle
 
@@ -43,7 +41,7 @@ year={2021}
 
 % \chapter*{Supporting Technologies}
 
-% % -----------------------------------------------------------------------------
+% -----------------------------------------------------------------------------
 
 \chapter*{Notation and Acronyms}
 
@@ -54,6 +52,7 @@ year={2021}
   \acro{KPN}{Kahn Process Network}
   \acro{GPL}{General Purpose Language}
   \acro{DPN}{Data Process Network}
+  \acro{DAG}{Directed Acyclic Graph}
   \acro{AST}{Abstract Syntax Tree}
   \acro{PID}{Process Identifier}
 \end{acronym}

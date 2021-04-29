@@ -1,5 +1,6 @@
 \documentclass[dissertation.tex]{subfiles}
 
+
 %include format.fmt
 %options ghci -pgmL lhs2tex -optL--pre
 
@@ -287,7 +288,49 @@ There is a mechanism to handle the failed match case, however, this does not ful
 
 \section{Circuit}
 This approach was inspired by the parallel prefix circuits as described by Hinze~\cite{scans}.
+It uses constructors similar to those used by Hinze to create a circuit that represents the \ac{DAG}, used in the dataflow.
+The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in a graph.
 
+
+%format <-> = "<\!\!-\!\!>"
+
+\newcommand{\centered}[1]{\begin{tabular}{l} #1 \end{tabular}}
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/id}
+\caption{|id|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/replicate}
+\caption{|replicate|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/swap}
+\caption{|swap|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/then}
+\caption{|a <-> b|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/beside}
+\caption{|a <> b|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/task}
+\caption{|task f|}
+\end{subfigure}
+
+\caption{The constructors in the |Circuit| library alongside their graphical representation.}
+\label{fig:circuit-constructors}
+\end{figure}
 
 
 \subsection{Idea}
