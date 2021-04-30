@@ -6,7 +6,7 @@
 \begin{document}
 
 
-\chapter{Process Network}\label{chap:intro}
+\chapter{Implementation}\label{chap:intro}
 
 \section{Requirements}
 
@@ -17,13 +17,18 @@
   \item Failure Tolerance
 \end{itemize}
 
+\section{Circuit AST}
+How have i modified a la carte to work with ifunctors.
+then give a few examples and maybe one of the smart constructors that injects the L's and R's
 
-\section{Scheduler \& Typed Graph}
-\subsection{Problems representing a typed graph as a AST}
 
-\section{Kahn Process Network}
+
+\section{Network}
 \subsection{Network Typeclass}
 \paragraph{Interaction with Network}
+
+
+\section{Translation}
 \subsection{Steps of translation}
 \paragraph{icataM}
 \subsection{UUIDS}
@@ -38,6 +43,14 @@
 based on |Either|
 \paragraph{Propagation}
 
+
+
+
+
+% ------
+% not really as important
+% \section{Scheduler \& Typed Graph}
+% \subsection{Problems representing a typed graph as a AST}
 
 \end{document}
 

@@ -163,16 +163,7 @@ dropR = (IIn7 . inj) DropR
 Maps a circuit on the inputs
 -}
 mapC
-  :: ( DataStore' '[f] '[a]
-     , DataStore' '[f] '[[a]]
-     , DataStore' '[g] '[b]
-     , DataStore' '[g] '[[b]]
-     , DataStore g [b]
-     , Eq (g [b])
-     , Show (g [b])
-     , Eq a
-     , Show a
-     )
+  :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
   => Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
   -> g [b]
   -> Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1

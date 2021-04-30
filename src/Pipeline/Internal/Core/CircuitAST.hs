@@ -118,7 +118,7 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
 data Map (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
          (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
          (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
-  Map ::(DataStore' '[f] '[a], DataStore' '[f] '[[a]], DataStore' '[g] '[b], DataStore' '[g] '[[b]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
+  Map ::(DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
     => Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
     -> g [b]
     -> Map iF '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1

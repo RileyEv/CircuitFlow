@@ -104,7 +104,7 @@ Some example expansions, could be supporting writing to a database table, or a H
 \subsection{Task Constructor}
 A task's type details the type of the input and outputs.
 It requires two arguments to the constructor, the function that will be invoked and an output |DataStore|.
-The constructor makes use of GADTs syntax so that constraints can be placed on the types used.
+The constructor makes use of GADTs~\cite{10.1145/1160074.1159811} syntax so that constraints can be placed on the types used.
 It enforces that a |DataStore| must exist for the input and output types.
 This allows the task to make use of the |fetch| and |save| functions.
 
@@ -346,7 +346,7 @@ Circuit  (inputsStorageTypes   :: [Type -> Type])  (inputsTypes   :: [Type])  (i
 \end{spec}
 
 A |Circuit| can be thought of as a list of inputs, which are processed and a resulting list of outputs are produced.
-To represent this it makes use of the |DataKinds| language extension, to use type-level lists and natural numbers.\todo{cite}
+To represent this it makes use of the |DataKinds| language extension~\cite{10.1145/2103786.2103795}, to use type-level lists and natural numbers.
 Each parameter represents a certain piece of information needed to construct a circuit:
 
 \begin{itemize}
@@ -358,7 +358,7 @@ Each parameter represents a certain piece of information needed to construct a c
 \end{itemize}
 
 In the language there are two different types of constructor, those that recurse and those that can be considered leaf nodes.
-The behaviour of both types of constructor is recorded within the types.
+The behaviour of both types of constructor is recorded within the types, using phantom type parameters~\cite{phantom_types}.
 For example, the |id| constructor has the type:
 
 \begin{spec}
@@ -393,7 +393,7 @@ This means it is much harder to specify the new type of the |Circuit|.
 \paragraph{Apply Type Family}
 It would not be possible to use a new type variable |xs| for the |inputsApplied| parameter.
 This is because it needs to be constrained so that it is equivalent to |fs| applied to |as|.
-To solve this a new type family is created that is able to apply the two type lists together.
+To solve this a new closed type family~\cite{10.1145/2535838.2535856} is created that is able to apply the two type lists together.
 This type family pairwise applies a list of types storing with kind |* -> *| to a list of types with kind |*| to form a new list containing types of kind |*|.
 For example, |Apply (Q([f, g, h])) (Q([a, b, c])) ~ (Q([f a, g b, h c]))|.
 
@@ -412,7 +412,7 @@ type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
 
 \paragraph{Append Type Family}
 There will also be the need to append two type level lists together.
-To do this an append type family can be used:
+To do this an append type family~\cite{10.1145/1017472.1017488} can be used:
 
 %format l'
 
@@ -422,7 +422,7 @@ type family (:++) (l1 :: [k]) (l2 :: [k]) :: [k] where
   (:++)  (e (Q(:)) l)  l' = e (Q(:)) (l :++ l')
 \end{spec}
 
-This type family makes use of the language extension |PolyKinds| to allow for the append to be polymorphic on the kind stored in the type list.\todo{cite}
+This type family makes use of the language extension |PolyKinds|~\cite{10.1145/2103786.2103795} to allow for the append to be polymorphic on the kind stored in the type list.
 This will avoid defining multiple versions to append |fs| with |gs|, and |as| with |bs|.
 
 \paragraph{The `Then' Constructor}
@@ -459,7 +459,7 @@ This is a special case of a |DataStore|, it allows for them to also be defined o
 Combined DataStores make it easier for tasks to fetch from multiple inputs.
 Users will just have to call a single |fetch'| function, rather than multiple.
 
-To be able to define |DataStore'|, heterogeneous lists\todo{cite} are needed --- specifically three different forms.
+To be able to define |DataStore'|, heterogeneous lists~\cite{10.1145/1017472.1017488} are needed --- specifically three different forms.
 |HList| is as defined by TODO, |HList'| stores values of type |f a| and is parameterised by two type lists |fs| and |as|.
 |IOList| stores items of type |IO a| and is parameterised by a type list |as|. Their definitions are:
 
@@ -509,7 +509,7 @@ This means that a user does not need to create any instances of |DataStore'|.
 They can instead focus on each single case, with the knowledge that they will automatically be able to combine them with other |DataStore|s.
 
 
-\subsection{Tasks}\label{sec:multi-input-tasks}
+\subsection{Multi-Input Tasks}\label{sec:multi-input-tasks}
 With a |Circuit| it is possible to represent a \ac{DAG}.
 This means that a node in the graph can now have multiple dependencies, as seen in Figure~\ref{fig:multi-depen-task}.
 
@@ -557,20 +557,47 @@ With the fetching and saving handled by the smart constructor.
 The second allows for a simple |a -> b| function to be turned into a |Task|.
 
 
-\section{Circuit AST}
-gotta do all of this too...
+\subsection{mapC operator}
+Currently a circuit has a static design --- once it has been created it cannot change.
+There are times when this could be a flaw in the language.
+For example, when there is a dynamic number of inputs.
+This could be combated with more smart constructors to generate more complex circuits, with the pre-existing constructors.
+Another approach would be to add new constructors that allow for more dynamic circuits, such as |mapC|.
+This new constructor is used to map a circuit on a single input containing a list of items.
+The input is fed into the inner circuit, accumulated back into a list, and then output.
 
-\subsection{Examples}
-\paragraph{Song aggregation}
-\paragraph{lhs2tex Build System}
+\begin{spec}
+mapC :: (DataStore' (Q([f])) (Q([[a]])), DataStore g [b])
+  => Circuit (Q([VariableStore])) (Q([a])) (Q([VariableStore a])) (Q([VariableStore])) (Q([b])) (Q([VariableStore b])) N1
+  -> g [b]
+  -> Circuit (Q([f])) (Q([[a]])) (Q([f [a]])) (Q([g])) (Q([[b]])) (Q([g [b]])) N1
+\end{spec}
+
+\todo[inline]{Graphical representation of this?}
+
 
 \subsection{Completeness}
-something about the stuff Alex said.
+\todo[inline]{something about the stuff Alex said}
+monadic resource theories.
 
-\subsection{Benefits}
-\subsection{Problems}
 
-\todo[inline]{where does mapC operator go?}
+\subsection{Evaluation}
+
+\paragraph{Easy to Build}
+A |Circuit| focuses on the transformations that are made to edges on a graph.
+This can be beneficial to the user as it is the edges in a dataflow diagram that encode dependencies between tasks.
+Although circuits may initially appear complex, there is a relatively simple process that can be used to construct them.
+By hand-drawing a dataflow diagram, a circuit can always be constructed that closely mirrors this diagram.
+This means that the user can easily visualise what is happening inside a circuit.
+In fact it could be possible to pretty print a circuit to recreate this diagram --- although this has not been implemented.
+
+\paragraph{Type-safe}
+One key benefit that a |Circuit| brings is that constructing them uses strong types.
+Each constructor encodes its behaviour within the types.
+This allows the GHC type checker to validate a |Circuit| at compile-time, to ensure that each task is receiving the correct values.
+This avoids the possibility of crashes are run-time, where types do not match correctly.
+There is, however, a consequence of this type-safety: the user now needs to add some explicit types on a |Circuit| to help the type checker.
+
 
 \end{document}
 

@@ -21,6 +21,8 @@ year={2021}
 
 \usepackage{subfiles} % load last
 
+\setcounter{tocdepth}{2}
+
 % lhs2tex setup
 %include format.fmt
 %options ghci -pgmL lhs2tex -optL--pre
@@ -57,7 +59,6 @@ year={2021}
   \acro{PID}{Process Identifier}
 \end{acronym}
 
-% maybe?
 
 % -----------------------------------------------------------------------------
 
@@ -88,7 +89,11 @@ advice or time), and so on.
 
 % -----------------------------------------------------------------------------
 
-\subfileinclude{chapters/process-network}
+\subfileinclude{chapters/implementation}
+
+% -----------------------------------------------------------------------------
+
+\subfileinclude{chapters/examples}
 
 % -----------------------------------------------------------------------------
 
