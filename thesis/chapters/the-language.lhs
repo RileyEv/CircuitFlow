@@ -44,7 +44,7 @@ Tasks could take many different forms, for example they could be:
 A task could have a single input or multiple inputs, however, for now just a single input task will be considered.
 Multi-input tasks are explained further in Sub-Section~\ref{sec:multi-input-tasks}
 
-\subsection{Data Stores}
+\subsection{Data Stores}\label{sec:data-stores}
 Data stores are used to pass values between different tasks, this ensures that the input and output of tasks are closely controlled.
 A data store can be defined as a type class, with two methods |fetch| and |save|:
 
@@ -93,10 +93,13 @@ instance DataStore FileStore [String] where
 The |FileStore| is only defined to store two different types: |String| and |[String]|.
 If a user attempts to store anything other than these two types then a compiler error will be thrown, for example:
 
+\vspace{3mm}
 @ghci> @|save (FileStore "test.txt") (123 :: Int)|
 
 @> No instance for (@|DataStore FileStore Int|@) arising from a use of `@|save|@'@
+\vspace{3mm}
 
+\noindent
 Although a small set of |DataStore|s are included in the library, the user is also able to add new instances of the type class with their own |DataStore|s.
 Some example expansions, could be supporting writing to a database table, or a Hadoop file system.
 
@@ -293,7 +296,6 @@ This approach was inspired by the parallel prefix circuits as described by Hinze
 It uses constructors similar to those used by Hinze to create a circuit that represents the \ac{DAG}, used in the dataflow.
 The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in a graph.
 
-%format <-> = "<\!\!\!\!-\!\!\!\!>"
 
 \newcommand{\centered}[1]{\begin{tabular}{l} #1 \end{tabular}}
 \begin{figure}[hbt]
@@ -515,7 +517,6 @@ This means that a node in the graph can now have multiple dependencies, as seen 
 
 \begin{figure}[ht]
 \centering
-% \missingfigure{Add a figure showing a task with multiple inputs}
 \input{diagrams/circuit-constructors/multi-input}
 \caption{A graphical representation of a task with multiple dependencies}
 \label{fig:multi-depen-task}

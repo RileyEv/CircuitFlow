@@ -22,6 +22,7 @@
 %subst char a       = "\text{\ttfamily{\textquotesingle}" a "\textquotesingle}"
 %subst backquoted a = "\mathbin{\text{\`{}}" a "\text{\`{}}}"
 %format return = "\keyw{return}"
+%format <-> = "<\!\!\!\!-\!\!\!\!>"
 %endif
 
 %if style == newcode
