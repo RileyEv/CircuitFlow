@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveAnyClass    #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE KindSignatures    #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
@@ -310,7 +311,7 @@ main = do
   startTime          <- getTime clock
   n                  <- startNetwork pipeline
   networkStartedTime <- getTime clock
-  let users = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+  let users = [ show x | x <- [0 .. 2000] ]
 
   -- Input values into network
   forM_ users (addUser n)

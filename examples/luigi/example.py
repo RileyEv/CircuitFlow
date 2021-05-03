@@ -154,6 +154,7 @@ class Top10Songs(luigi.Task):
 #     def requires(self):
 #         return Top10Artists(self.date_interval)
 
+n_inputs = 2000
 
 if __name__ == "__main__":
     months = ["jan", "feb", "mar"]
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     luigi.build(
         [
             task
-            for user in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            for user in [str(i) for i in range(0, n_inputs)]
             for task in [Top10Artists(months, user), Top10Songs(months, user)]
         ],
         workers=4,

@@ -26,8 +26,8 @@ countLetters
        '[[String]]
        '[FileStore [String]]
        N1
-countLetters = functionTask (foldr f []) (FileStore "count.txt")
-  where f word cs = (concat [word, ":", show (length word)]) : cs
+countLetters = functionTask (map f) (FileStore "count.txt")
+  where f word = (concat [word, ":", show (length word)])
 
 circuit
   :: Circuit
