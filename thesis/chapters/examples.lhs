@@ -54,8 +54,8 @@ aggSongsTask :: Circuit
        (Q([               [Listen],                 [Listen],                 [Listen]]))
        (Q([NamedCSVStore  [Listen],  NamedCSVStore  [Listen],  NamedCSVStore  [Listen]]))
        (Q([VariableStore]))
-       (Q([               [TrackCount]]))
-       (Q([VariableStore  [TrackCount]]))
+       (Q([                [TrackCount]]))
+       (Q([VariableStore   [TrackCount]]))
        N3
 aggSongsTask = multiInputTask f Empty
  where
@@ -71,8 +71,8 @@ aggArtistsTask :: Circuit
        (Q([               [Listen],                 [Listen],                 [Listen]]))
        (Q([NamedCSVStore  [Listen],  NamedCSVStore  [Listen],  NamedCSVStore  [Listen]]))
        (Q([VariableStore]))
-       (Q([               [ArtistCount]]))
-       (Q([VariableStore  [ArtistCount]]))
+       (Q([                [ArtistCount]]))
+       (Q([VariableStore   [ArtistCount]]))
        N3
 aggArtistsTask = multiInputTask f Empty
  where
@@ -148,8 +148,8 @@ preProcPipeline :: Circuit
        (Q([               [Listen],                 [Listen],                 [Listen]]))
        (Q([NamedCSVStore  [Listen],  NamedCSVStore  [Listen],  NamedCSVStore  [Listen]]))
        (Q([NamedCSVStore,                 NamedCSVStore]))
-       (Q([               [ArtistCount],                 [TrackCount]]))
-       (Q([NamedCSVStore  [ArtistCount],  NamedCSVStore  [TrackCount]]))
+       (Q([                [ArtistCount],                 [TrackCount]]))
+       (Q([NamedCSVStore   [ArtistCount],  NamedCSVStore  [TrackCount]]))
        N3
 preProcPipeline =  transformation
                    <->
@@ -196,8 +196,8 @@ predictTask :: Circuit
        (Q([               [ArtistCount],                 [TrackCount],              NewSongsPlayList]))
        (Q([NamedCSVStore  [ArtistCount],  NamedCSVStore  [TrackCount],  ModelStore  NewSongsPlaylist]))
        (Q([NamedCSVStore]))
-       (Q([               [Track]]))
-       (Q([NamedCSVStore  [Track]]))
+       (Q([                [Track]]))
+       (Q([NamedCSVStore   [Track]]))
        N3
 predictTask = multiInputTask f (NamesCSVStore "newSongsPlaylist.csv")
   where
