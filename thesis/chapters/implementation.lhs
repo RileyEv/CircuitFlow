@@ -59,7 +59,7 @@ newtype IFix7 iF a b c d e f g = IIn7 (iF (IFix7 iF) a b c d e f g)
 
 
 
-\subsection{Indexed Data types \`{a} la carte}
+\subsection{Indexed Data Types \`{a} la Carte}
 To build the \ac{AST}, the data types \`{a} la carte\todo{cite} approach is taken.
 This allows for a modular approach, making the library more extendable later on.
 To be able to use this approach, it needs to be modified to support indexed functors.
@@ -253,11 +253,29 @@ This function will block till an output is read from every output channel.
 
 \todo[inline]{Should I add the definition of these?}
 
+\section{Translation to a Network}\label{sec:circuit-translation}
 
+\subsection{Indexed monadic catamorphism --- icataM}
 
-\section{Translation}\label{sec:circuit-translation}
-\subsection{Steps of translation}
-\paragraph{icataM}
+\subsection{BuildNetworkAlg}
+
+talk about accumulating fold and |N|
+
+\paragraph{InitialPipes}
+
+\subsection{The Translation}
+
+\paragraph{Basic Constructors}
+Nice and simple
+
+\paragraph{Task}
+A lot nicer than you might think
+
+\paragraph{Then}
+funny step in the accumulating fold
+
+\paragraph{Beside}
+Time to unleash hell...
 
 \section{UUIDS}
 \paragraph{Why are they needed?}
