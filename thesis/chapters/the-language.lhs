@@ -121,7 +121,7 @@ This returns an output |DataStore| that can be passed on to another |Task|
 
 
 
-\section{Chains}
+\section{Chains}\label{sec:lang-chains}
 In a dataflow programming, one of the key aspects is the definition of dependencies between tasks in the flow.
 One possible approach to encoding this concept in the language is to make use of sequences of tasks --- also referred to as chains.
 These chains compose tasks, based on their dependencies. A chain can be modelled with an abstract datatype:
@@ -337,7 +337,7 @@ The constructors seen in Figure~\ref{fig:circuit-constructors} represent the beh
 
 %format DataStore'
 
-\subsection{Constructors}
+\subsection{Constructors}\label{sec:lang-circuit-constructors}
 Each of these constructors use strong types to ensure that they are combined correctly.
 A |Circuit| has 7 different type parameters:
 

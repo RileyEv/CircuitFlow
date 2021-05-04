@@ -23,6 +23,8 @@
 %subst backquoted a = "\mathbin{\text{\`{}}" a "\text{\`{}}}"
 %format return = "\keyw{return}"
 %format <-> = "<\!\!\!\!-\!\!\!\!>"
+%format :+: = ":\!\!+\!\!:"
+%format :<: = ":\prec:"
 %endif
 
 %if style == newcode

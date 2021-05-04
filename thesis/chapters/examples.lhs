@@ -90,9 +90,9 @@ This is possible to do:
 \begin{spec}
 top10Task :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a)
   => FilePath
-  -> Circuit (Q([VariableStore])) (Q([[a]])) (Q([VariableStore [a]]))
-             (Q([NamedCSVStore])) (Q([[a]])) (Q([NamedCSVStore [a]]))
-             N1
+  -> Circuit  (Q([VariableStore]))  (Q([[a]]))  (Q([VariableStore  [a]]))
+              (Q([NamedCSVStore]))  (Q([[a]]))  (Q([NamedCSVStore  [a]]))
+              N1
 top10Task filename = functionTask (take 10) (NamedCSVStore filename)
 \end{spec}
 \end{minipage}

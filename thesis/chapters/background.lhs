@@ -373,7 +373,7 @@ The resulting type of |icata| is |f a|, therefore the |f| is a syntactic |Functo
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
 
-\section{Data types \`{a} la carte}
+\section{Data types \`{a} la carte}\label{sec:bg-dtalacarte}
 When building a \ac{DSL} one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
 The expression problem is a trade off between a deep and shallow embedding.
 In a deep embedding, it is easy to add multiple interpretations to the \ac{DSL} - just add a new evaluation function.
@@ -385,8 +385,6 @@ It combines constructors using the co-product of their signatures.
 This is defined as:
 
 %if style /= newcode
-%format :+: = ":\!\!+\!\!:"
-%format :<: = ":\prec:"
 %format ValF2
 %format MulF2
 %endif
