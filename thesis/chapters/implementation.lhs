@@ -58,8 +58,7 @@ newtype IFix7 iF a b c d e f g = IIn7 (iF (IFix7 iF) a b c d e f g)
 \end{code}
 
 
-
-\subsection{Indexed Data Types \`{a} la Carte}
+\subsection{Type-Indexed Data Types \`{a} la Carte}
 To build the \ac{AST}, the data types \`{a} la carte\todo{cite} approach is taken.
 This allows for a modular approach, making the library more extendable later on.
 To be able to use this approach, it needs to be modified to support indexed functors.
@@ -255,9 +254,78 @@ This function will block till an output is read from every output channel.
 
 \section{Translation to a Network}\label{sec:circuit-translation}
 
-\subsection{Indexed monadic catamorphism --- icataM}
+%format icata7
+%format icataM7
+
+There is now a representation for a |Circuit| that the user will build, and a representation used to execute the |Circuit|.
+However, there is no mechanism to convert between them.
+This can be achieved by folding the circuit data type into a network.
+This fold, however, will need to create threads and channels, both of which |IO| actions.
+The current definition for the fold |icata7| is not able perform monadic computation inside the algebra.
+To solve this |unsafePerformIO| could be used, however, for this to be safe the |IO| computation needs to have no side-effects.
+This fold will violate this rule, therefore, the only other way to support this is to modify the catamorphism to support monadic computation.
+
+\subsection{Indexed Monadic Catamorphism --- icataM}
+Although a monadic catamorphism exists~\cite{monadic_cata}, this still has the same prior issues noted in Section~\ref{sec:higher-order-functors}.
+It lacks the ability retain type arguments of the abstract data type that is being folded.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+cataM :: (Traversable f, Monad m) => (forall a . f a -> m a) -> Fix f -> m a
+cataM algM (In x) = algM =<< mapM (cataM algM) x
+\end{code}
+\end{minipage}
+
+To solve the problem of not retaining types, an indexed monadic catamorphism will be introduced.\todo{Check this doesn't exist somewhere..}
+However, to be able to define such a fold, a indexed monadic map is required.
+This will be added by extending the |IFunctor7| instance to also include a function named |imapM7|.
+
+%format imapM7
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+class IFunctor7 iF where
+  imap7 :: (forall a b c d e f g. f' a b c d e f g -> g' a b c d e f g) -> iF f' a b c d e f g -> iF g' a b c d e f g
+  imapM7 :: Monad m  => (forall a b c d e f g. f' a b c d e f g -> m (g' a b c d e f g))
+                     -> iF f' a b c d e f g
+                     -> m (iF g' a b c d e f g)
+\end{code}
+\end{minipage}
+
+The definition for this new function |imapM7| for each instance closely follows the non-monadic version.
+Here is the definition of the new |IFunctor7| instance for |Beside|:
+
+%format l'
+%format r'
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+instance IFunctor7 Beside where
+  imap7   f (Beside l r)  = Beside (f l) (f r)
+  imapM7  f (Beside l r)  = do
+    l'  <- f l
+    r'  <- f r
+    return (Beside l' r')
+\end{code}
+\end{minipage}
+
+Now that there is a indexed monadic map, it is possible to define the a monadic catamorphism for indexed functors:
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+icataM7 :: (IFunctor7 iF, Monad m)
+  => (forall a b c d e f g . iF f' a b c d e f g -> m (f' a b c d e f g))
+  -> IFix7 iF a b c d e f g
+  -> m (f' a b c d e f g)
+icataM7 algM (IIn7 x) = algM =<< imapM7 (icataM7 algM) x
+\end{code}
+\end{minipage}
+
 
 \subsection{BuildNetworkAlg}
+
+
+
 
 talk about accumulating fold and |N|
 

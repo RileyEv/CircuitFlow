@@ -63,3 +63,6 @@ icataM7 algM (IIn7 x) = algM =<< imapM7 (icataM7 algM) x
 -- https://jtobin.io/monadic-recursion-schemes
 icataM :: (IFunctor iF, Monad m) => (forall a . iF f a -> m (f a)) -> IFix iF a -> m (f a)
 icataM algM (IIn x) = algM =<< imapM (icataM algM) x
+
+cataM :: (Traversable f, Monad m) => (forall a . f a -> m a) -> Fix f -> m a
+cataM algM (In x) = algM =<< mapM (cataM algM) x

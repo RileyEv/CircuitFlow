@@ -1,0 +1,28 @@
+\begin{tikzpicture}[node distance={15mm}, main/.style = {draw, thick}]
+\node (Month1)                   {Month 1};
+\node (Month2) [right of=Month1] {Month 2};
+\node (Month3) [right of=Month2] {Month 3};
+
+\node[main] (AggSongs)    [below of=Month1] {AggSongs};
+\node[main] (AggArtists)  [below of=Month3] {AggArtists};
+
+\node[main] (Top10a)  [below of=AggSongs]   {Top10};
+\node[main] (Top10b)  [below of=AggArtists] {Top10};
+
+\node (Top10Songs)   [below of=Top10a] {Top 10 Songs};
+\node (Top10Artists) [below of=Top10b] {Top 10 Artists};
+
+
+\draw[->, >=stealth] (Month1)     -- (AggSongs);
+\draw[->, >=stealth] (Month2)     -- (AggSongs);
+\draw[->, >=stealth] (Month3)     -- (AggSongs);
+\draw[->, >=stealth] (Month1)     -- (AggArtists);
+\draw[->, >=stealth] (Month2)     -- (AggArtists);
+\draw[->, >=stealth] (Month3)     -- (AggArtists);
+\draw[->, >=stealth] (AggSongs)   -- (Top10a);
+\draw[->, >=stealth] (AggArtists) -- (Top10b);
+\draw[->, >=stealth] (Top10a)     -- (Top10Songs);
+\draw[->, >=stealth] (Top10b)     -- (Top10Artists);
+
+
+\end{tikzpicture}

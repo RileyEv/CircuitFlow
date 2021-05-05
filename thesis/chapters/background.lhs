@@ -297,6 +297,7 @@ This makes use of |~>|, which represents a natural transformation from |f| to |g
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it~\cite{lane1998categories}.
 Whereas a functor changes the values inside a structure.
 
+% \todo{cite this https://strathprints.strath.ac.uk/33726/1/ghani_popl08.pdf}
 
 \begin{code}
 type (~>) f g = forall a. f a -> g a
