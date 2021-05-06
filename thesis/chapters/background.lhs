@@ -604,7 +604,7 @@ Together these features allow for dependently typed programming constructs in Ha
 \end{itemize}
 
 \section{Heterogeneous Lists}\label{sec:bg-heterogeneous-lists}
-Heterogeneous lists are a way of having multiple types in the same list.
+Heterogeneous lists~\cite{10.1145/1017472.1017488} are a way of having multiple types in the same list.
 Rather than be parameterised by a single type, they instead make use of a type list, which when the list type is promoted through DataKinds to be a kind.
 Each element in the type list aligns with the value at that position in the list.
 A heterogeneous list can be defined as:
@@ -692,6 +692,7 @@ drop (SSucc n) (HCons _ xs) = drop n xs
 
 
 \section{Existential Types}
+\todo[inline]{cite}
 Typically, when defining a data type in Haskell, every type variable that exists on the right hand side of the equals, must also be on the left hand side.
 For example, this is not allowed:
 
@@ -699,7 +700,7 @@ For example, this is not allowed:
 newtype Bad = Bad a
 \end{spec}
 
-Existential types are a way to allow this to happen, for example:
+Existential types~\cite{10.1145/44501.45065} are a way to allow this to happen, for example:
 
 \begin{code}
 data Good = forall a. Good a
@@ -725,14 +726,13 @@ showList = [Showy 123, Showy "abc"]
 This list can now store any value with a |Show| instance defined, by wrapping it in the |Showy| constructor.
 
 \section{Phantom Type Parameters}
-Phantom type parameters could be considered the opposite of existential types.
+Phantom type parameters~\cite{phantom_types} could be considered the opposite of existential types.
 This is when a type variable only appears on the left hand side of the equals.
 The most basic example is |Const|, it has two type arguments, but only |a| is used on the right hand side:
 
 \begin{code}
 newtype Const a b = Const a
 \end{code}
-
 
 Phantom type parameters can be used to store information in the types, which can act as further static constraints on the types.
 Consider an example revolving around locking doors: it should not be possible to lock a door that is open, first it has to be closed and then it can be locked.
