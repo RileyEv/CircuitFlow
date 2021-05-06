@@ -635,6 +635,7 @@ mapC :: (DataStore' (Q([f])) (Q([[a]])), DataStore g [b])
 \end{spec}
 
 \todo[inline]{Graphical representation of this?}
+\todo[inline]{Add an example where this is useful}
 
 
 \subsection{Completeness}
