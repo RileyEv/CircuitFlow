@@ -1,0 +1,10 @@
+\begin{tikzpicture}[node distance={7mm}, main/.style = {draw, circle, thick}]
+\node (W) {$$};
+\node (X) [right of=W, xshift=-2mm] {$$};
+\node (Y) [below of=W, yshift=-3mm] {$$};
+\node (Z) [below of=X, yshift=1mm] {$$};
+
+\draw[-{Circle[black]}] (X) -- (Z);
+\draw[->, >=stealth] (W) -- (Y);
+
+\end{tikzpicture}

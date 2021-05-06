@@ -1,0 +1,12 @@
+\begin{tikzpicture}[node distance={15mm}, main/.style = {draw, thick}]
+\node (History)                                {Audio History};
+\node[main] (PreProcess) [below of=History]    {Pre-Process};
+\node[main] (Model)      [below of=PreProcess] {ML Model};
+\node (Playlist)         [below of=Model]      {Playlist};
+
+
+\draw[->, >=stealth] (History)    -- (PreProcess);
+\draw[->, >=stealth] (PreProcess) -- (Model);
+\draw[->, >=stealth] (Model)      -- (Playlist);
+
+\end{tikzpicture}

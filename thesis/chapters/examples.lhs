@@ -12,15 +12,25 @@
 % car manufacturer example
 % \newpage
 
-\section{Song Data Aggregation}
-A use case for circuits is when building data pipelines.
+\section{Audio Playlist Generation}
+A use case for CircuitFlow is when building data pipelines.
 Here there are many tasks that can only be executed when other data files have been produced.
 A data pipeline will also benefit from being parallel to improve run-times.
-A circuit can help to build a parallel data pipeline, without the user having to worry about how to combine all their data manipulations together, in a way that will not run into concurrency problems.
+CircuitFlow can help to build a parallel data pipeline, without the user having to worry about how to combine all their data manipulations together, in a way that will not run into concurrency problems.
 
-Consider the example, where an audio streaming service would like to create a playlist full of new songs to listen to.
-This could require a model that can predict your songs based on the top 10 artists and songs that you have listened to over the last 3 months.
+Consider the example where an audio streaming service would like to create a playlist full of new songs to listen to.
+This could require a machine learning model that can predict your songs based on the top 10 artists and songs that you have listened to over the last 3 months.
 However, each of the months data is stored in different files that need aggregating together, before they can be input into the model.
+
+
+\begin{figure}[ht]
+  \centering
+  \input{diagrams/example-song-hi-lev}
+  \caption{A dataflow diagram for playlist generation}
+  \label{fig:example-song-pre-hi-lev}
+\end{figure}
+
+
 
 \subsection{Building the pre-processing Circuit}
 This circuit will need to have 3 different inputs --- each months listening history.
@@ -35,15 +45,10 @@ This will model all the dependencies between each of the pre-processing tasks.
   \label{fig:example-song-pre-proc}
 \end{figure}
 
-This now needs to be converted into a |Circuit|.
-The first step is to create all the tasks that will be used.
+To write this in CircuitFlow, the first step is to create all the tasks that will be used.
 Both the |AggSongs| and |AggArtists| tasks will require three inputs, which will be CSVs.
 This means that it is possible to make use of the pre-defined data store: |NamedCSVStore|.
-This requires the definition of |ToNamedRecord| and |FromNamedRecord| for each of the used data types, which will be omitted.
-\todo{Appendix? or will just being in the code submission be enough?}
-
-
-\todo[inline]{This alignment on the types.. good or nah? might help make the 3rd and 6th arg clearer?}
+The type instances that are required to parse the CSV will be omitted, as they are not relevant to the discussion.
 
 %format count_ = count"\_"
 
@@ -60,10 +65,22 @@ aggSongsTask :: Circuit
 aggSongsTask = multiInputTask f Empty
  where
   f :: HList (Q([[Listen], [Listen], [Listen]]) -> [TrackCount]
-  f (HCons day1 (HCons day2 (HCons day3 HNil))) =
-    (map (uncurry TrackCount) . reverse . count_ . map track) (day1 ++ day2 ++ day3)
+  f (HCons month1 (HCons month2 (HCons month3 HNil))) =
+    (map (uncurry TrackCount) . reverse . count_ . map track) (month1 ++ month2 ++ month3)
 \end{spec}
 \end{minipage}
+
+This task applies a composition of functions:
+
+\begin{enumerate}
+  \item Firstly, the track is extracted from the |Listen| data type using the function |track :: Listen -> Track|.
+  \item Next, a list of unique tracks are extracted, along with the number of appearaces they made in the original list.
+        This makes use of a special variant |count_ :: [a] -> [(a, Int)]|, which will also sort the list in ascending order.
+  \item This list is then flipped to descending order with |reverse :: [a] -> [a]|.
+  \item Finally, a TrackCount value is made from the previous tuple |uncurry TrackCount :: (Track, Int) -> TrackCount|.
+\end{enumerate}
+
+
 \noindent\begin{minipage}{\linewidth}
 \begin{spec}
 aggArtistsTask :: Circuit
@@ -77,10 +94,12 @@ aggArtistsTask :: Circuit
 aggArtistsTask = multiInputTask f Empty
  where
   f :: HList (Q([[Listen], [Listen], [Listen]])) -> [ArtistCount]
-  f (HCons day1 (HCons day2 (HCons day3 HNil))) =
+  f (HCons month1 (HCons month2 (HCons month3 HNil))) =
      (map (uncurry ArtistCount) . reverse . count_ . map (artist . track)) (day1 ++ day2 ++ day3)
 \end{spec}
 \end{minipage}
+
+The |aggArtistsTask| is constructed in a similar way to the |aggSongsTask|, however, it extracts the artist from the track before aggregating the data.
 
 The final task to define is |Top10|, however, this task is used multiple times.
 Therefore, it would be beneficial if the type was polymorphic so that it can receive and input of both |[ArtistCount]| and |[TrackCount]|.
@@ -103,35 +122,80 @@ The dataflow diagram seen in Figure~\ref{fig:example-song-pre-proc}, will prove 
 The first obvious problem is how to create a circuit that can achieve the top part of the diagram, transforming the inputs so that they can be passed into two tasks.
 This can be dealt with in layers.
 Using the diagrams associated with each constructor, it is possible to convert a layer into a composition of |Circuit|s.
-The first layer, will be responsible for duplicating each of the three inputs.
+The first layer, seen in Figure~\ref{fig:example-song-layer1} will be responsible for duplicating each of the three inputs.
 
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{0.7\textwidth}
+\centering
 \begin{spec}
 layer1 = replicate <> replicate <> replicate
 \end{spec}
+\vspace{-7mm}
+\caption{}
+\vspace{5mm}
+\end{subfigure}
+\begin{subfigure}{0.7\textwidth}
+\centering
+\input{diagrams/example-song-layer1}
+\caption{}
+\end{subfigure}
+\caption{The first layer (a) and its corresponding dataflow diagram (b).}
+\label{fig:example-song-layer1}
+\end{figure}
 
-\noindent\begin{minipage}{\linewidth}
-Scanning down the dataflow diagram the next layer to deal with is the two swaps that occur: month 1 and 2, and month 2 and 3.
+ Scanning down the dataflow diagram the next layer to deal with is the two swaps that occur: month 1 and 2, and month 2 and 3.
+ This can been seen in Figure~\ref{fig:example-song-layer2}
 
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{0.7\textwidth}
+\centering
 \begin{spec}
 layer2 = id <> swap <> swap <> id
 \end{spec}
-\end{minipage}
+\vspace{-7mm}
+\caption{}
+\vspace{5mm}
+\end{subfigure}
+\begin{subfigure}{\textwidth}
+\centering
+\input{diagrams/example-song-layer2}
+\caption{}
+\end{subfigure}
+\caption{The second layer (a) and its corresponding dataflow diagram (b).}
+\label{fig:example-song-layer2}
+\end{figure}
 
 
-\noindent\begin{minipage}{\linewidth}
-The final layer will swap month 1 with month 3.
+The final layer, seen in Figure~\ref{fig:example-song-layer3}, will swap month 1 with month 3.
 
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{0.7\textwidth}
+\centering
 \begin{spec}
 layer3 = id <> id <> swap <> id <> id
 \end{spec}
-\end{minipage}
+\vspace{-7mm}
+\caption{}
+\vspace{5mm}
+\end{subfigure}
+\begin{subfigure}{0.7\textwidth}
+\centering
+\input{diagrams/example-song-layer3}
+\caption{}
+\end{subfigure}
+\caption{The third layer (a) and its corresponding dataflow diagram (b).}
+\label{fig:example-song-layer3}
+\end{figure}
 
 
 \noindent\begin{minipage}{\linewidth}
 These layers can be stacked on top of each other to provide a full transformation:
 
 \begin{spec}
-transformation =  layer1
+organiseInputs =  layer1
                   <->
                   layer2
                   <->
@@ -151,7 +215,7 @@ preProcPipeline :: Circuit
        (Q([                [ArtistCount],                 [TrackCount]]))
        (Q([NamedCSVStore   [ArtistCount],  NamedCSVStore  [TrackCount]]))
        N3
-preProcPipeline =  transformation
+preProcPipeline =  organiseInputs
                    <->
                    aggSongsTask                  <> aggArtistsTask
                    <->

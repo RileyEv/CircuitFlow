@@ -9,7 +9,7 @@
 \chapter{Implementation}\label{chap:intro}
 
 \section{Requirements}
-The implementation of the network itself has several requirements that are separate from the API that the user will use:
+The implementation of the network itself has several requirements that are separate from the language design:
 
 \begin{itemize}
   \item \textbf{Type-safe} --- This is a continuation of the previous requirement for the language. It is also important that once the user has built a well-typed |Circuit|, that the code also continues to be executed in a well-typed environment, to ensure that all inputs and outputs are correctly typed.
@@ -19,18 +19,19 @@ The implementation of the network itself has several requirements that are separ
   \item \textbf{Competitive Speed} --- This library should be able to execute dataflows in a competitive time, with other libraries that already exist.
   \item \textbf{Failure Tolerance} --- It is important that if one invocation of a task crashes, it does not crash the whole program.
         This implementation should be able to gracefully handle errors and propagate them through the circuit.
+  \item \textbf{Usable} --- The implementation of the library should not break any of the usability of the language design.
+  \item \textbf{Maintainable} --- It should be easy to maintain the library and add new constructors in the future.
 \end{itemize}
-\todo{??? Is there anything else that maybe I haven't achieved? memorisation?}
 
 \section{Circuit AST}
 The constructors for the language are actually \textit{smart constructors}.
 They provide a more elegant way to build an \ac{AST}, which represents the circuit.
-\todo[inline]{flesh this out a bit more, doesnt really fit in the current context}
+They give the ability to gain the benefits of extensibility, usually found in a shallow embedding, while still having a fixed core \ac{AST} that can be used for interpretation.
 
 %format IFunctor7
 
 \subsection{IFunctor}
-The \ac{AST} that represents a |Circuit| is built using indexed functors, also known as |IFunctor|.
+To build the fixed core \ac{AST} for a |Circuit|, indexed functors --- also known as |IFunctor| --- are used.
 |IFunctor|s are, however, only defined to take a single type index --- a |Circuit| needs 7.
 To do this |IFunctor7| can be defined:
 
@@ -59,6 +60,7 @@ newtype IFix7 iF a b c d e f g = IIn7 (iF (IFix7 iF) a b c d e f g)
 
 
 \subsection{Type-Indexed Data Types \`{a} la Carte}
+\todo[inline]{Shift this section to focus on adding 7 arguments rather than just the 1.}
 To build the \ac{AST}, the data types \`{a} la carte\todo{cite} approach is taken.
 This allows for a modular approach, making the library more extendable later on.
 To be able to use this approach, it needs to be modified to support indexed functors.
@@ -196,7 +198,7 @@ This type class requires that a network has 4 different functions:
 \todo[inline]{Should I add an example of how to use it?}
 
 \subsection{The Basic Network Representation}
-An implementation of the Network typeclass is a |BasicNetwork|. \todo{Does basic make it sound simple? should i got with standard or something like that??}
+An implementation of the Network typeclass is a |BasicNetwork|.
 This implementation makes use of a special case of heterogeneous list.
 A |PipeList| is used to represent a heterogeneous list of channels.
 This allows the |BasicNetwork| to store multiple channels in the same list with out the need for existential types --- one of the problems previously encountered with chains in Section~\ref{sec:lang-chains}.
@@ -266,6 +268,8 @@ To solve this |unsafePerformIO| could be used, however, for this to be safe the 
 This fold will violate this rule, therefore, the only other way to support this is to modify the catamorphism to support monadic computation.
 
 \subsection{Indexed Monadic Catamorphism --- icataM}
+\todo[inline]{Shift to adding more type indicies, icataM exists in compdata}
+
 Although a monadic catamorphism exists~\cite{monadic_cata}, this still has the same prior issues noted in Section~\ref{sec:higher-order-functors}.
 It lacks the ability retain type arguments of the abstract data type that is being folded.
 

@@ -330,10 +330,6 @@ This approach was inspired by the parallel prefix circuits as described by Hinze
 It uses constructors similar to those used by Hinze to create a circuit that represents the \ac{DAG}, used in the dataflow.
 The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in a graph.
 
-
-% \newcommand{\centered}[1]{\begin{tabular}{l} #1 \end{tabular}}
-\todo[inline]{Opinions on way to draw DropL/R?? or do i change it to Drop, which aligns with MRT.}
-
 \begin{figure}[hbt]
 \centering
 \begin{subfigure}{0.4\textwidth}
@@ -350,6 +346,16 @@ The constructors seen in Figure~\ref{fig:circuit-constructors} represent the beh
 \centering
 \input{diagrams/circuit-constructors/swap}
 \caption{|swap|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/dropL}
+\caption{|dropL|}
+\end{subfigure}
+\begin{subfigure}{0.4\textwidth}
+\centering
+\input{diagrams/circuit-constructors/dropR}
+\caption{|dropR|}
 \end{subfigure}
 \begin{subfigure}{0.4\textwidth}
 \centering
@@ -511,9 +517,10 @@ However, due to the types on the constructors it is not possible to define a Mon
 \todo[inline]{I think its a monoid in cat theory, but it isn't one in haskell. empty exists with id, but this would not conform to the types.}
 
 \subsection{Combined Data Stores}
-\todo[inline]{DataStore' does not need save' as it is never used in a task. Can only have 1 output.}
 
 %format HList'
+%format fetch'
+%format save'
 
 A keen eyed reader may notice that all of these constructors have not been using the original |DataStore| type class.
 Instead they have all used the |DataStore'| type class.
@@ -543,7 +550,6 @@ data IOList (xs :: [Type]) where
 
 Now that there is a mechanism to represent a list of different types, it is possible to define |DataStore'|:
 
-%format fetch'
 
 \begin{spec}
 class DataStore' (fs :: [Type -> Type]) (as :: [Type]) where

@@ -172,7 +172,7 @@ An \ac{EDSL}, can be implemented using two differing techniques: deep and shallo
 %format parse_s
 %endif
 
-\subsection{Deep Embeddings}
+\subsection{Deep Embeddings}\label{sec:bg-deep-embedding}
 A deep embedding is when the terms of the \ac{DSL} will construct an \ac{AST} as a host language datatype.
 Semantics can then be provided later on with evaluation functions.
 Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
@@ -365,13 +365,13 @@ icata :: IFunctor iF => (iF f ~> f) -> IFix iF ~> f
 icata alg (IIn x) = alg (imap (icata alg) x)
 \end{code}
 
-
-
-
 \noindent
 The resulting type of |icata| is |f a|, therefore the |f| has kind |* -> *|.
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
+
+\subsection{Monadic version (with indices)}
+some bugger already did it
 
 \section{Data types \`{a} la carte}\label{sec:bg-dtalacarte}
 When building a \ac{DSL} one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
@@ -380,26 +380,32 @@ In a deep embedding, it is easy to add multiple interpretations to the \ac{DSL} 
 However, it is not easy to add a new constructor, since all functions will need to be modified to add a new case for the constructor.
 The opposite is true in a shallow embedding.
 
-One possible attempt at fixing the expression problem is data types \`{a} la carte~\cite{swierstra_2008}.
+One possible attempt at fixing the expression problem is \textit{Data types \`{a} la carte}~\cite{swierstra_2008}.
 It combines constructors using the co-product of their signatures.
+This technique makes use of standard functors, however, an approach using higher-order functors is described in \textit{Compositional data types}~\cite{10.1145/2036918.2036930}.
+
+
 This is defined as:
 
 %if style /= newcode
-%format ValF2
-%format MulF2
+%format SatisfyF2
+%format OrF2
+%format satisfy_2
+%format or_2
+%format ApF2
 %endif
 
 \begin{code}
-data (f :+: g) a = L (f a) | R (g a)
+data (iF :+: iG) f a = L (iF f a) | R (iG f a)
 \end{code}
 
 \noindent
-It is also the case that if both |f| and |g| are |Functor|s then so is |f :+: g|.
+It is also the case that if both |f| and |g| are |IFunctor|s then so is the sum |f :+: g|.
 
 \begin{code}
-instance (Functor f, Functor g) => Functor (f :+: g) where
-  fmap f (L x) = L (fmap f x)
-  fmap f (R y) = R (fmap f y)
+instance (IFunctor iF, IFunctor iG) => IFunctor (iF :+: iG) where
+  imap f (L x) = L (imap f x)
+  imap f (R y) = R (imap f y)
 \end{code}
 
 
@@ -407,42 +413,45 @@ instance (Functor f, Functor g) => Functor (f :+: g) where
 For each constructor it is possible to define a new data type and a |Functor| instance specifying where is recurses.
 
 \begin{code}
-data ValF2 f = ValF2 Int
-data MulF2 f = MulF2 f f
+data SatisfyF2 f a where
+  SatisfyF2 :: (Char -> Bool) -> SatisfyF2 f Char
 
-instance Functor ValF2 where
-  fmap f (ValF2 x) = ValF2 x
+data OrF2 f a where
+  OrF2 :: f a -> f a -> OrF2 f a
 
-instance Functor MulF2 where
-  fmap f (MulF2 x y) = MulF2 (f x) (f y)
+instance IFunctor SatisfyF2 where
+  imap f (SatisfyF2 f) = SatisfyF2 f
+
+instance IFunctor OrF2 where
+  imap f (OrF2 px py) = OrF2 (f px) (f py)
 \end{code}
 
 \noindent
-By using |Fix| to tie the recursive knot, the |Fix (Val :+: Mul)| data type would be isomorphic to the original |Expr| datatype found in Section~\ref{sec:higher-order-functors}.
+By using |IFix| to tie the recursive knot, the |IFix (SatisfyF2 :+: OrF2)| data type would be isomorphic to the original |Parser_d| datatype found in Section~\ref{sec:bg-deep-embedding}.
 
 \noindent
-One problem that now exist, however, is that it is now rather difficult to create expressions, take a simple example of $12 \times 34$.
+One problem that now exist, however, is that it is now rather difficult to create expressions, lets revisit the simple example of a parser for |'a'| or |'b'|.
 
 \begin{code}
-exampleExpr :: Fix (ValF2 :+: MulF2)
-exampleExpr = In (R (MulF2 (In (L (ValF2 12))) (In (L (ValF2 34)))))
+exampleParser :: IFix (SatisfyF2 :+: OrF2)
+exampleParser = In (R (OrF2 (In (L (SatisfyF2 (== 'a')))) (In (L (SatisfyF2 (== 'b'))))))
 \end{code}
 
 \noindent
 It would be beneficial if there was a way to add these |L|s and |R|s automatically. Fortunately there is a method using injections.
-The |:<:| type class captures the notion of subtypes between |Functor|s.
+The |:<:| type class captures the notion of subtypes between |IFunctor|s.
 
 \begin{code}
-class (Functor f, Functor g) => f :<: g where
-  inj :: f a -> g a
+class (IFunctor iF, IFunctor iG) => iF :<: iG where
+  inj :: iF f a -> iG f a
 
-instance Functor f => f :<: f where
+instance IFunctor iF => iF :<: iF where
   inj = id
 
-instance (Functor f, Functor g) => f :<: (f :+: g) where
+instance (IFunctor iF, IFunctor iG) => iF :<: (iF :+: iG) where
   inj = L
 
-instance (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
+instance (IFunctor iF, IFunctor iG, IFunctor iH, iF :<: iG) => iF :<: (iH :+: iG) where
   inj = R . inj
 \end{code}
 
@@ -450,47 +459,44 @@ instance (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
 Using this type class, smart constructors can be defined.
 
 \begin{code}
-inject :: (g :<: f) => g (Fix f) -> Fix f
+inject :: (iG :<: iF) => iG (IFix iF a) a -> IFix iF a
 inject = In . inj
 
-val :: (ValF2 :<: f) => Int -> Fix f
-val x = inject (ValF2 x)
+satisfy_2 :: (SatisfyF2 :<: iF) => (Char -> Bool) -> IFix iF Char
+satisfy_2 f = inject (SatisfyF2 f)
 
-mul :: (MulF2 :<: f) => Fix f -> Fix f -> Fix f
-mul x y = inject (MulF2 x y)
+or_2 :: (OrF2 :<: iF) => IFix iF a -> IFix iF a -> IFix iF a
+or_2 px py = inject (OrF2 px py)
 \end{code}
 
 \noindent
-Expressions can now be built using the constructors, such as |val 12 `mul` val 34|.
+Expressions can now be built using the constructors, such as |satisfy_2 (== 'a') `or_2` satisfy_2 (== 'b')|.
 
 A modular algebra can now be defined that provides an interpretation of this datatype.
 
 \begin{code}
-class Functor f => EvalAlg f where
-  evalAlg :: f Int -> Int
+newtype Size a = Size {unSize :: Int} deriving Num
 
-instance (EvalAlg f, EvalAlg g) => EvalAlg (f :+: g) where
-  evalAlg (L x) = evalAlg x
-  evalAlg (R y) = evalAlg y
+class IFunctor iF => SizeAlg iF where
+  sizeAlg :: iF Size a -> Size a
 
-instance EvalAlg MulF2 where
-  evalAlg (MulF2 x y) = x * y
+instance (SizeAlg iF, SizeAlg iG) => SizeAlg (iF :+: iG) where
+  sizeAlg (L x) = sizeAlg x
+  sizeAlg (R y) = sizeAlg y
 
-instance EvalAlg ValF2 where
-  evalAlg (ValF2 x) = x
+instance SizeAlg OrF2 where
+  sizeAlg (OrF2 px py) = px + py
 
-cata :: Functor f => (f a -> a) -> Fix f -> a
-cata alg (In x) = alg (fmap (cata alg) x)
+instance SizeAlg SatifyF2 where
+  sizeAlg (SatisfyF2 f) = 1
 
-eval :: EvalAlg f => Fix f -> Int
-eval = cata evalAlg
+eval :: SizeAlg iF => IFix iF a -> Size
+eval = icata sizeAlg
 \end{code}
 
-One benefit to this approach is that is an interpretation is only needed for expressions that only use |MulF| and |ValF|.
-If a new constructor such as |SubF| was added to the language and it would never be given to this fold, then it would not require an instance.
+One benefit to this approach is that is an interpretation is only needed for expressions that only use |OrF2| and |SatisfyF2|.
+If a new constructor such as |ApF2| was added to the language and it would never be given to this fold, then it would not require an instance.
 This helps to solve the expression problem.
-
-
 
 
 \section{Dependently Typed Programming}
@@ -514,7 +520,6 @@ data Nat = Zero
 
 \noindent
 A vector type can now be defined that makes use of the promoted |Nat| kind.
-
 
 \begin{code}
 data Vec :: Type -> Nat -> Type where
@@ -610,7 +615,6 @@ data HList (xs :: [Type]) where
 \todo[inline]{Add an example to get the length of a type list. Length needed later}
 
 \section{Existential Types}
-
 \todo[inline]{Existential Types}
 
 \section{Phantom Type Parameters}
