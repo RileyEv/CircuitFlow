@@ -369,8 +369,7 @@ icata alg (IIn x) = alg (imap (icata alg) x)
 
 
 \noindent
-The resulting type of |icata| is |f a|, therefore the |f| is a syntactic |Functor|.
-\todo{is this the right terminology?}
+The resulting type of |icata| is |f a|, therefore the |f| has kind |* -> *|.
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
 
@@ -495,7 +494,7 @@ This helps to solve the expression problem.
 
 
 \section{Dependently Typed Programming}
-Although Haskell does not officially support dependently typed programming, there are techniques available that together can be used to replicate the experience.
+Although Haskell does not officially support dependently typed programming, there are techniques available that together can be used to replicate some of the experience.
 
 \subsection{DataKinds Language Extension}
 
@@ -589,8 +588,9 @@ type family (a :: Nat) :+ (b :: Nat) where
   a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
 \end{code}
 
+
 \subsection{Summary}
-Together these features allow for dependently typed programming in Haskell:
+Together these features allow for dependently typed programming constructs in Haskell:
 
 \begin{itemize}
   \item DataKinds allow for values to be promoted to types
@@ -598,6 +598,26 @@ Together these features allow for dependently typed programming in Haskell:
   \item Type Families can be used to define functions that manipulate types.
 \end{itemize}
 
+\section{Heterogeneous Lists}\label{sec:bg-heterogeneous-lists}
+
+\begin{spec}
+data HList (xs :: [Type]) where
+  HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
+  HNil   :: HList (Q([]))
+\end{spec}
+
+\todo[inline]{Add an example of simple HList}
+\todo[inline]{Add an example to get the length of a type list. Length needed later}
+
+\section{Existential Types}
+
+\todo[inline]{Existential Types}
+
+\section{Phantom Type Parameters}
+\todo[inline]{Phantom type parameters}
+
+\section{Monadic Resource Theories}
+\todo[inline]{Monadic resource theories --- Symmetric Monoidal pre-orders.}
 
 \end{document}
 

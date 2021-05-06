@@ -2,7 +2,7 @@
 author={Riley Evans},
 supervisor={Dr. Meng Wang},
 degree={MEng},
-title={\vbox{Circuit: A Domain Specific Language for Dataflow Programming}},
+title={\vbox{CircuitFlow: A Domain Specific Language for Dataflow Programming}},
 subtitle={},
 type={research},
 year={2021}
@@ -18,6 +18,7 @@ year={2021}
 \usepackage{latexsym}
 \usepackage{acronym}
 \usepackage{listings}
+\usepackage{amssymb}
 
 
 \usepackage{subfiles} % load last

@@ -323,11 +323,54 @@ icataM7 algM (IIn7 x) = algM =<< imapM7 (icataM7 algM) x
 
 
 \subsection{BuildNetworkAlg}
+To use |icataM7| to fold a |Circuit| into a |BasicNetwork|, an algebra is required.
+However, a standard algebra will not be able to complete this transformation.
+Consider this example |Circuit| with two tasks executed in sequence.
+
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+example =  task1
+           <->
+           task2
+\end{code}
+\end{minipage}
+
+In a standard algebra both sides of the |Then| constructor would be evaluated.
+In this case it would produce two disjoint networks, both with their own input and output channels.
+The algebra for |Then|, would then need to join the output channels of task1 with the input channels of task2.
+However, it is not possible to join channels together.
+Instead, the output channels from task1 need to be accessible when creating task2.
+This is referred to as a \textit{context-sensitive} or \textit{accumulating} fold.
+
+To be able to have an accumulating fold, inside an indexed catamorphism a carrier data type is required to wrap up this function.
+This carrier, which shall be named |N|, contains a function that when given a network that has been accumulated up to that point,
+then it is able to produce a network including the next layer in a circuit.
+The type of the layer being folded will be |Circuit a b c d e f g|.
+\todo{this clear enough? maybe a diagram showing the layer and all the types}
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+newtype N n asS asT asA a b c d e f g = N
+  { unN :: n asS asT asA a b c -> IO (n asS asT asA d e f) }
+\end{code}
+\end{minipage}
+
+This newtype has 3 additional type parameters at the beginning, namely: |asS|, |asT|, |asA|.
+They represent the input types to the initial circuit.
+Since the accumulating fold will work layer by layer from the top downwards, these types will remain constant and never change throughout the fold.
+
+\paragraph{Classy Algebra}
+An algebra type class can now be defined.
+This will ensure that the approach remains with modular: a new instance can be made when adding a new constructor to the language.
 
 
 
 
-talk about accumulating fold and |N|
+
+
+
+
 
 \paragraph{InitialPipes}
 

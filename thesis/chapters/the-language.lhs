@@ -21,24 +21,27 @@ import Data.Kind (Type)
 For the design of the language to be considered a success, several criteria need to be met:
 
 \begin{itemize}
-  \item \textbf{Easy to build} --- This is critical to the success of the language, if it is not simple to use then no one will want to use it.
-        It is important that when defining an application the programmer has a clear understanding of how it will behave.
-  \item \textbf{Type-safe} --- A feature missing in many Python dataflow tools is the lack of type checking.
+  \item \textbf{Describe any dataflow} --- The combinators in the language should be able to describe any dataflow that the user needs.
+  \item \textbf{Quickness to Learn} --- The language should be quick and easy to learn.
+        If it takes users too long to learn, they may never bother, meaning that the language will never be used.
+  \item \textbf{Easy to write} --- A user should be able to write programs easily.
+        They should not have to spend time creating additional boilerplate code, where it is not necessary.
+  \item \textbf{Easy to understand} --- Any program written with this language should be easy to understand,
+        so that users can review existing code and know what it will do.
+  \item \textbf{Type-safe} --- A feature missing in many dataflow tools is the lack of type checking.
         This causes problems later on in the development process with more debugging and testing needed.
         The language should be type-safe to avoid any run-time errors occurring where types do not match.
 \end{itemize}
 
 \section{Tasks}
-Tasks are the core construct in the language.
+Dataflow programming focuses on the transforming inputs to outputs. To be able to transform inputs this language will make use of tasks.
 They are responsible for reading from an input data source, completing some operation on the input, then finally writing to an output data sink.
 Tasks could take many different forms, for example they could be:
 
 \begin{itemize}
-  \item A pure function - a function with type |a -> b|
-  \item An external operation - interacting with some external system. For example, calling a terminal command.
+  \item A pure function --- a function with type |a -> b|
+  \item An external operation --- interacting with some external system. For example, calling a terminal command.
 \end{itemize}
-
-\todo[inline]{Haskell is good for pure functions}
 
 
 A task could have a single input or multiple inputs, however, for now just a single input task will be considered.
@@ -46,6 +49,7 @@ Multi-input tasks are explained further in Sub-Section~\ref{sec:multi-input-task
 
 \subsection{Data Stores}\label{sec:data-stores}
 Data stores are used to pass values between different tasks, this ensures that the input and output of tasks are closely controlled.
+They are used to represent different ways of storing values: one example could be a point to a CSV file.
 A data store can be defined as a type class, with two methods |fetch| and |save|:
 
 \todo[inline]{Motivate further why a |DataStore| needs to exist --- prevents the user from reading from a source incorrectly.}
@@ -56,7 +60,7 @@ class DataStore f a where
   save   :: f a  ->  a -> IO (f a)
 \end{code}
 
-A |DataStore| is typed, where |f| is the type of |DataStore| being used and |a| is the type of the value stored inside it.
+A |DataStore| has two type parameters: where |f| is the type of |DataStore| being used and |a| is the type of the value stored inside it.
 The aptly named methods describe their intended function: |fetch| will fetch a value from a |DataStore|, and |save| will save a value.
 The |fetch| method takes a DataStore as input and will return the value stores inside.
 However, the |save| method may not be as self explanatory, since it has an extra |f a| argument.
@@ -64,7 +68,7 @@ This argument can be thought of as a pointer to a |DataStore|: it contains the i
 For example, in the case of a file store it could be the file name.
 
 
-By implementing as a type class, there can be many different implementations of a |DataStore|.
+By implementing this as a type class, there can be many different implementations of a |DataStore|.
 The library comes with several pre-defined |DataStore|s, such as a |VariableStore|.
 This can be though of as an in memory storage between tasks.
 
@@ -76,7 +80,8 @@ instance DataStore VariableStore a where
   save Empty x = return (Var x)
 \end{code}
 
-The |VariableStore| is the most basic example of a |DataStore|, a more complex example could be the aforementioned |FileStore|:
+The |VariableStore| is the most basic example of a |DataStore|, a more complex example is a |FileStore|,
+which represents a pointer to a file:
 
 \begin{code}
 newtype FileStore a = FileStore String
@@ -105,9 +110,9 @@ Some example expansions, could be supporting writing to a database table, or a H
 
 
 \subsection{Task Constructor}
-A task's type details the type of the input and outputs.
-It requires two arguments to the constructor, the function that will be invoked and an output |DataStore|.
-The constructor makes use of GADTs~\cite{10.1145/1160074.1159811} syntax so that constraints can be placed on the types used.
+The type of a task details the inputs and outputs.
+A task is created via a constructor that takes two arguments: the function it represents and somewhere to store the output.
+This constructor makes use of GADTs syntax~\cite{10.1145/1160074.1159811} so that constraints can be placed on the types used.
 It enforces that a |DataStore| must exist for the input and output types.
 This allows the task to make use of the |fetch| and |save| functions.
 
@@ -117,11 +122,11 @@ data Task (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
 \end{code}
 
 When a |Task| is executed the stored function is executed, with the input being passed in as the first argument and the output ``pointer'' as the second argument.
-This returns an output |DataStore| that can be passed on to another |Task|
+This returns an output |DataStore| that can be passed on to another |Task|.
 
 
 
-\section{Chains}\label{sec:lang-chains}
+\section{First Attempt: Chains}\label{sec:lang-chains}
 In a dataflow programming, one of the key aspects is the definition of dependencies between tasks in the flow.
 One possible approach to encoding this concept in the language is to make use of sequences of tasks --- also referred to as chains.
 These chains compose tasks, based on their dependencies. A chain can be modelled with an abstract datatype:
@@ -132,11 +137,17 @@ data Chain (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
   Then   ::  Chain  f  a  g  b  ->  Chain  g  b  h  c -> Chain f a h c
 \end{code}
 
+\todo[inline]{free moniod? maybe yes it looks like what eddie did...}
+
 %if style /= newcode
 %format >>> = ">\!\!>\!\!>"
 %endif
 
-This allows for a |Task| to be combined with others to form a chain. To make this easier to use a chain operator |>>>| can be defined:
+The |Chain| constructor allows for a |Task| to wrapped in the |Chain| data type. This allows for them to be easily composed with other |Tasks|.
+Without this there would need to be an ``empty'' element, however, this could lead to the construction of a chain with no tasks.
+The |Then| constructor is used to combine multiple chains to for a sequence of sequential tasks.
+To make this easier to use an operator |>>>| is defined that represents |Then|:
+
 
 \begin{code}
 (>>>) :: Chain f a g b -> Chain g b h c -> Chain f a h c
@@ -216,17 +227,17 @@ branchExample =  Pipe (Chain task1  >>> Chain  task2 >>> Chain task3)
 \label{fig:pipe-dataflow-example}
 \end{figure}
 
-There is, however, one problem with this approach.
-To be able to form a network similar to that shown in Figure~\ref{fig:pipe-dataflow-example},
+However, there is a problem with this approach: to be able to form a network similar to that shown in Figure~\ref{fig:pipe-dataflow-example},
 the language will need to know where to join two |Chain|s together.
 However, with the current definition of a Task, it is not possible to easily check the equivalence of two functions.
+Being able to check for equivalence will be key to defining a method to merge these chains together:
+it will need to match |task2| in the first chain with the |task2| in the second chain.
 Similarly, if a user wanted to use the same task multiple times, it would not be possible to differentiate between them.
+One approach to this would be to have unique identifiers for each task, such as PIDs.
 
 \paragraph{\acfp{PID}}
-This is where the concept of \acfp{PID} are useful.
-A Chain can be modified so that instead of storing a |Task| it instead stores a |PID|.
-The |PID| data type can make use of phantom type parameters, to retain the same information as a |Task|,
-whilst storing just an |Int| that can be used to identify it.
+A Chain can be modified so that instead of storing a |Task| it instead stores a |PID| --- a unique identifier for a task.
+However to do this a new |PID| data type is needed:
 
 %if style /= newcode
 %format Chain'
@@ -236,17 +247,25 @@ whilst storing just an |Int| that can be used to identify it.
 \begin{code}
 data PID (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
   PID :: Int -> PID f a g b
+\end{code}
 
+The |PID| data type has the same kind as a |Task| and makes use of phantom type parameters, to retain the same type information as a |Task|,
+whilst storing just an |Int| that can be used to identify it.
+
+\begin{code}
 data Chain' (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
   Chain'  ::  PID     f  a  g  b  ->  Chain'  f  a  g  b
   Then'   ::  Chain'  f  a  g  b  ->  Chain'  g  b  h  c -> Chain' f a h c
 \end{code}
 
-This however leaves a key question, how do |Task|s get mapped to |PID|s.
+This new version of |Chain| named |Chain'|, is almost identical in the way it behaves, however instead of storing a |Task|, it stores a |PID|.
+
+This, however, leaves a key question, how do |Task|s get mapped to |PID|s.
 This can be done by employing the State monad.
-This state stores a map from PID to task and a counter for PIDs.
-As |Task|s each have a different type again a new datatype is required to use existential types, so that just one type is stored in the map.
-By creating a type alias for the State monad, the |Workflow| monad can now be used.
+The state stores a map from PID to task and a counter for PIDs.
+As |Task|s each have a different type a new datatype is required to use existential types, to close over the types, and produce values of the same type.
+This is because a |Map| can only store one type.
+The |Workflow| monad is a type alias for the |State| monad, which stores the |WorkflowState|.
 
 \begin{code}
 data TaskWrap = forall f a g b. TaskWrap (Task f a g b)
@@ -259,7 +278,7 @@ data WorkflowState = WorkflowState {
 type Workflow = State WorkflowState
 \end{code}
 
-There is only one operation that is defined in the monad --- |registerTask|.
+An operation that is defined in the monad is |registerTask|.
 This takes a |Task| and returns a |Chain| that stores a |PID| inside it.
 Whenever a user would like to add a new task to the workflow, they register it.
 They can then use this returned value to construct multiple chains, which can now be joined easily by comparing the stored \ac{PID}.
@@ -272,17 +291,27 @@ One benefit to this approach is that if the user would like to use a task again 
 they can simply register it again and use the new PID value.
 
 \subsection{Evaluation}
-\paragraph{Easy to Build}
-The concept of chains are easy for a user to grapple with.
-Chains can be any length and represent paths along a dataflow graph.
-The chains can be any length that the user requires.
-This gives them the choice of how to structure the program.
-In one case they could specify a minimal number of chains that describe the dataflow graph.
-However, another approach from the user could be to just focus dependencies between each tasks,
-and specifying a chain for each edge in the dataflow graph.
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Describe any Dataflow}
+This method is capable of describing any dataflow, although in its current state, it can only support trees.
+The algorithm that would be used to join different chains together could be developed to allow them to rejoin onto another chain.
+This will allow for any \ac{DAG} to be defined.
 
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Quickness to Learn}
+With only 4 different combinators and the |Task| constructor, this language is very simple to learn.
+There are only two main concepts the user needs to understand: how to join tasks into a chain and how to join chains together.
 
-\paragraph{Type-safe}
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Write}
+Building chains is a very simple process, and allows the user to focus on the dependencies of one task.
+They do not need to be aware of the bigger picture.
+For example, adding a new |task5| that depends on |task2| in Figure~\ref{fig:pipe-dataflow-example}.
+The user will just need to add one extra chain |task5 >>> task2|, which will have no effect on the existing chains.
+
+\paragraph{$\text{\rlap{$\times$}}\square$ Easy to Read}
+Although it is easy to write chains, this could lead to messy definitions with no structure.
+This will make it harder for a user to interpret an already defined collection of chains.
+Its possible that they will need to draw out some of the dependencies to further understand what is already defined.
+
+\paragraph{$\text{\rlap{$\times$}}\square$ Type-safe}
 Although a |Chain| can be well typed, the use of existential types to join chains together pose a problem.
 This causes the types to be `hidden', this means that when executing these tasks, the types need to be recovered.
 This is possible through the use of |gcast| from the |Data.Typeable| library.
@@ -290,14 +319,21 @@ However, this has to perform a reflection at run-time to compare the types.
 There is the possibility that the types could not matching and this would only be discovered at run-time.
 There is a mechanism to handle the failed match case, however, this does not fulfil the criteria of being fully type-safe.
 
+\paragraph{Chains are not good enough}
+Chains do not satisfy some of the key requirements that this library set out to solve, such as type safety.
+This could lead to crashes at run-time as the compiler is not able to fully verify that the system type-checks.
+Another approach could be to look to category theory, for ways to compose functions together in a type-safe way.
 
-\section{Circuit}
-This approach was inspired by the parallel prefix circuits as described by Hinze~\cite{scans}.
+
+\section{Final Attempt: Circuit}
+This approach was inspired by the parallel prefix circuits as described by Hinze~\cite{scans}.\todo{maybe this is something to do with MRT??}
 It uses constructors similar to those used by Hinze to create a circuit that represents the \ac{DAG}, used in the dataflow.
 The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in a graph.
 
 
-\newcommand{\centered}[1]{\begin{tabular}{l} #1 \end{tabular}}
+% \newcommand{\centered}[1]{\begin{tabular}{l} #1 \end{tabular}}
+\todo[inline]{Opinions on way to draw DropL/R?? or do i change it to Drop, which aligns with MRT.}
+
 \begin{figure}[hbt]
 \centering
 \begin{subfigure}{0.4\textwidth}
@@ -352,15 +388,15 @@ To represent this it makes use of the |DataKinds| language extension~\cite{10.11
 Each parameter represents a certain piece of information needed to construct a circuit:
 
 \begin{itemize}
-\item |inputStorageTypes| is a type-list of storage types, for example |(Q([VariableStore, CSVStore]))|.
-\item |inputTypes| is a type-list of the types stored in the storage, for example |(Q([Int, [(String, Float)]]))|.
+\item |inputsStorageTypes| is a type-list of storage types, for example |(Q([VariableStore, CSVStore]))| --- these all have kind |* -> *|.
+\item |inputsTypes| is a type-list of the types stored in the storage, for example |(Q([Int, [(String, Float)]]))|.
 \item |inputsApplied| is a type-list of the storage types applied to the types stored, for example\\ |(Q([VariableStore Int, CSVStore [(String, Float)]]))|.
-\item |outputsStorageTypes|, |outputTypes| and |outputsApplied| mirror the examples above, but for the outputs instead.
+\item |outputsStorageTypes|, |outputsTypes| and |outputsApplied| mirror the examples above, but for the outputs instead.
 \item |nInputs| is a type-level Nat that is the length of the input lists.
 \end{itemize}
 
 In the language there are two different types of constructor, those that recurse and those that can be considered leaf nodes.
-The behaviour of both types of constructor is recorded within the types, using phantom type parameters~\cite{phantom_types}.
+The behaviour of both types of constructor is recorded within the types.
 For example, the |id| constructor has the type:
 
 \begin{spec}
@@ -368,20 +404,25 @@ id :: DataStore' (Q([f])) (Q([a])) => Circuit (Q([f])) (Q([a])) (Q([f a])) (Q([f
 \end{spec}
 
 It can be seen how the type information for this constructor states that it has 1 input value of type |f a| and it returns that same value.
-Some more interesting examples would be the |swap| and |replicate|:
+Each type parameter in |id| is a phantom type~\cite{phantom_types}, since there are no values stored in the data type that use the type parameters.
+The rest of the constructors that are leaf nodes are: |replicate|, |swap|, |dropL|, and |dropR|:
 
 \begin{spec}
 replicate  :: DataStore'  (Q([f]))     (Q([a]))     => Circuit  (Q([f]))     (Q([a]))     (Q([f a]))       (Q([f,  f]))  (Q([a, a]))  (Q([f  a,  f a]))  N1
 swap       :: DataStore'  (Q([f, g]))  (Q([a, b]))  => Circuit  (Q([f, g]))  (Q([a, b]))  (Q([f a, g b]))  (Q([g,  f]))  (Q([b, a]))  (Q([g  b,  f a]))  N2
+dropL      :: DataStore'  (Q([f, g]))  (Q([a, b]))  => Circuit  (Q([f, g]))  (Q([a, b]))  (Q([f a, g b]))  (Q([g]))      (Q([b]))     (Q([g  b]))        N2
+dropR      :: DataStore'  (Q([f, g]))  (Q([a, b]))  => Circuit  (Q([f, g]))  (Q([a, b]))  (Q([f a, g b]))  (Q([f]))      (Q([a]))     (Q([f  a]))        N2
 \end{spec}
 
 The |replicate| constructor states that a single input value of type |f a| should be input, and that value should then be duplicated and output.
 The |swap| constructor takes two values as input: |f a| and |g b|. It will then swap these values over, such that the output will now be: |g b| and |f a|.
+|dropL| will take two inputs: |f a| and |g b|. It will then drop the left argument and return just a |g b|.
+The |dropR| has the same behaviour as |dropL|, it just drops the right argument instead.
 
-All three of these constructors are leaf nodes in the \ac{AST}. To be able to make use of them they need to be combined in some way.
+To be able to make use of the leaf nodes, they need to be combined in some way.
 To do this two new constructors named `beside' and `then' will be used.
 However, before defining these constructors there are some tools that are required.
-This is due to the types no longer being concrete. \todo{might be a bit hand wavy description...? }
+This is due to the types no longer being concrete.
 For example, the input type list is no longer known: it can only be referred to as |fs| and |as|.
 This means it is much harder to specify the new type of the |Circuit|.
 
@@ -396,7 +437,7 @@ This means it is much harder to specify the new type of the |Circuit|.
 It would not be possible to use a new type variable |xs| for the |inputsApplied| parameter.
 This is because it needs to be constrained so that it is equivalent to |fs| applied to |as|.
 To solve this a new closed type family~\cite{10.1145/2535838.2535856} is created that is able to apply the two type lists together.
-This type family pairwise applies a list of types storing with kind |* -> *| to a list of types with kind |*| to form a new list containing types of kind |*|.
+This type family pairwise applies a list of types with kind |* -> *| to a list of types with kind |*| to form a new list containing types of kind |*|.
 For example, |Apply (Q([f, g, h])) (Q([a, b, c])) ~ (Q([f a, g b, h c]))|.
 
 
@@ -414,6 +455,7 @@ type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
 
 \paragraph{Append Type Family}
 There will also be the need to append two type level lists together.
+For example, |(Q([a, b, c])) :++ (Q([d, e, f])) ~ (Q([a, b, c, d, e, f]))|.
 To do this an append type family~\cite{10.1145/1017472.1017488} can be used:
 
 %format l'
@@ -424,11 +466,13 @@ type family (:++) (l1 :: [k]) (l2 :: [k]) :: [k] where
   (:++)  (e (Q(:)) l)  l' = e (Q(:)) (l :++ l')
 \end{spec}
 
+The |:++| type family is defined in the same way as the standard |++| function on value lists, however, it appends type lists together instead.
 This type family makes use of the language extension |PolyKinds|~\cite{10.1145/2103786.2103795} to allow for the append to be polymorphic on the kind stored in the type list.
 This will avoid defining multiple versions to append |fs| with |gs|, and |as| with |bs|.
 
 \paragraph{The `Then' Constructor}
 This constructor --- denoted by |<->| --- is used to stack two circuits on top of each other.
+It is used to encapsulate the idea of dependencies, between different circuits.
 Through types it enforces that the output of the top circuit is the same as the input to the bottom circuit.
 
 \begin{spec}
@@ -438,9 +482,16 @@ Through types it enforces that the output of the top circuit is the same as the 
   -> Circuit  fs  as  (Apply  fs  as)  hs  cs  (Apply  hs  cs)  nfs
 \end{spec}
 
+It employs a similar logic to function composition |(.) :: (a -> b) -> (b -> c) -> (a -> c)|.
+The resulting type from this constructor uses the input types from the first argument |fs as (Apply fs as)|,
+and the output types from the second argument |hs cs (Apply hs cs)|.
+It then forces the constrain that the output type of the first argument and the input type of the second are the same --- |gs bs (Apply gs bs)|.
+
+
 \paragraph{The `Beside' Constructor}
 Denoted by |<>|, the beside constructor is used to place two circuits side-by-side.
 The resulting |Circuit| has the types of left and right circuits appended together.
+
 
 \begin{spec}
 (<>) :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs, DataStore' is ds)
@@ -451,28 +502,36 @@ The resulting |Circuit| has the types of left and right circuits appended togeth
                (nfs :+ nhs)
 \end{spec}
 
-\subsection{Combined DataStores}
+This constructor works by making use of the |:++| type family to append the input and output type list of the left constructor to those of the right constructor.
+It also makes use of the |:+| type family --- defined in Section~\ref{sec:bg-type-families} --- to add the number of inputs from the left and right together.
+
+The |<>| constructor combined with the |id| constructor can be considered a Monoid at the behaviour level.
+However, due to the types on the constructors it is not possible to define a Monoid instance for |<>| in Haskell.
+\todo[inline]{Give example on the types as to why it isnt.}
+\todo[inline]{I think its a monoid in cat theory, but it isn't one in haskell. empty exists with id, but this would not conform to the types.}
+
+\subsection{Combined Data Stores}
+\todo[inline]{DataStore' does not need save' as it is never used in a task. Can only have 1 output.}
 
 %format HList'
 
 A keen eyed reader may notice that all of these constructors have not been using the original |DataStore| type class.
 Instead they have all used the |DataStore'| type class.
-This is a special case of a |DataStore|, it allows for them to also be defined over type lists, not just a single type.
-Combined DataStores make it easier for tasks to fetch from multiple inputs.
+This is a special case of a |DataStore|, allowing for constructors to also be defined over type lists, not just a single type.
+Combined data stores make it easier for tasks to fetch from multiple inputs.
 Users will just have to call a single |fetch'| function, rather than multiple.
+However, since tasks can only have one output, there is no need for a |save'| function, that would be able to save to multiple data stores.
 
-To be able to define |DataStore'|, heterogeneous lists~\cite{10.1145/1017472.1017488} are needed --- specifically three different forms.
-|HList| is as defined by TODO, |HList'| stores values of type |f a| and is parameterised by two type lists |fs| and |as|.
-|IOList| stores items of type |IO a| and is parameterised by a type list |as|. Their definitions are:
+To be able to define |DataStore'|, heterogeneous lists~\cite{10.1145/1017472.1017488} are needed --- specifically two different forms.
+|HList'| stores values of type |f a| and is parameterised by two type lists |fs| and |as|.
+|IOList| stores items of type |IO a| and is parameterised by a type list |as|.
+Using an |IOList| makes it easier to define a function that produces a list of IO computations.
+Their definitions are:
 
 %format HCons'
 %format HNil'
 
 \begin{spec}
-data HList (xs :: [Type]) where
-  HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
-  HNil   :: HList (Q([]))
-
 data HList' (fs :: [Type -> Type]) (as :: [Type]) where
   HCons'  :: f a -> HList' fs as -> HList' (f (Q(:)) fs) (a (Q(:)) as)
   HNil'   :: HList' (Q([])) (Q([]))
@@ -485,34 +544,37 @@ data IOList (xs :: [Type]) where
 Now that there is a mechanism to represent a list of different types, it is possible to define |DataStore'|:
 
 %format fetch'
-%format save'
 
 \begin{spec}
 class DataStore' (fs :: [Type -> Type]) (as :: [Type]) where
   fetch'  :: HList' fs as ->  IOList  as
-  save'   :: HList' fs as ->  HList   as -> IOList (Apply fs as)
 \end{spec}
 
-However, it would be cumbersome to ask the user to define an instance of |DataStore'| for every possible combination of data stores.
-Instead, it is possible to make use of the previous |DataStore| type class.
-To do this instances can be defined for |DataStore'| that make use of the existing |DataStore| instances:
+To save the user of the cumbersome task of having to define an instance of |DataStore'| for every possible combination of data stores,
+the instance is derived from the previous |DataStore| type class.
+This means that a user does not need to create any instances of |DataStore'|.
+They can instead focus on each single case, with the knowledge that they will automatically be able to combine them with other data stores.
 
 \begin{spec}
 instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' (Q([f])) (Q([a])) where
-  fetch'  (HCons' x    HNil')                 = IOCons  (fetch x)     IONil
-  save'   (HCons' ref  HNil') (HCons x HNil)  = IOCons  (save ref x)  IONil
+  fetch'  (HCons' x  HNil')  = IOCons  (fetch x)  IONil
 
 instance (DataStore f a, DataStore' fs as) => DataStore' (f (Q(:)) fs) (a (Q(:)) as)  where
-  fetch'  (HCons' x    xs)               = IOCons  (fetch uuid x)  (fetch' xs)
-  save'   (HCons' ref  rs) (HCons x xs)  = IOCons  (save ref x)    (save' rs xs)
+  fetch'  (HCons' x  xs)     = IOCons  (fetch x)  (fetch' xs)
 \end{spec}
 
-This means that a user does not need to create any instances of |DataStore'|.
-They can instead focus on each single case, with the knowledge that they will automatically be able to combine them with other |DataStore|s.
+One of these instances makes use of the |{-# OVERLAPPING #-}| pragma.
+In most cases the base case instance that would be defined is |DataStore' (Q([])) (Q([]))|.
+However, it does not makes sense to have an empty data store.
+Therefore, the base case is selected to be a list with one element |DataStore' (Q([f])) (Q([a]))|.
+This leads to a problem: GHC is unable to decide which instance to use.
+It could use either the |DataStore' (Q([f])) (Q([a]))| or the |DataStore' (f (Q(:)) (Q([]))) (a (Q(:)) (Q([])))| instance.
+The overlapping pragma tells GHC, that if it encounters this scenario, it should choose the one with the pragma.
+
 
 
 \subsection{Multi-Input Tasks}\label{sec:multi-input-tasks}
-With a |Circuit| it is possible to represent a \ac{DAG}.
+With a |Circuit|, it is possible to represent a \ac{DAG}.
 This means that a node in the graph can now have multiple dependencies, as seen in Figure~\ref{fig:multi-depen-task}.
 
 \begin{figure}[ht]
@@ -522,12 +584,8 @@ This means that a node in the graph can now have multiple dependencies, as seen 
 \label{fig:multi-depen-task}
 \end{figure}
 
-To support this a modification can be made to the |task| constructor.
-Rather than have an input value type of |f a|.
-It can now have an input value type of |HList' fs as|.
+To support this, a modification is made to the |task| constructor: rather than have an input value type of |f a|, it can now have an input value type of |HList' fs as|.
 The function executed in the task can now use |fetch'| to fetch all inputs with one function call.
-
-\todo[inline]{What is Length???}
 
 \begin{spec}
 task :: (DataStore' fs as, DataStore g b)
@@ -535,6 +593,8 @@ task :: (DataStore' fs as, DataStore g b)
   -> g b
   -> Circuit fs as (Apply fs as) (Q([g])) (Q([b])) (Q([g b])) (Length fs)
 \end{spec}
+
+Now that the length of the inputs is unknown, in order to specify the |nInputs| type parameter, the |Length| type family defined in Section~\ref{sec:bg-heterogeneous-lists} must be used. This will return a type-level |Nat|, which is the length of the input array |fs|.
 
 \paragraph{Smart Constructors}
 There could be many times that the flexibility provided by defining your own tasks from scratch could cause a large amount of boiler plate code.
@@ -584,20 +644,41 @@ monadic resource theories.
 
 \subsection{Evaluation}
 
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Describe any Dataflow}
+Due to the use of constructors which align with a symmetric monoidal pre-order,
+it can be concluded that it is possible to define any \ac{DAG} needed for a dataflow.
+\todo[inline]{I can't find anything to cite that discusses this though :(, but afaik i cannot find a scenario that cannot be made...}
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Quickness to Learn}
+The language uses, combinators that also have a visual representation, this makes it easy to quickly understand how they all work.
+A user can then also benefit from the familiarity of using the host language Haskell.
+
+\paragraph{$\text{\rlap{\hspace{1mm}-}}\square$ Easy to Write}
+Building a circuit is a more difficult task: to be able to define it the user needs to have an understanding of the shape of the dataflow diagram.
+One the user has a sketch for the dataflow they would like to create, translating to a circuit is a much simpler job.
+This creates more upfront work for the user, however, it is offset by the additional benefits that a circuit brings.
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Read}
+Due to the graphical nature of the constructors, it is relatively simple to build up a picture of how an existing circuit works.
+The user is able to infer the shape of the dataflow diagram easily by working their way down a circuit from top to bottom,
+and visualising how different tasks are connected.
+It could also be possible to pretty print a circuit to recreate the dataflow diagram --- although this has not been implemented.
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Type-safe}
+One key benefit that a |Circuit| brings is that constructing them uses strong types.
+Each constructor encodes its behaviour within the types.
+This allows the GHC type checker to validate a |Circuit| at compile-time, to ensure that each task is receiving the correct values.
+This avoids the possibility of crashes are run-time, where types do not match correctly.
+There is, however, a consequence of this type-safety: the user now needs to add some explicit types on a |Circuit| to help the type checker.
+
+
 \paragraph{Easy to Build}
 A |Circuit| focuses on the transformations that are made to edges on a graph.
 This can be beneficial to the user as it is the edges in a dataflow diagram that encode dependencies between tasks.
 Although circuits may initially appear complex, there is a relatively simple process that can be used to construct them.
 By hand-drawing a dataflow diagram, a circuit can always be constructed that closely mirrors this diagram.
 This means that the user can easily visualise what is happening inside a circuit.
-In fact it could be possible to pretty print a circuit to recreate this diagram --- although this has not been implemented.
 
-\paragraph{Type-safe}
-One key benefit that a |Circuit| brings is that constructing them uses strong types.
-Each constructor encodes its behaviour within the types.
-This allows the GHC type checker to validate a |Circuit| at compile-time, to ensure that each task is receiving the correct values.
-This avoids the possibility of crashes are run-time, where types do not match correctly.
-There is, however, a consequence of this type-safety: the user now needs to add some explicit types on a |Circuit| to help the type checker.
 
 
 \end{document}
