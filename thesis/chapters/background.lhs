@@ -574,7 +574,7 @@ vecLength2 (Cons x xs)  = SSucc (vecLength2 xs)
 \end{code}
 
 
-\subsection{Type Families}
+\subsection{Type Families}\label{sec:bg-type-families}
 Now consider the possible scenario of appending two vectors together.
 How would the type signature look? This leads to the problem where two type-level |Nat|s need to be added together.
 This is where Type Families~\cite{10.1145/1411204.1411215} become useful, they allow for the definition of functions on types.
@@ -604,15 +604,92 @@ Together these features allow for dependently typed programming constructs in Ha
 \end{itemize}
 
 \section{Heterogeneous Lists}\label{sec:bg-heterogeneous-lists}
+Heterogeneous lists are a way of having multiple types in the same list.
+Rather than be parameterised by a single type, they instead make use of a type list, which when the list type is promoted through DataKinds to be a kind.
+Each element in the type list aligns with the value at that position in the list.
+A heterogeneous list can be defined as:
 
 \begin{spec}
 data HList (xs :: [Type]) where
-  HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
   HNil   :: HList (Q([]))
+  HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
 \end{spec}
 
-\todo[inline]{Add an example of simple HList}
-\todo[inline]{Add an example to get the length of a type list. Length needed later}
+This data type has two constructors:
+\begin{itemize}
+  \item |HNil| represents the empty list. The type parameter is the empty type list |(Q([]))|
+  \item |HCons| allows a new element to be added to the list. The type parameter is the type of the item inserted consed onto the front of the types of the tail of the list.
+\end{itemize}
+
+\subsection{Functions on HLists}
+
+\paragraph{Length}
+It is possible to get the length of a HList in a type-safe way, using singletons and type families.
+Firstly, lets define a type family that is able to return the length of a type list.
+
+\begin{code}
+type family Length (l :: [k]) :: Nat where
+  Length (Q([]))       =  (Q(Zero))
+  Length (e (Q(:)) l)  =  (Q(Succ)) (Length l)
+\end{code}
+
+The base case of |Length| defines the length to be |(Q(Zero))|.
+The recursive case increments the length by 1 for each item in the list, until it reaches the base case.
+
+Now a function can be defined that returns the length of a |HList|:
+
+\begin{code}
+length :: HList xs -> SNat (Length xs)
+length HNil          = SZero
+length (HCons _ xs)  = SSucc (length xs)
+\end{code}
+
+This follows the same structure as the |Length| type family, however instead, of working with types it uses singleton values.
+
+\paragraph{Take}
+Another function that may be helpful with |HList|s is |take|.
+This will return the first n items from the list.
+If n is larger than the length of the list, then the whole list will be returned.
+Again, to be able to do this a new type family is needed -- |Take|:
+
+\begin{code}
+type family Take (n :: Nat) (l :: [k]) :: [k] where
+  Take (Q(Zero))      l             =  (Q([]))
+  Take ((Q(Succ)) n)  (Q([]))       =  (Q([]))
+  Take ((Q(Succ)) n)  (e (Q(:)) l)  =  e (Q(:)) Take n l
+\end{code}
+
+The type family follows the same definition as the standard |take :: Int -> [a] -> [a]| as defined in the |Prelude|.
+
+\begin{code}
+take :: SNat n -> HList xs -> HList (Take n xs)
+take SZero      l             = HNil
+take (SSucc n)  HNil          = HNil
+take (SSucc n)  (HCons x xs)  = HCons x (take n xs)
+\end{code}
+
+Similar to the |length| function, |take| follows the same structure as the type family.
+
+\paragraph{Drop}
+The final function needed on |Hlist|s is one that can drop the first n elements.
+The |Drop| type family can be defined as:
+
+\begin{code}
+type family Drop (n :: Nat) (l :: [k]) :: [k] where
+  Drop  (Q(Zero))      l             = l
+  Drop  ((Q(Succ)) _)  (Q([]))       = (Q([]))
+  Drop  ((Q(Succ)) n)  (_ (Q(:)) l)  = Drop n l
+\end{code}
+
+The |Drop| type family also closely follows the definition of |drop :: Int -> [a] -> [a]| from the |Prelude|.
+
+\begin{code}
+drop :: SNat n -> HList xs -> HList (Drop n xs)
+drop SZero l = l
+drop (SSucc _) HNil = HNil
+drop (SSucc n) (HCons _ xs) = drop n xs
+\end{code}
+
 
 \section{Existential Types}
 \todo[inline]{Existential Types}
