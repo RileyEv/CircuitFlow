@@ -10,9 +10,9 @@
 \long\def\ignore#1{}
 \ignore{
 \begin{code}
-{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances, DataKinds, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeFamilies, PolyKinds #-}
+{-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances, DataKinds, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeFamilies, PolyKinds, GeneralizedNewtypeDeriving #-}
 module Background where
-import Prelude hiding (or)
+import Prelude hiding (or, length, take, drop)
 import Data.Kind (Type)
 \end{code}
 }
@@ -420,7 +420,7 @@ data OrF2 f a where
   OrF2 :: f a -> f a -> OrF2 f a
 
 instance IFunctor SatisfyF2 where
-  imap f (SatisfyF2 f) = SatisfyF2 f
+  imap f (SatisfyF2 g) = SatisfyF2 g
 
 instance IFunctor OrF2 where
   imap f (OrF2 px py) = OrF2 (f px) (f py)
@@ -433,8 +433,8 @@ By using |IFix| to tie the recursive knot, the |IFix (SatisfyF2 :+: OrF2)| data 
 One problem that now exist, however, is that it is now rather difficult to create expressions, lets revisit the simple example of a parser for |'a'| or |'b'|.
 
 \begin{code}
-exampleParser :: IFix (SatisfyF2 :+: OrF2)
-exampleParser = In (R (OrF2 (In (L (SatisfyF2 (== 'a')))) (In (L (SatisfyF2 (== 'b'))))))
+exampleParser :: IFix (SatisfyF2 :+: OrF2) Char
+exampleParser = IIn (R (OrF2 (IIn (L (SatisfyF2 (== 'a')))) (IIn (L (SatisfyF2 (== 'b'))))))
 \end{code}
 
 \noindent
@@ -459,8 +459,8 @@ instance (IFunctor iF, IFunctor iG, IFunctor iH, iF :<: iG) => iF :<: (iH :+: iG
 Using this type class, smart constructors can be defined.
 
 \begin{code}
-inject :: (iG :<: iF) => iG (IFix iF a) a -> IFix iF a
-inject = In . inj
+inject :: (iG :<: iF) => iG (IFix iF) a -> IFix iF a
+inject = IIn . inj
 
 satisfy_2 :: (SatisfyF2 :<: iF) => (Char -> Bool) -> IFix iF Char
 satisfy_2 f = inject (SatisfyF2 f)
@@ -487,10 +487,10 @@ instance (SizeAlg iF, SizeAlg iG) => SizeAlg (iF :+: iG) where
 instance SizeAlg OrF2 where
   sizeAlg (OrF2 px py) = px + py
 
-instance SizeAlg SatifyF2 where
+instance SizeAlg SatisfyF2 where
   sizeAlg (SatisfyF2 f) = 1
 
-eval :: SizeAlg iF => IFix iF a -> Size
+eval :: SizeAlg iF => IFix iF a -> Size a
 eval = icata sizeAlg
 \end{code}
 
@@ -609,11 +609,11 @@ Rather than be parameterised by a single type, they instead make use of a type l
 Each element in the type list aligns with the value at that position in the list.
 A heterogeneous list can be defined as:
 
-\begin{spec}
+\begin{code}
 data HList (xs :: [Type]) where
   HNil   :: HList (Q([]))
   HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
-\end{spec}
+\end{code}
 
 This data type has two constructors:
 \begin{itemize}
@@ -692,10 +692,68 @@ drop (SSucc n) (HCons _ xs) = drop n xs
 
 
 \section{Existential Types}
-\todo[inline]{Existential Types}
+Typically, when defining a data type in Haskell, every type variable that exists on the right hand side of the equals, must also be on the left hand side.
+For example, this is not allowed:
+
+\begin{spec}
+newtype Bad = Bad a
+\end{spec}
+
+Existential types are a way to allow this to happen, for example:
+
+\begin{code}
+data Good = forall a. Good a
+\end{code}
+
+One benefit of existential types is that the type variable no longer needs to be on the left hand side of the equals.
+
+There is however, one problem with this approach, the variable will be a random unknown type.
+To avoid this problem constraints are typically added to the signature, so that there can be a set of functions that work with that variable.
+For example, the variable could have the |Show| constraint, so that we are able to use the |show| function with it:
+
+\begin{code}
+data Showy = forall a. Show a => Showy a
+\end{code}
+
+It would now be possible to build a list of items that can use the |show| function.
+
+\begin{code}
+showList :: [Showy]
+showList = [Showy 123, Showy "abc"]
+\end{code}
+
+This list can now store any value with a |Show| instance defined, by wrapping it in the |Showy| constructor.
 
 \section{Phantom Type Parameters}
-\todo[inline]{Phantom type parameters}
+Phantom type parameters could be considered the opposite of existential types.
+This is when a type variable only appears on the left hand side of the equals.
+The most basic example is |Const|, it has two type arguments, but only |a| is used on the right hand side:
+
+\begin{code}
+newtype Const a b = Const a
+\end{code}
+
+
+Phantom type parameters can be used to store information in the types, which can act as further static constraints on the types.
+Consider an example revolving around locking doors: it should not be possible to lock a door that is open, first it has to be closed and then it can be locked.
+The state of the door can be represented by a data type that is promoted to a kind with the DataKinds extension.
+A door can be represented as a type with a phantom type variable, with kind |DoorState| that record the state of the door:
+
+\begin{code}
+data DoorState = Open | Closed | Locked
+
+data Door (state :: DoorState) where
+  Door :: Door state
+\end{code}
+
+It would then be possible to define functions that can close and lock doors:
+
+\begin{spec}
+closeDoor :: Door (Q(Open)) -> Door (Q(Closed))
+lockDoor :: Door (Q(Closed)) -> Door (Q(Locked))
+\end{spec}
+
+The |closeDoor| function, enforces that only an open door can be given as input, similarly |lockDoor| prevents an open door from being locked.
 
 \section{Monadic Resource Theories}
 \todo[inline]{Monadic resource theories --- Symmetric Monoidal pre-orders.}
