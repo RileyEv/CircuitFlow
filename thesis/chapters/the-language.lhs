@@ -175,7 +175,7 @@ This results in a tasks output being given to multiple tasks, rather than just 1
 To do this a new abstract datatype is required.
 This will be used to form a list of |Chain|s, conventionally the |[]| type would be used,
 however this is not possible as each chain will have a different type.
-This means that existential types will need to be used.~\todo{cite where this comes from?}
+This means that existential types will need to be used.
 
 \begin{code}
 data Pipe where
@@ -326,9 +326,10 @@ Another approach could be to look to category theory, for ways to compose functi
 
 
 \section{Final Attempt: Circuit}
-This approach was inspired by the parallel prefix circuits as described by Hinze~\cite{scans}.\todo{maybe this is something to do with MRT??}
-It uses constructors similar to those used by Hinze to create a circuit that represents the \ac{DAG}, used in the dataflow.
-The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in a graph.
+This approach is inspired by monadic resource theory, which has a collection of mathematical operators for composing functions together.
+It uses parallel prefix circuits, described by Hinze~\cite{scans}, as a starting point for the design of the combinators.
+A set of constructors can be defined that are used to represent a \ac{DAG}.
+The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in the graph.
 
 \begin{figure}[hbt]
 \centering
@@ -677,15 +678,6 @@ Each constructor encodes its behaviour within the types.
 This allows the GHC type checker to validate a |Circuit| at compile-time, to ensure that each task is receiving the correct values.
 This avoids the possibility of crashes are run-time, where types do not match correctly.
 There is, however, a consequence of this type-safety: the user now needs to add some explicit types on a |Circuit| to help the type checker.
-
-
-\paragraph{Easy to Build}
-A |Circuit| focuses on the transformations that are made to edges on a graph.
-This can be beneficial to the user as it is the edges in a dataflow diagram that encode dependencies between tasks.
-Although circuits may initially appear complex, there is a relatively simple process that can be used to construct them.
-By hand-drawing a dataflow diagram, a circuit can always be constructed that closely mirrors this diagram.
-This means that the user can easily visualise what is happening inside a circuit.
-
 
 
 \end{document}

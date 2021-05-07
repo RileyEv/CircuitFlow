@@ -292,9 +292,9 @@ For example, a parser reading tokens that make up an expression could have the t
 A |Functor| does not retain this type information needed in a parser.
 
 \paragraph{IFunctors}
-Instead a type class called |IFunctor| --- also known as |HFunctor| --- can be used, which is able to maintain the type indicies~\cite{mcbride2011functional}.
-This makes use of |~>|, which represents a natural transformation from |f| to |g|.
-|IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it~\cite{lane1998categories}.
+Instead a type class called |IFunctor| --- also known as |HFunctor| --- can be used, which is able to maintain the type indicies~\cite{10.1145/2036918.2036930}.
+This makes use of |~>|, which represents a natural transformation~\cite{lane1998categories} from |f| to |g|.
+|IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 Whereas a functor changes the values inside a structure.
 
 % \todo{cite this https://strathprints.strath.ac.uk/33726/1/ghani_popl08.pdf}
@@ -692,7 +692,6 @@ drop (SSucc n) (HCons _ xs) = drop n xs
 
 
 \section{Existential Types}
-\todo[inline]{cite}
 Typically, when defining a data type in Haskell, every type variable that exists on the right hand side of the equals, must also be on the left hand side.
 For example, this is not allowed:
 

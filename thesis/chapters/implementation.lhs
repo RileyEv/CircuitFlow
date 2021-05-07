@@ -6,7 +6,7 @@
 \begin{document}
 
 
-\chapter{Implementation}\label{chap:intro}
+\chapter{Implementation}\label{chap:implementation}
 
 \section{Requirements}
 The implementation of the network itself has several requirements that are separate from the language design:
@@ -51,20 +51,20 @@ class IFunctor7 iF where
 |IFunctor7| follows a similar structure to a standard |IFunctor|, it just has 7 type indicies instead.
 This indexed functor can be used to mark the recursive points of the data types used to construct the |Circuit| \ac{AST}.
 
+\noindent\begin{minipage}{\linewidth}
 However, any data type that is converted to use an |IFunctor7|, will need a way to tie the recursive knot.
 A new type called |IFix7| can be used, it will follow a similar pattern to |IFix|, but with 7 type indicies.
 
 \begin{code}
 newtype IFix7 iF a b c d e f g = IIn7 (iF (IFix7 iF) a b c d e f g)
 \end{code}
+\end{minipage}
 
 
-\subsection{Type-Indexed Data Types \`{a} la Carte}
-\todo[inline]{Shift this section to focus on adding 7 arguments rather than just the 1.}
-To build the \ac{AST}, the data types \`{a} la carte\todo{cite} approach is taken.
+\subsection{Indexed Data Types \`{a} la Carte}
+To build the \ac{AST}, the data types \`{a} la carte~\cite{swierstra_2008} approach is taken.
 This allows for a modular approach, making the library more extendable later on.
-To be able to use this approach, it needs to be modified to support indexed functors.
-This modification, changes them to take an indexed functor with 7 type indicies --- |a| through to |g|:
+To be able to use this approach, it needs to be modified to support the 7 type indicies --- |a| through to |g|:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -140,12 +140,11 @@ infixr 4 <->
 \end{minipage}
 
 The constructor adds one extra constraint, to the constructor defined in Section~\ref{sec:lang-circuit-constructors} --- |Then :<: iF|.
-This allows the smart constructor to produce an node in the \ac{AST} for any co-product of data types, that includes the |Then| data type.
+This allows the smart constructor to produce an node in the \ac{AST} for any sum of data types, that includes the |Then| data type.
 
 
 \paragraph{Representing a Circuit}
 Once each constructor has been defined then they can be combined together to form the |CircuitF| type, which can be used to represent a circuit.
-\todo{combined = co-product}
 \begin{code}
 type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task :+: Map
 \end{code}
@@ -194,8 +193,7 @@ This type class requires that a network has 4 different functions:
   \item |read| should retrieve some output values from the network.
 \end{itemize}
 
-\paragraph{Interaction with Network}
-\todo[inline]{Should I add an example of how to use it?}
+Examples of how to use a network are included in Chapter~\ref{chap:examples}.
 
 \subsection{The Basic Network Representation}
 An implementation of the Network typeclass is a |BasicNetwork|.
@@ -252,7 +250,7 @@ The |writePipes| function will input a list of values into each of the respectiv
 The |readPipes| function will make a blocking call to each channel to read an output from it.
 This function will block till an output is read from every output channel.
 
-\todo[inline]{Should I add the definition of these?}
+\todo[inline]{add a definition of these}
 
 \section{Translation to a Network}\label{sec:circuit-translation}
 
@@ -267,24 +265,15 @@ The current definition for the fold |icata7| is not able perform monadic computa
 To solve this |unsafePerformIO| could be used, however, for this to be safe the |IO| computation needs to have no side-effects.
 This fold will violate this rule, therefore, the only other way to support this is to modify the catamorphism to support monadic computation.
 
-\subsection{Indexed Monadic Catamorphism --- icataM}
-\todo[inline]{Shift to adding more type indicies, icataM exists in compdata}
-
-Although a monadic catamorphism exists~\cite{monadic_cata}, this still has the same prior issues noted in Section~\ref{sec:higher-order-functors}.
-It lacks the ability retain type arguments of the abstract data type that is being folded.
-
-\noindent\begin{minipage}{\linewidth}
-\begin{code}
-cataM :: (Traversable f, Monad m) => (forall a . f a -> m a) -> Fix f -> m a
-cataM algM (In x) = algM =<< mapM (cataM algM) x
-\end{code}
-\end{minipage}
-
-To solve the problem of not retaining types, an indexed monadic catamorphism will be introduced.\todo{Check this doesn't exist somewhere..}
-However, to be able to define such a fold, a indexed monadic map is required.
-This will be added by extending the |IFunctor7| instance to also include a function named |imapM7|.
+\subsection{Indexed Monadic Catamorphism}
 
 %format imapM7
+
+An indexed monadic catamorphism can be used to perform this fold: it will allow for monadic computation within the algebra.
+However, |icataM| needs to be modified to support the 7 type indicies needed.
+The first step is to define a monadic |imap| that supports the needed number of type indicies.
+This will be added by extending the |IFunctor7| instance to also include a function named |imapM7|.
+
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -296,7 +285,8 @@ class IFunctor7 iF where
 \end{code}
 \end{minipage}
 
-The definition for this new function |imapM7| for each instance closely follows the non-monadic version.
+The definition for this new function |imapM7| for each instance closely follows the non-monadic version, however,
+now has a monadic function to map on the input.
 Here is the definition of the new |IFunctor7| instance for |Beside|:
 
 %format l'
@@ -313,7 +303,9 @@ instance IFunctor7 Beside where
 \end{code}
 \end{minipage}
 
-Now that there is a indexed monadic map, it is possible to define the a monadic catamorphism for indexed functors:
+The definition is intuitively the same, just using do-notation instead.
+
+Now that there is a indexed monadic map, it is possible to define the a monadic catamorphism for an |IFunctor7|:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -325,6 +317,7 @@ icataM7 algM (IIn7 x) = algM =<< imapM7 (icataM7 algM) x
 \end{code}
 \end{minipage}
 
+|icataM7| is almost identical to |icataM|, however, it makes use of |imapM7| instead of |imapM|.
 
 \subsection{BuildNetworkAlg}
 To use |icataM7| to fold a |Circuit| into a |BasicNetwork|, an algebra is required.

@@ -6,7 +6,7 @@
 
 \begin{document}
 
-\chapter{Examples}\label{chap:intro}
+\chapter{Examples}\label{chap:examples}
 
 % \section{How to build a Circuit}
 % car manufacturer example
@@ -116,12 +116,12 @@ top10Task filename = functionTask (take 10) (NamedCSVStore filename)
 \end{spec}
 \end{minipage}
 
+The |top10Task| takes an input list and then returns the first 10 from the list.
 
 Now that all of the tasks have been defined, they need to be combined into a circuit.
 The dataflow diagram seen in Figure~\ref{fig:example-song-pre-proc}, will prove to be helpful.
 The first obvious problem is how to create a circuit that can achieve the top part of the diagram, transforming the inputs so that they can be passed into two tasks.
-This can be dealt with in layers.
-Using the diagrams associated with each constructor, it is possible to convert a layer into a composition of |Circuit|s.
+This can be dealt with in layers: using the diagrams associated with each constructor, it is possible to convert a layer into a composition of |Circuit|s.
 The first layer, seen in Figure~\ref{fig:example-song-layer1} will be responsible for duplicating each of the three inputs.
 
 \begin{figure}[ht]
@@ -167,6 +167,7 @@ layer2 = id <> swap <> swap <> id
 \label{fig:example-song-layer2}
 \end{figure}
 
+\newpage % force it so the stuff below stays grouped with the figure
 
 The final layer, seen in Figure~\ref{fig:example-song-layer3}, will swap month 1 with month 3.
 
@@ -233,22 +234,19 @@ Again it is possible to build a circuit that combines with the pre-processing ci
 
 The audio company train models for each user and store them in a cloud storage service.
 This would be a good use-case for creating a new |DataStore| --- called a |ModelStore|.
-Here is a sketch for how a |ModelStore| could be defined and used.
 
-\begin{spec}
-data NewSongsPlaylist = NewSongsPlaylist
-
-data ModelStore a = ModelStore a
-\end{spec}
-
-A new |DataStore| instance can be defined for each different |Model|. Here is the |NewSongsPlaylist| as an example
+Say that there are two types defined |ModelStore| and |NewSongPlaylist|: a new |DataStore| instance can be defined for each different model.
+Here is the |NewSongsPlaylist| as an example:
 
 \begin{spec}
 instance DataStore ModelStore NewSongsPlaylist where
   -- Fetch from cloud storage and load into the program
-  fetch  uuid (ModelStore NewSongsPlaylist)    = ...
-  save   uuid (ModelStore NewSongsPlaylist) _  = error "not a valid action"
+  fetch  (ModelStore NewSongsPlaylist)    = ...
+  save   (ModelStore NewSongsPlaylist) _  = ...
 \end{spec}
+
+|fetch| is used to download a trained model from the cloud store.
+|save| will be used when training a new model, it will allow the model to be saved for use in the future.
 
 With this |DataStore| a new task can be defined that will, take a users top 10 songs and artists, and a model as input.
 It will then output a list of songs to create a playlist.
@@ -276,17 +274,21 @@ predictTask = multiInputTask f (NamesCSVStore "newSongsPlaylist.csv")
 The |predictTask| can now be combined with the pre-processing circuit to create a circuit that is able to create a new playlist from listening history.
 
 \begin{spec}
-createPlaylist = preProcPipeline <> id
-                 <->
-                 predictTask
+createPlaylist =  preProcPipeline <> id
+                  <->
+                  predictTask
 \end{spec}
 \end{minipage}
 
+The |createPlaylist|, circuit can now be converted into a |Network| and used on user data to generate new playlists, based on their top songs.
+|preProcPipeline| will be revisited in Chapter~\ref{chap:evaluation}, to act as a benchmark to compare the performance of the CircuitFlow library.
 
-\section{lhs2TeX Build System}
-One use case for a task based dependency system is a build system.
+
+
+\section{Build System (lhs2TeX)}
+Another use case for a task based dependency system is a build system.
 For example, a Makefile is a way of specifying the target files from some source files, with a command that can be used to generate the target file.
-A Circuit could also be used to model such a system.
+CircuitFlow: could also be used to model such a system.
 
 Consider this dissertation, which is made using \LaTeX.
 This project is made up of multiple subfiles, each written in a literate Haskell format.
@@ -295,8 +297,8 @@ Once each of these files has been generated, then the \LaTeX project can be buil
 
 
 \subsection{Building the Circuit}
-A |Circuit| that makes use of the |mapC| operator can be used here.
-To do so a |Circuit| can be defined that is able to build a single \texttt{.tex} file from a \texttt{.lhs}.
+The |Circuit| defined here makes use of the |mapC| operator.
+To do so a |Circuit| is defined that is able to build a single \texttt{.tex} file from a \texttt{.lhs}.
 This has to make use of the standard |task| constructor:
 
 %format HList'
@@ -371,6 +373,8 @@ buildDiss name =  mapC buildLhsTask Empty
 \end{spec}
 \end{minipage}
 
+|mapC| takes two arguments, the inner circuit to execute and a pointer to the location it should store its results.
+In this case the output data store is a |VariableStore|, therefore, the pointer to this location is just an |Empty| variable.
 
 
 \subsection{Using the Circuit}
@@ -379,7 +383,26 @@ A call is then made to read the output from the network, this ensures that the n
 Finally the network is stopped and all threads created are terminated.
 
 This example makes use of a YAML configuration file to specify that aligns with the |Config| data type.
+An example config file can be seen in Figure~\ref{fig:examples-lhs2tex-config-file}.
 Its purpose is to detail the files that will be included within the build.
+
+\begin{figure}[ht]
+\centering
+\begin{lstlisting}
+mainFile: dissertation.lhs
+outputName: dissertation
+lhsFiles: [dissertation.lhs
+         , chapters/introduction.lhs
+         , chapters/background.lhs
+         , chapters/the-language.lhs
+         , chapters/implementation.lhs
+         , chapters/evaluation.lhs
+         , chapters/examples.lhs]
+\end{lstlisting}
+\caption{An example config file for the lhs2TeX build system}
+\label{fig:examples-lhs2tex-config-file}
+\end{figure}
+
 
 \noindent\begin{minipage}{\linewidth}
 \begin{spec}
@@ -394,6 +417,7 @@ loadConfig :: IO Config
 loadConfig = loadYamlSettings ["dissertation.tex-build"] [] ignoreEnv
 \end{spec}
 \end{minipage}
+
 
 \noindent\begin{minipage}{\linewidth}
 \begin{spec}
@@ -411,7 +435,19 @@ main = do
 \end{spec}
 \end{minipage}
 
-In fact, this dissertation is actually built with this system.
+The |main| function in the build system has 5 steps:
+
+\begin{enumerate}
+  \item The config file is loaded.
+  \item A network is started based on the |buildDiss| circuit.
+        The type of network to be started has to be annotated, so that the type system knows which |Network| instance to use.
+  \item The build job is input into the network, with the input values being a list of \texttt{.lhs} files to compile.
+  \item A call is made to the blocking function |read|, although the outputs are not needed, the call to |read| is.
+        This prevents the program ending before the network has complete processing values.
+  \item Finally, the network is destroyed.
+\end{enumerate}
+
+This dissertation makes use of this build system to be able include literate Haskell files.
 
 
 \section{Types saving the day}
