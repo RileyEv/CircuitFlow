@@ -292,7 +292,7 @@ For example, a parser reading tokens that make up an expression could have the t
 A |Functor| does not retain this type information needed in a parser.
 
 \paragraph{IFunctors}
-Instead a type class called |IFunctor| --- also known as |HFunctor| --- can be used, which is able to maintain the type indicies~\cite{10.1145/2036918.2036930}.
+Instead a type class called |IFunctor|~\cite{mcbride2011functional} --- also known as |HFunctor|~\cite{10.1145/1328438.1328475} --- can be used, which is able to maintain the type indicies.
 This makes use of |~>|, which represents a natural transformation~\cite{lane1998categories} from |f| to |g|.
 |IFunctor| can be thought of as a functor transformer: it is able to change the structure of a functor, whilst preserving the values inside it.
 Whereas a functor changes the values inside a structure.
@@ -333,7 +333,7 @@ newtype IFix iF a = IIn (iF (IFix iF) a)
 \end{code}
 
 \noindent
-The fixed point of |ParserF| is |Parser3|.
+The fixed point of |ParserF| is |Parser_fixed|.
 
 \begin{code}
 type Parser_fixed = IFix ParserF

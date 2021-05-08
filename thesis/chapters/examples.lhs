@@ -234,7 +234,6 @@ Again it is possible to build a circuit that combines with the pre-processing ci
 
 The audio company train models for each user and store them in a cloud storage service.
 This would be a good use-case for creating a new |DataStore| --- called a |ModelStore|.
-
 Say that there are two types defined |ModelStore| and |NewSongPlaylist|: a new |DataStore| instance can be defined for each different model.
 Here is the |NewSongsPlaylist| as an example:
 
