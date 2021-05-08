@@ -641,26 +641,56 @@ The input is fed into the inner circuit, accumulated back into a list, and then 
 
 \begin{spec}
 mapC :: (DataStore' (Q([f])) (Q([[a]])), DataStore g [b])
-  => Circuit (Q([VariableStore])) (Q([a])) (Q([VariableStore a])) (Q([VariableStore])) (Q([b])) (Q([VariableStore b])) N1
+  => Circuit  (Q([VariableStore]))  (Q([a]))    (Q([VariableStore a]))  (Q([VariableStore]))  (Q([b]))    (Q([VariableStore b]))  N1
   -> g [b]
-  -> Circuit (Q([f])) (Q([[a]])) (Q([f [a]])) (Q([g])) (Q([[b]])) (Q([g [b]])) N1
+  -> Circuit  (Q([f]))              (Q([[a]]))  (Q([f [a]]))            (Q([g]))              (Q([[b]]))  (Q([g [b]]))            N1
 \end{spec}
 
-\todo[inline]{Graphical representation of this?}
-\todo[inline]{Add an example where this is useful}
+This example can be though of a production line ([a] -> [b]).
+The circuit given as an argument describes how to produce one item (|a -> b|).
+The |mapC| can then be provided with a pallet (or a list) of resources to build multiple items (|[a]|), it will then return a pallet of made items (|[b]|).
 
 
 \subsection{Completeness}
-\todo[inline]{something about the stuff Alex said}
-monadic resource theories.
+The constructors in this library make up a symmetric monoidal preorder.
+For simplicity only the |inputsApplied| and |outputsApplied| type parameters will be used to formalise a |Circuit| --- all other type parameters are only required to aid GHC in compilation.
+
+A preorder is defined over tasks and |DataStore|s.
+The preorder relation $\le$, can be used to describe the dependencies in the |DataStore|s, with a task being able to transform |DataStore|s into new |DataStore|s.
+The relation is defined over the set $X$, which describes the set of all possible |DataStore|s.
+
+The monoidal product $\otimes$ can be thought of as the concatenation of multiple |DataStore|s into type-lists.
+For example the monoidal product of $(f\:a) \otimes (g\:b) = $ |(Q([f a])) :++ (Q([g b])) ~ (Q([f a, g b]))|.
+The monoidal unit, is tricky to define as it has no real meaning within a |Circuit|, however it could be considered the empty |DataStore|: |(Q([]))|.
+
+%format x1
+%format y1
+%format x2
+%format y2
+
+The axioms are then satisfied as follows:
+\begin{enumerate}
+  \item Reflexivity --- this is the |id :: Circuit (Q([f a])) (Q([f a]))| constructor, it represents a straight line with the same input and output.
+  \item Transitivity --- this is the |<-> :: Circuit x y -> Circuit y z -> Circuit x z| constructor, it allows for circuits to be placed in sequence.
+  \item Monotonicity --- this is the |<> :: Circuit x1 y1 -> Circuit x2 y2 -> Circuit (x1 :++ x2) (y1 :++ y2)| constructor. This can place circuits next to each other.
+  \item Unitality --- given the monoidal unit |(Q([]))| and a |DataStore| |xs|, then the rules hold true: |(Q([])) :++ xs ~ xs| and |xs :++ (Q([])) ~ xs|.
+  \item Associativity --- given three |DataStore|s: |xs|, |ys|, |zs|. Since concatenation of lists is associative then this rule holds: |(xs :++ ys) :++ zs ~ xs :++ (ys :++ zs)|.
+  \item Symmetry --- this is the |swap :: Circuit (Q([f a, g b])) (Q([g b, f a]))| constructor, it allows for values to swap over.
+  \item Delete Axiom --- this is satisfied by the |dropL :: Circuit (Q([f a, g b])) (Q([g b]))| and |dropR :: Circuit (Q([f a, g b])) (Q([f a]))|.
+    Although this does not directly fit with the axiom, it also has to ensure the constraint on a circuit that there must always be 1 output value.
+  \item Copy Axiom --- this is the |replicate :: Circuit (Q([f a])) (Q([f a, f a]))| constructor. It allows for a |DataStore| to be duplicated.
+\end{enumerate}
+
+
+By satisfying all the axioms a |Circuit| is a symmetric monoidal preorder.
+
+
 
 
 \subsection{Evaluation}
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Describe any Dataflow}
-Due to the use of constructors which align with a symmetric monoidal pre-order,
-it can be concluded that it is possible to define any \ac{DAG} needed for a dataflow.
-\todo[inline]{I can't find anything to cite that discusses this though :(, but afaik i cannot find a scenario that cannot be made...}
+It is possible to represent a \ac{DAG} with the constructors in this library. Its completeness has been formalised as a symmetric monoidal preorder.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Quickness to Learn}
 The language uses, combinators that also have a visual representation, this makes it easy to quickly understand how they all work.

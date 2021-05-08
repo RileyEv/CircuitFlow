@@ -369,9 +369,54 @@ icata alg (IIn x) = alg (imap (icata alg) x)
 The resulting type of |icata| is |f a|, therefore the |f| has kind |* -> *|.
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
+\subsection{Monadic Catamorphism with IFunctors}\label{sec:bg-monadic-cat}
+Using an indexed catamorphism, allows for principled recursion and makes it easier to define a fold over a data type, as any recursive step is abstracted from the user.
+However, there may be times when the there is a need for monadic computations in the algebra.
+To be able to do this a monadic catamorphism is defined:
 
-\subsection{Monadic version (with indices)}\label{sec:bg-monadic-cat}
-some bugger already did it
+\begin{code}
+cataM :: (Traversable f, Monad m) => (forall a . f a -> m a) -> Fix f -> m a
+cataM algM (In x) = algM =<< mapM (cataM algM) x
+\end{code}
+
+This catamorphism follows a similar pattern to a standard catamorphism, however, it does not have the |Functor| constraint.
+Instead it constrains |f| by |Traversable|: this type class still requires that |f| is a functor, it just provides additional functions such as a monadic map --- |mapM :: Monad m => (a -> m b) -> f a -> m (f b)|.
+This allows the monadic catamorphism to be applied recursively on the data type being folded.
+
+This technique can also be applied to indexed catamorphisms, however to do so an indexed monadic map has to be introduced.
+This will be included as part of the |IFunctor| type class.
+
+\begin{spec}
+class IFunctor iF where
+  imap   :: (f ~> g) -> iF f ~> iF g
+  imapM  :: Monad m => (forall a . f a -> m (g a)) -> iF f a -> m (iF g a)
+\end{spec}
+
+|imapM| is the indexed equivalent of |mapM|, it performs a natural transformation, but is capable of also using monadic computation.
+
+The new |IFunctor| instance for |ParserF| is defined as:
+
+\begin{spec}
+instance IFunctor ParserF where
+  imap = ... -- already defined
+  imapM  _  (SatisfyF s)  = return SatisfyF s
+  imapM  f  (OrF px py)   = do
+    px' <- f px
+    py' <- f py
+    return (OrF px' py')
+\end{spec}
+
+The definition for |imapM| on |ParserF| is intuitively the same, however just uses do-notation instead.
+Making use of |imapM|, |icataM| is defined to be:
+
+\begin{spec}
+icataM :: (IFunctor iF, Monad m) => (forall a . iF f a -> m (f a)) -> IFix iF a -> m (f a)
+icataM algM (IIn x) = algM =<< imapM (icataM algM) x
+\end{spec}
+
+|icataM|, has a similar structure to all other catamorphisms defined, however it takes a monadic algebra,
+that can be used to transform the structure of the input type.
+
 
 \section{Data types \`{a} la carte}\label{sec:bg-dtalacarte}
 When building a \ac{DSL} one problem that becomes quickly prevalent, the so called \textit{Expression Problem}~\cite{wadler_1998}.
@@ -763,8 +808,232 @@ lockDoor :: Door (Q(Closed)) -> Door (Q(Locked))
 
 The |closeDoor| function, enforces that only an open door can be given as input, similarly |lockDoor| prevents an open door from being locked.
 
-\section{Monadic Resource Theories}
-\todo[inline]{Monadic resource theories --- Symmetric Monoidal pre-orders.}
+
+\section{Monoidal Resource Theories}\label{sec:bg-mrt}
+Resource theories are a branch of mathematics that allow for the reasoning of questions surrounding resources, for example:
+\begin{itemize}
+  \item If I have some resources, can I make something?
+  \item If I have some resources, how can I get what I want?
+\end{itemize}
+Resource theories provide a way to answer these questions.
+
+\subsection{Preorders}
+A preorder relation on a set $X$ is denoted by $\le$.
+The relation must obey two laws:
+\begin{enumerate}
+  \item Reflexivity --- $x \le x$
+  \item Transitivity --- if $x \le y$ and $y \le z$ then $ x \le z$.
+\end{enumerate}
+
+A preorder is a pair $(X, \le)$ made up of a set and a preorder relation on that set.
+
+
+\subsection{Symmetric Monoidal Preorders}\label{sec:bg-sym-monoidal-preorders}
+A symmetric monoidal structure $(X, \le, I, \otimes)$ on a preorder $(X, \le)$ has two additional components:
+\begin{enumerate}
+  \item The monoidal unit --- an element $I \in X$
+  \item The monoidal product --- a function $\otimes : X \times X \to X$
+\end{enumerate}
+\noindent
+To be a symmetric monoidal then the following laws must be satisfied:
+\begin{enumerate}
+  \item Monotonicity --- $\forall x_1, x_2, y_1, y_2 \in X$, if $x_1 \le y_1$ and $x_2 \le y_2$, then $x_1 \otimes x_2 \le y_1 \otimes y_2$
+  \item Unitality --- $\forall x \in X$, $I \otimes x = x$ and $x \otimes I = x$
+  \item Associativity --- $\forall x, y, z \in X$, $(x \otimes y) \otimes z = x \otimes (y \otimes z)$
+  \item Symmetry --- $\forall x, y \in X$, $x \otimes y = y \otimes x$
+\end{enumerate}
+
+\subsection{Wiring Diagrams}
+A wiring diagram is made up of: boxes that can have multiple inputs and outputs.
+The boxes can be arranged in series or in parallel.
+Figure~\ref{fig:bg-wiring-diagram-example}, shows an example wiring diagram.
+
+\begin{figure}[ht]
+  \centering
+  \input{diagrams/wiring-diagram-example}
+  \caption{An example wiring diagram}
+  \label{fig:bg-wiring-diagram-example}
+\end{figure}
+
+A wiring diagram can be formalised as a symmetric monoidal preorder.
+Each element $x \in X$ can exists as the label on a wire.
+Two wires $x$ and $y$, can be drawn in parallel:
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, 0) -- (1.5, 0) node[midway, below] {$y$};
+\draw (0, 0.25) -- (1.5, 0.25) node[midway, above] {$x$};
+\end{tikzpicture}
+\end{center}
+
+Two wires in parallel are be considered to be the monoidal product $x \otimes y$.
+The monodial unit is defined as a wire with the label $I$ or no wire.
+
+A box connects parallel wires on the left to parallel wires on the right.
+A wiring diagram is considered valid if the monoidal product of the left is less than the right.
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, -0.2) -- (1.5, -0.2) node[midway, below] {$x_3$};
+\draw (0, 0.125) -- (1.5, 0.125) node[midway, fill=white] {$x_2$};
+\draw (0, 0.45) -- (1.5, 0.45) node[midway, above] {$x_1$};
+\draw[rounded corners] (1.5, -0.5) rectangle (3, 0.75) node[pos=0.5] {$\le$};
+\draw (3, -0.1) -- (4.5, -0.1) node[midway, below] {$y_2$};
+\draw (3, 0.35) -- (4.5, 0.35) node[midway, above] {$y_1$};
+\end{tikzpicture}
+\end{center}
+
+This example wiring diagram corresponds to the inequality $x_1 \otimes x_2 \otimes x_3 \le y_1 \otimes y_2$.
+
+\paragraph{Reflexivity}
+The reflexivity law states that $x \le x$, this states that a diagram of one wire is valid.
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, 0) -- (2, 0) node[midway, below] {$x$};
+\end{tikzpicture}
+\end{center}
+
+
+\paragraph{Transitivity}
+The transitivity law says that if $x \le y$ and $y \le z$ then $x \le y$. This corresponds to connecting two diagrams together in sequence.
+If both of the diagrams
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, 0) -- (1.5, 0) node[midway, below] {$x$};
+\draw[rounded corners] (1.5, -0.25) rectangle (2.5, 0.25) node[pos=0.5] {$\le$};
+\draw (2.5, 0) -- (4, 0) node[midway, below] {$y$};
+
+\node at (5, 0) {and};
+
+
+\draw (6, 0) -- (7.5, 0) node[midway, below] {$y$};
+\draw[rounded corners] (7.5, -0.25) rectangle (8.5, 0.25) node[pos=0.5] {$\le$};
+\draw (8.5, 0) -- (10, 0) node[midway, below] {$z$};
+\end{tikzpicture}
+\end{center}
+
+\noindent
+are valid, then they can be joined together to obtain another valid diagram.
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, 0) -- (1.5, 0) node[midway, below] {$x$};
+\draw[rounded corners] (1.5, -0.25) rectangle (2.5, 0.25) node[pos=0.5] {$\le$};
+\draw (2.5, 0) -- (4, 0) node[midway, below] {$y$};
+\draw[rounded corners] (4, -0.25) rectangle (5, 0.25) node[pos=0.5] {$\le$};
+\draw (5, 0) -- (6.5, 0) node[midway, below] {$z$};
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Monotonicity}
+Monotonicity states that, if $x_1 \le y_1$ and $x_2 \le y_2$, then $x_1 \otimes x_2 \le y_1 \otimes y_2$. This can be thought of as stacking two boxes on top of each other:
+
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, 0) -- (1.5, 0) node[midway, below] {$x_1$};
+\draw[rounded corners] (1.5, -0.25) rectangle (2.5, 0.25) node[pos=0.5] {$\le$};
+\draw (2.5, 0) -- (4, 0) node[midway, below] {$y_1$};
+
+\draw (0, 1) -- (1.5, 1) node[midway, below] {$x_2$};
+\draw[rounded corners] (1.5, 0.75) rectangle (2.5, 1.25) node[pos=0.5] {$\le$};
+\draw (2.5, 1) -- (4, 1) node[midway, below] {$y_2$};
+
+\node at (5, 0.5) {$\leadsto$};
+
+\draw (6, 0.25) -- (7.5, 0.25) node[midway, below] {$x_2$};
+\draw (6, 0.75) -- (7.5, 0.75) node[midway, above] {$x_1$};
+\draw[rounded corners] (7.5, 0) rectangle (8.5, 1) node[pos=0.5] {$\le$};
+\draw (8.5, 0.25) -- (10, 0.25) node[midway, below] {$y_2$};
+\draw (8.5, 0.75) -- (10, 0.75) node[midway, above] {$y_1$};
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Unitality}
+The unitality law states that $I \otimes x = x$ and $x \otimes I = x$, this means that a blank space can be ignored and that diagrams such as
+
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, 0) -- (1.5, 0) node[midway, below] {$x$};
+\node at (0.75, 0.5) {Nothing};
+
+\draw (1.5, 0) edge[out=0,in=180] (2.5, 0.25);
+
+\draw (2.5, 0.25) -- (4, 0.25) node[midway, below] {$x$};
+\end{tikzpicture}
+\end{center}
+
+\noindent
+are valid.
+
+\paragraph{Associativity}
+The associativity law says that $(x \otimes y) \otimes z = x \otimes (y \otimes z)$, this states that diagrams can be built from either the top or bottom.
+In reality it is trivial to see how this is true with wires:
+
+\begin{center}
+\begin{tikzpicture}
+\draw (0, -0.4) -- (1.5, -0.4) node[midway, below] {$z$};
+\draw (0, 0.125) -- (1.5, 0.125) node[midway, below] {$y$};
+\draw (0, 0.45) -- (1.5, 0.45) node[midway, above] {$x$};
+
+\node at (2.5, 0.125) {$=$};
+
+\draw (3.5, -0.4) -- (5, -0.4) node[midway, below] {$z$};
+\draw (3.5, -0.075) -- (5, -0.075) node[midway, above] {$y$};
+\draw (3.5, 0.45) -- (5, 0.45) node[midway, above] {$x$};
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Symmetry}
+The symmetry law states that $x \otimes y = y \otimes x$, this encodes the notion that a diagram is still valid even if the wires cross.
+
+
+\begin{center}
+\begin{tikzpicture}
+\node at (-0.2,0.4) {$x$};
+\node at (-0.2,0) {$y$};
+\draw (0, 0) edge[out=0,in=180] (2.5, 0.4) ;
+\draw (0, 0.4) edge[out=0,in=180] (2.5, 0);
+\node at (2.7,0.4) {$y$};
+\node at (2.7,0) {$x$};
+\end{tikzpicture}
+\end{center}
+
+
+
+\paragraph{Discard Axiom}
+There are times when there is no longer need to keep a value, it would be beneficial if it could be discarded.
+In a wiring diagram this is represented as:
+
+\begin{center}
+\begin{tikzpicture}
+\draw[-{Circle[black]}] (0,0) -- (1.5, 0);
+\end{tikzpicture}
+\end{center}
+
+This can be added as an additional axiom to the definition of a symmetric monoidal preorder: $\forall x \in X, x \le I$
+
+\paragraph{Copy Axiom}
+The final axiom to add is the notion of copying a value: $\forall x \in X, x \le x + x$.
+This can be represented in wiring diagram as a split wire:
+
+\begin{center}
+\begin{tikzpicture}
+
+\node at (-0.2,0) {$x$};
+\draw[-{Circle[black]}] (0,0) -- (1, 0);
+
+\draw (1, 0) edge[out=0,in=180] (2.5, 0.25);
+\draw (1, 0) edge[out=0,in=180] (2.5, -0.25);
+
+\node at (2.7,0.25) {$x$};
+\node at (2.7,-0.25) {$x$};
+\end{tikzpicture}
+\end{center}
+
 
 \end{document}
 
