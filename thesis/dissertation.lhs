@@ -19,6 +19,9 @@ year={2021}
 \usepackage{acronym}
 \usepackage{listings}
 \usepackage{amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lmodern}
 \usetikzlibrary{arrows.meta}
 
 \usepackage{subfiles} % load last

@@ -12,7 +12,7 @@
 % car manufacturer example
 % \newpage
 
-\section{Audio Playlist Generation}
+\section{Machine Learning (Audio Playlist Generation)}
 A use case for CircuitFlow is when building data pipelines.
 Here there are many tasks that can only be executed when other data files have been produced.
 A data pipeline will also benefit from being parallel to improve run-times.
@@ -377,13 +377,36 @@ In this case the output data store is a |VariableStore|, therefore, the pointer 
 
 
 \subsection{Using the Circuit}
-To use this |Circuit| first a network needs to be started, then a list of \texttt{.lhs} files are input into the network.
-A call is then made to read the output from the network, this ensures that the network has finished compiling before the program terminates.
-Finally the network is stopped and all threads created are terminated.
+To use this |Circuit|, a |Config| data type is used to store the information needed within the system to build the project:
 
-This example makes use of a YAML configuration file to specify that aligns with the |Config| data type.
+\noindent\begin{minipage}{\linewidth}
+\begin{spec}
+data Config = Config
+  {  mainFile    ::  FilePath
+  ,  outputName  ::  String
+  ,  lhsFiles    ::  [FilePath]
+  }
+  deriving (Generic, FromJSON, Show)
+\end{spec}
+\end{minipage}
+
+This data type uses record syntax to have name fields:
+\begin{itemize}
+  \item |mainFile| is the name of the root file that should be used for compilation.
+  \item |outputName| is the desired name for the output PDF file.
+  \item |lhsFiles| are all the literate haskell files required to build the \LaTeX document.
+\end{itemize}
+
+The |Config| data type also derives the |Generic| and |FromJSON| instance.
+This allows it to be used in conjunction with a YAML file to specify these parameters.
+The config can be loaded with:
+
+\begin{spec}
+loadConfig :: IO Config
+loadConfig = loadYamlSettings ["dissertation.tex-build"] [] ignoreEnv
+\end{spec}
+
 An example config file can be seen in Figure~\ref{fig:examples-lhs2tex-config-file}.
-Its purpose is to detail the files that will be included within the build.
 
 \begin{figure}[ht]
 \centering
@@ -402,21 +425,7 @@ lhsFiles: [dissertation.lhs
 \label{fig:examples-lhs2tex-config-file}
 \end{figure}
 
-
-\noindent\begin{minipage}{\linewidth}
-\begin{spec}
-data Config = Config
-  {  mainFile    ::  FilePath
-  ,  outputName  ::  String
-  ,  lhsFiles    ::  [FilePath]
-  }
-  deriving (Generic, FromJSON, Show)
-
-loadConfig :: IO Config
-loadConfig = loadYamlSettings ["dissertation.tex-build"] [] ignoreEnv
-\end{spec}
-\end{minipage}
-
+To be able to use the system a |main| function is defined, which will serve as the entry point to the executable:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{spec}

@@ -26,7 +26,7 @@ The implementation of the network itself has several requirements that are separ
 \section{Circuit AST}
 The constructors for the language are actually \textit{smart constructors}.
 They provide a more elegant way to build an \ac{AST}, which represents the circuit.
-They give the ability to gain the benefits of extensibility, usually found in a shallow embedding, while still having a fixed core \ac{AST} that can be used for interpretation.
+They give the ability to gain the benefits of extensibility and modularity, usually found in a shallow embedding, while still having a fixed core \ac{AST} that can be used for interpretation.
 
 %format IFunctor7
 
@@ -269,7 +269,7 @@ This fold will violate this rule, therefore, the only other way to support this 
 
 %format imapM7
 
-An indexed monadic catamorphism can be used to perform this fold: it will allow for monadic computation within the algebra.
+An indexed monadic catamorphism, found in Section~\ref{bg:monadic-cat}, can be used to perform this fold: it will allow for monadic computation within the algebra.
 However, |icataM| needs to be modified to support the 7 type indicies needed.
 The first step is to define a monadic |imap| that supports the needed number of type indicies.
 This will be added by extending the |IFunctor7| instance to also include a function named |imapM7|.
@@ -339,17 +339,33 @@ The algebra for |Then|, would then need to join the output channels of task1 wit
 However, it is not possible to join channels together.
 Instead, the output channels from task1 need to be accessible when creating task2.
 This is referred to as a \textit{context-sensitive} or \textit{accumulating} fold.
+An accumulating fold forms series of nested functions, that collapse to give a final value once the base case has been applied.
+A simple example of an accumulating fold could be, implementing |foldl| in terms of |foldr|.
+
+\begin{code}
+foldl :: (b -> a -> b) -> b -> [a] -> b
+foldl f b as = foldr (\a g x -> g (f x a)) id as b
+\end{code}
+
+A simple example of |foldl| can be considered.
+
+\begin{spec}
+    foldl (+) 0 [1, 2]
+==
+    (\x->(\x-> id (x+2)) (x+1)) 0
+\end{spec}
 
 To be able to have an accumulating fold, inside an indexed catamorphism a carrier data type is required to wrap up this function.
-This carrier, which shall be named |N|, contains a function that when given a network that has been accumulated up to that point,
+This carrier, which shall be named |AccuN|, contains a function that when given a network that has been accumulated up to that point,
 then it is able to produce a network including the next layer in a circuit.
 The type of the layer being folded will be |Circuit a b c d e f g|.
+
 \todo{this clear enough? maybe a diagram showing the layer and all the types}
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
-newtype N n asS asT asA a b c d e f g = N
-  { unN :: n asS asT asA a b c -> IO (n asS asT asA d e f) }
+newtype AccuN n asS asT asA a b c d e f g = AccuN
+  { unAccuN :: n asS asT asA a b c -> IO (n asS asT asA d e f) }
 \end{code}
 \end{minipage}
 
@@ -364,15 +380,15 @@ This will ensure that the approach remains with modular: a new instance can be m
 
 \begin{code}
 class (Network n, IFunctor7 iF) => BuildNetworkAlg n iF where
-  buildNetworkAlg  ::  iF (   N n asS asT asA) bsS bsT bsA csS csT csA nbs
-                   ->  IO ((  N n asS asT asA) bsS bsT bsA csS csT csA nbs)
+  buildNetworkAlg  ::  iF (   AccuN n asS asT asA) bsS bsT bsA csS csT csA nbs
+                   ->  IO ((  AccuN n asS asT asA) bsS bsT bsA csS csT csA nbs)
 \end{code}
 \end{minipage}
 
 This algebra type class is parameterised by |n| and |iF|. The |n| is constrained to have a |Network| instance, this allows the same algebra to be used for defining folds for multiple network types. The |iF| is the |IFunctor7| that this instance is being defined for, an example is |Then| or |Id|.
 This algebra uses the |N| data type to perform an accumulating fold.
-The input to the algebra is an |IFunctor7| with the inner elements containing values of type |N|.
-The function can be retrieved from inside |N| to perform steps that are dependent on the previous, for example, in the |Then| constructor.
+The input to the algebra is an |IFunctor7| with the inner elements containing values of type |AccuN|.
+The function can be retrieved from inside |AccuN| to perform steps that are dependent on the previous, for example, in the |Then| constructor.
 
 To be able to define the algebra on sums of |IFunctor7|s, without having a nest of |L|s and |R|s to pattern match, an instance for the sum of two data types is defined:
 
@@ -444,6 +460,7 @@ based on |Either|
 \paragraph{Propagation}
 
 
+\section{Evaluation}
 
 
 

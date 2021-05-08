@@ -175,7 +175,7 @@ An \ac{EDSL}, can be implemented using two differing techniques: deep and shallo
 \subsection{Deep Embeddings}\label{sec:bg-deep-embedding}
 A deep embedding is when the terms of the \ac{DSL} will construct an \ac{AST} as a host language datatype.
 Semantics can then be provided later on with evaluation functions.
-Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}.
+Consider the example of a minimal non-deterministic parser combinator library~\cite{wuYoda}, which will be a running example for this chapter.
 
 
 \begin{code}
@@ -370,7 +370,7 @@ The resulting type of |icata| is |f a|, therefore the |f| has kind |* -> *|.
 This could be |IFix ParserF|, which would be a transformation to the same structure, possibly applying optimisations to the \ac{AST}.
 
 
-\subsection{Monadic version (with indices)}
+\subsection{Monadic version (with indices)}\label{sec:bg-monadic-cat}
 some bugger already did it
 
 \section{Data types \`{a} la carte}\label{sec:bg-dtalacarte}
@@ -411,6 +411,7 @@ instance (IFunctor iF, IFunctor iG) => IFunctor (iF :+: iG) where
 
 \noindent
 For each constructor it is possible to define a new data type and a |Functor| instance specifying where is recurses.
+This allows for the modularisation of the parser example:
 
 \begin{code}
 data SatisfyF2 f a where
@@ -430,7 +431,8 @@ instance IFunctor OrF2 where
 By using |IFix| to tie the recursive knot, the |IFix (SatisfyF2 :+: OrF2)| data type would be isomorphic to the original |Parser_d| datatype found in Section~\ref{sec:bg-deep-embedding}.
 
 \noindent
-One problem that now exist, however, is that it is now rather difficult to create expressions, lets revisit the simple example of a parser for |'a'| or |'b'|.
+One problem that now exists, however, is that it is now rather difficult to create expressions.
+Revisiting the simple example of a parser for |'a'| or |'b'|.
 
 \begin{code}
 exampleParser :: IFix (SatisfyF2 :+: OrF2) Char
@@ -438,7 +440,8 @@ exampleParser = IIn (R (OrF2 (IIn (L (SatisfyF2 (== 'a')))) (IIn (L (SatisfyF2 (
 \end{code}
 
 \noindent
-It would be beneficial if there was a way to add these |L|s and |R|s automatically. Fortunately there is a method using injections.
+It would be beneficial if there was a way to add these |L|s and |R|s automatically.
+Fortunately, there is a method using injections.
 The |:<:| type class captures the notion of subtypes between |IFunctor|s.
 
 \begin{code}
@@ -456,7 +459,7 @@ instance (IFunctor iF, IFunctor iG, IFunctor iH, iF :<: iG) => iF :<: (iH :+: iG
 \end{code}
 
 \noindent
-Using this type class, smart constructors can be defined.
+Using this type class, smart constructors are defined:
 
 \begin{code}
 inject :: (iG :<: iF) => iG (IFix iF) a -> IFix iF a
@@ -494,8 +497,10 @@ eval :: SizeAlg iF => IFix iF a -> Size a
 eval = icata sizeAlg
 \end{code}
 
-One benefit to this approach is that is an interpretation is only needed for expressions that only use |OrF2| and |SatisfyF2|.
-If a new constructor such as |ApF2| was added to the language and it would never be given to this fold, then it would not require an instance.
+
+The main benefit of this approach is modularity.
+Each constructor is given by its interpretation in isolation and only for interpretations that make sense for it.
+Additionally, existing interpretations are not affected by the addition of new constructors, such as |ApF2|.
 This helps to solve the expression problem.
 
 
@@ -587,27 +592,12 @@ vecAppend :: Vec a n -> Vec a m -> Vec a (n :+ m)
 \noindent
 This requires a |:+| type family that can add two |Nat|s together.
 
-\begin{code}
-type family (a :: Nat) :+ (b :: Nat) where
-  a  :+  (Q(Zero))    =  a
-  a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
-\end{code}
 
-
-\subsection{Summary}
-Together these features allow for dependently typed programming constructs in Haskell:
-
-\begin{itemize}
-  \item DataKinds allow for values to be promoted to types
-  \item Singletons allow types to be demoted to values
-  \item Type Families can be used to define functions that manipulate types.
-\end{itemize}
-
-\section{Heterogeneous Lists}\label{sec:bg-heterogeneous-lists}
+\subsection{Heterogeneous Lists}\label{sec:bg-heterogeneous-lists}
 Heterogeneous lists~\cite{10.1145/1017472.1017488} are a way of having multiple types in the same list.
-Rather than be parameterised by a single type, they instead make use of a type list, which when the list type is promoted through DataKinds to be a kind.
-Each element in the type list aligns with the value at that position in the list.
-A heterogeneous list can be defined as:
+Rather than be parameterised by a single type, they instead make use of a type list, which is the list type promoted through DataKinds to be a kind, with its elements being types.
+Each element in the type list aligns with the value at that position in the list, giving its type.
+A heterogeneous list is defined as:
 
 \begin{code}
 data HList (xs :: [Type]) where
@@ -621,11 +611,11 @@ This data type has two constructors:
   \item |HCons| allows a new element to be added to the list. The type parameter is the type of the item inserted consed onto the front of the types of the tail of the list.
 \end{itemize}
 
-\subsection{Functions on HLists}
+\subsubsection{Functions on HLists}
 
 \paragraph{Length}
-It is possible to get the length of a HList in a type-safe way, using singletons and type families.
-Firstly, lets define a type family that is able to return the length of a type list.
+using singletons and type families, it is possible to get the length of a |HList| in a type-safe way.
+Firstly, a type family is defined that is able to return the length of a type list.
 
 \begin{code}
 type family Length (l :: [k]) :: Nat where
@@ -633,15 +623,16 @@ type family Length (l :: [k]) :: Nat where
   Length (e (Q(:)) l)  =  (Q(Succ)) (Length l)
 \end{code}
 
+|Length| follows a similar definition to the |length :: [a] -> Int| function defined in the |Prelude|.
 The base case of |Length| defines the length to be |(Q(Zero))|.
 The recursive case increments the length by 1 for each item in the list, until it reaches the base case.
 
-Now a function can be defined that returns the length of a |HList|:
+Now a function is defined that returns the length of a |HList|:
 
 \begin{code}
-length :: HList xs -> SNat (Length xs)
-length HNil          = SZero
-length (HCons _ xs)  = SSucc (length xs)
+lengthH :: HList xs -> SNat (Length xs)
+lengthH HNil          = SZero
+lengthH (HCons _ xs)  = SSucc (lengthH xs)
 \end{code}
 
 This follows the same structure as the |Length| type family, however instead, of working with types it uses singleton values.
@@ -660,18 +651,18 @@ type family Take (n :: Nat) (l :: [k]) :: [k] where
 \end{code}
 
 The type family follows the same definition as the standard |take :: Int -> [a] -> [a]| as defined in the |Prelude|.
+Similar to the |lengthH| function, |takeH| follows the same structure as the type family:
 
 \begin{code}
-take :: SNat n -> HList xs -> HList (Take n xs)
-take SZero      l             = HNil
-take (SSucc n)  HNil          = HNil
-take (SSucc n)  (HCons x xs)  = HCons x (take n xs)
+takeH :: SNat n -> HList xs -> HList (Take n xs)
+takeH SZero      l             = HNil
+takeH (SSucc n)  HNil          = HNil
+takeH (SSucc n)  (HCons x xs)  = HCons x (takeH n xs)
 \end{code}
 
-Similar to the |length| function, |take| follows the same structure as the type family.
 
 \paragraph{Drop}
-The final function needed on |Hlist|s is one that can drop the first n elements.
+The final function used in this project on |Hlist|s is one that can drop the first n elements.
 The |Drop| type family can be defined as:
 
 \begin{code}
@@ -681,14 +672,32 @@ type family Drop (n :: Nat) (l :: [k]) :: [k] where
   Drop  ((Q(Succ)) n)  (_ (Q(:)) l)  = Drop n l
 \end{code}
 
-The |Drop| type family also closely follows the definition of |drop :: Int -> [a] -> [a]| from the |Prelude|.
+The |Drop| type family also closely follows the definition of |drop :: Int -> [a] -> [a]| from the |Prelude|, and its result is reflected in the values level just as with |lengthH| and |takeH|.
 
 \begin{code}
-drop :: SNat n -> HList xs -> HList (Drop n xs)
-drop SZero l = l
-drop (SSucc _) HNil = HNil
-drop (SSucc n) (HCons _ xs) = drop n xs
+dropH :: SNat n -> HList xs -> HList (Drop n xs)
+dropH SZero l = l
+dropH (SSucc _) HNil = HNil
+dropH (SSucc n) (HCons _ xs) = dropH n xs
 \end{code}
+
+
+\begin{code}
+type family (a :: Nat) :+ (b :: Nat) where
+  a  :+  (Q(Zero))    =  a
+  a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
+\end{code}
+
+
+\subsection{Summary}
+Together these features allow for dependently typed programming constructs in Haskell:
+
+\begin{itemize}
+  \item DataKinds allow for values to be promoted to types
+  \item Singletons allow types to be demoted to values
+  \item Type Families can be used to define functions that manipulate types.
+\end{itemize}
+
 
 
 \section{Existential Types}

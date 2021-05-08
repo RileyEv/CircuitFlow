@@ -126,9 +126,9 @@ This returns an output |DataStore| that can be passed on to another |Task|.
 
 
 
-\section{First Attempt: Chains}\label{sec:lang-chains}
+\section{Chains, A Dalliance}\label{sec:lang-chains}
 In a dataflow programming, one of the key aspects is the definition of dependencies between tasks in the flow.
-One possible approach to encoding this concept in the language is to make use of sequences of tasks --- also referred to as chains.
+One possible approach to encoding this concept in the language, that was ultimately not up to scratch, is to make use of sequences of tasks --- also referred to as chains.
 These chains compose tasks, based on their dependencies. A chain can be modelled with an abstract datatype:
 
 \begin{code}
@@ -143,9 +143,9 @@ data Chain (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
 %format >>> = ">\!\!>\!\!>"
 %endif
 
-The |Chain| constructor allows for a |Task| to wrapped in the |Chain| data type. This allows for them to be easily composed with other |Tasks|.
+The |Chain| constructor wraps a |Task| in the |Chain| data type. This allows for them to be easily composed with other |Tasks|.
 Without this there would need to be an ``empty'' element, however, this could lead to the construction of a chain with no tasks.
-The |Then| constructor is used to combine multiple chains to for a sequence of sequential tasks.
+The |Then| constructor combines multiple chains to form a sequence of sequential tasks.
 To make this easier to use an operator |>>>| is defined that represents |Then|:
 
 
@@ -263,7 +263,7 @@ This new version of |Chain| named |Chain'|, is almost identical in the way it be
 This, however, leaves a key question, how do |Task|s get mapped to |PID|s.
 This can be done by employing the State monad.
 The state stores a map from PID to task and a counter for PIDs.
-As |Task|s each have a different type a new datatype is required to use existential types, to close over the types, and produce values of the same type.
+As |Task|s each have a different type a new wrapper datatype is required, making use of existential types, to close over the types, and produce values of apparently the same type.
 This is because a |Map| can only store one type.
 The |Workflow| monad is a type alias for the |State| monad, which stores the |WorkflowState|.
 
@@ -278,7 +278,7 @@ data WorkflowState = WorkflowState {
 type Workflow = State WorkflowState
 \end{code}
 
-An operation that is defined in the monad is |registerTask|.
+An operation that is defined for the monad is |registerTask|.
 This takes a |Task| and returns a |Chain| that stores a |PID| inside it.
 Whenever a user would like to add a new task to the workflow, they register it.
 They can then use this returned value to construct multiple chains, which can now be joined easily by comparing the stored \ac{PID}.
@@ -291,13 +291,13 @@ One benefit to this approach is that if the user would like to use a task again 
 they can simply register it again and use the new PID value.
 
 \subsection{Evaluation}
-\paragraph{$\text{\rlap{$\checkmark$}}\square$ Describe any Dataflow}
-This method is capable of describing any dataflow, although in its current state, it can only support trees.
+\paragraph{$\text{\rlap{{\scriptsize\textonehalf}}}\square$ Describe any Dataflow}\todo{try fix the half if i have time}
+This method would be capable of describing any dataflow, although in its current state, it can only support trees.
 The algorithm that would be used to join different chains together could be developed to allow them to rejoin onto another chain.
 This will allow for any \ac{DAG} to be defined.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Quickness to Learn}
-With only 4 different combinators and the |Task| constructor, this language is very simple to learn.
+With only 4 different combinators (|Chain|, |>>>|, |Pipe|, |And|) and the |Task| constructor, this language should be simple to learn.
 There are only two main concepts the user needs to understand: how to join tasks into a chain and how to join chains together.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Write}
@@ -325,7 +325,7 @@ This could lead to crashes at run-time as the compiler is not able to fully veri
 Another approach could be to look to category theory, for ways to compose functions together in a type-safe way.
 
 
-\section{Final Attempt: Circuit}
+\section{Solution: Circuit}
 This approach is inspired by monadic resource theory, which has a collection of mathematical operators for composing functions together.
 It uses parallel prefix circuits, described by Hinze~\cite{scans}, as a starting point for the design of the combinators.
 A set of constructors can be defined that are used to represent a \ac{DAG}.
@@ -402,6 +402,9 @@ Each parameter represents a certain piece of information needed to construct a c
 \item |nInputs| is a type-level Nat that is the length of the input lists.
 \end{itemize}
 
+Although, to a human some of these types may seem irrelevant, GHC is not able to make all of the deductions itself, when type checking the code.
+It requires additional information, such as |inputsApplied| or |nInputs|.
+
 In the language there are two different types of constructor, those that recurse and those that can be considered leaf nodes.
 The behaviour of both types of constructor is recorded within the types.
 For example, the |id| constructor has the type:
@@ -410,7 +413,7 @@ For example, the |id| constructor has the type:
 id :: DataStore' (Q([f])) (Q([a])) => Circuit (Q([f])) (Q([a])) (Q([f a])) (Q([f]) (Q([a])) (Q([f a])) N1
 \end{spec}
 
-It can be seen how the type information for this constructor states that it has 1 input value of type |f a| and it returns that same value.
+It can be seen how the type information for this constructor states that it has 1 input value (|N1 ~ (Q(Succ)) (Q(Zero))|) of type |f a| and it returns that same value.
 Each type parameter in |id| is a phantom type~\cite{phantom_types}, since there are no values stored in the data type that use the type parameters.
 The rest of the constructors that are leaf nodes are: |replicate|, |swap|, |dropL|, and |dropR|:
 
@@ -427,7 +430,7 @@ The |swap| constructor takes two values as input: |f a| and |g b|. It will then 
 The |dropR| has the same behaviour as |dropL|, it just drops the right argument instead.
 
 To be able to make use of the leaf nodes, they need to be combined in some way.
-To do this two new constructors named `beside' and `then' will be used.
+To do this two new recursive constructors named `beside' and `then' will be used.
 However, before defining these constructors there are some tools that are required.
 This is due to the types no longer being concrete.
 For example, the input type list is no longer known: it can only be referred to as |fs| and |as|.
@@ -462,6 +465,7 @@ type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
 
 \paragraph{Append Type Family}
 There will also be the need to append two type level lists together.
+Lists would need to be appended in this way, when combining inputs and outputs to form a larger circuit.
 For example, |(Q([a, b, c])) :++ (Q([d, e, f])) ~ (Q([a, b, c, d, e, f]))|.
 To do this an append type family~\cite{10.1145/1017472.1017488} can be used:
 
@@ -511,6 +515,7 @@ The resulting |Circuit| has the types of left and right circuits appended togeth
 
 This constructor works by making use of the |:++| type family to append the input and output type list of the left constructor to those of the right constructor.
 It also makes use of the |:+| type family --- defined in Section~\ref{sec:bg-type-families} --- to add the number of inputs from the left and right together.
+
 
 The |<>| constructor combined with the |id| constructor can be considered a Monoid at the behaviour level.
 However, due to the types on the constructors it is not possible to define a Monoid instance for |<>| in Haskell.
@@ -661,9 +666,9 @@ it can be concluded that it is possible to define any \ac{DAG} needed for a data
 The language uses, combinators that also have a visual representation, this makes it easy to quickly understand how they all work.
 A user can then also benefit from the familiarity of using the host language Haskell.
 
-\paragraph{$\text{\rlap{\hspace{1mm}-}}\square$ Easy to Write}
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Write}
 Building a circuit is a more difficult task: to be able to define it the user needs to have an understanding of the shape of the dataflow diagram.
-One the user has a sketch for the dataflow they would like to create, translating to a circuit is a much simpler job.
+Once the user has a sketch for the dataflow they would like to create, translating to a circuit is a much simpler job.
 This creates more upfront work for the user, however, it is offset by the additional benefits that a circuit brings.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Read}
