@@ -623,6 +623,18 @@ vecLength2 Nil          = SZero
 vecLength2 (Cons x xs)  = SSucc (vecLength2 xs)
 \end{code}
 
+\paragraph{Recovering an SNat}
+\todo[inline]{talk}
+\begin{code}
+class IsNat (n :: Nat) where nat :: SNat n
+
+instance IsNat (Q(Zero)) where
+  nat = SZero
+
+instance IsNat n => IsNat ((Q(Succ)) n) where
+  nat = SSucc nat
+\end{code}
+
 
 \subsection{Type Families}\label{sec:bg-type-families}
 Now consider the possible scenario of appending two vectors together.
@@ -810,7 +822,7 @@ The |closeDoor| function, enforces that only an open door can be given as input,
 
 
 \section{Monoidal Resource Theories}\label{sec:bg-mrt}
-Resource theories are a branch of mathematics that allow for the reasoning of questions surrounding resources, for example:
+Resource theories~\cite{Coecke_2016} are a branch of mathematics that allow for the reasoning of questions surrounding resources, for example:
 \begin{itemize}
   \item If I have some resources, can I make something?
   \item If I have some resources, how can I get what I want?

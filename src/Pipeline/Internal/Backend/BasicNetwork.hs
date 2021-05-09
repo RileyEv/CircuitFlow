@@ -282,8 +282,7 @@ beside (Beside l r) = return $ N
   )
  where
   splitNetwork
-    :: nbsLS ~ nbsLT
-    => SNat nbsL
+    :: SNat nbsL
     -> BasicNetwork asS asT asA bsS bsT bsA
     -> IO
          ( BasicNetwork asS asT asA (Take nbsL bsS) (Take nbsL bsT) (Take nbsL bsA)

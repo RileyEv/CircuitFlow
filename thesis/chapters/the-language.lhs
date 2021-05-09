@@ -452,7 +452,6 @@ For example, |Apply (Q([f, g, h])) (Q([a, b, c])) ~ (Q([f a, g b, h c]))|.
 
 
 %format :+ = ":\!\!+"
-%format :++ = ":\!\!+\!\!+"
 
 \todo[inline]{': looks awful }
 
@@ -517,10 +516,10 @@ This constructor works by making use of the |:++| type family to append the inpu
 It also makes use of the |:+| type family --- defined in Section~\ref{sec:bg-type-families} --- to add the number of inputs from the left and right together.
 
 
-The |<>| constructor combined with the |id| constructor can be considered a Monoid at the behaviour level.
-However, due to the types on the constructors it is not possible to define a Monoid instance for |<>| in Haskell.
-\todo[inline]{Give example on the types as to why it isnt.}
-\todo[inline]{I think its a monoid in cat theory, but it isn't one in haskell. empty exists with id, but this would not conform to the types.}
+%% The |<>| constructor combined with the |id| constructor can be considered a Monoid at the behaviour level.
+%% However, due to the types on the constructors it is not possible to define a Monoid instance for |<>| in Haskell.
+%% \todo[inline]{Give example on the types as to why it isnt.}
+%% \todo[inline]{I think its a monoid in cat theory, but it isn't one in haskell. empty exists with id, but this would not conform to the types.}
 
 \subsection{Combined Data Stores}
 
@@ -646,7 +645,7 @@ mapC :: (DataStore' (Q([f])) (Q([[a]])), DataStore g [b])
   -> Circuit  (Q([f]))              (Q([[a]]))  (Q([f [a]]))            (Q([g]))              (Q([[b]]))  (Q([g [b]]))            N1
 \end{spec}
 
-This example can be though of a production line ([a] -> [b]).
+This example can be though of a production line (|[a] -> [b]|).
 The circuit given as an argument describes how to produce one item (|a -> b|).
 The |mapC| can then be provided with a pallet (or a list) of resources to build multiple items (|[a]|), it will then return a pallet of made items (|[b]|).
 
@@ -681,10 +680,7 @@ The axioms are then satisfied as follows:
   \item Copy Axiom --- this is the |replicate :: Circuit (Q([f a])) (Q([f a, f a]))| constructor. It allows for a |DataStore| to be duplicated.
 \end{enumerate}
 
-
 By satisfying all the axioms a |Circuit| is a symmetric monoidal preorder.
-
-
 
 
 \subsection{Evaluation}
