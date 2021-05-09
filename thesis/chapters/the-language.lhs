@@ -1,3 +1,4 @@
+%TC:envir hscode [] ignore
 \documentclass[dissertation.tex]{subfiles}
 
 
@@ -50,9 +51,8 @@ Multi-input tasks are explained further in Sub-Section~\ref{sec:multi-input-task
 \subsection{Data Stores}\label{sec:data-stores}
 Data stores are used to pass values between different tasks, this ensures that the input and output of tasks are closely controlled.
 They are used to represent different ways of storing values: one example could be a point to a CSV file.
+By also having just one place that defines how to read and write to data stores, it will reduce the possibility of an error occurring and make it easier to test.
 A data store can be defined as a type class, with two methods |fetch| and |save|:
-
-\todo[inline]{Motivate further why a |DataStore| needs to exist --- prevents the user from reading from a source incorrectly.}
 
 \begin{code}
 class DataStore f a where
@@ -126,9 +126,9 @@ This returns an output |DataStore| that can be passed on to another |Task|.
 
 
 
-\section{First Attempt: Chains}\label{sec:lang-chains}
+\section{Chains, A Dalliance}\label{sec:lang-chains}
 In a dataflow programming, one of the key aspects is the definition of dependencies between tasks in the flow.
-One possible approach to encoding this concept in the language is to make use of sequences of tasks --- also referred to as chains.
+One possible approach to encoding this concept in the language, that was ultimately not up to scratch, is to make use of sequences of tasks --- also referred to as chains.
 These chains compose tasks, based on their dependencies. A chain can be modelled with an abstract datatype:
 
 \begin{code}
@@ -137,15 +137,13 @@ data Chain (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
   Then   ::  Chain  f  a  g  b  ->  Chain  g  b  h  c -> Chain f a h c
 \end{code}
 
-\todo[inline]{free moniod? maybe yes it looks like what eddie did...}
-
 %if style /= newcode
 %format >>> = ">\!\!>\!\!>"
 %endif
 
-The |Chain| constructor allows for a |Task| to wrapped in the |Chain| data type. This allows for them to be easily composed with other |Tasks|.
+The |Chain| constructor wraps a |Task| in the |Chain| data type. This allows for them to be easily composed with other |Tasks|.
 Without this there would need to be an ``empty'' element, however, this could lead to the construction of a chain with no tasks.
-The |Then| constructor is used to combine multiple chains to for a sequence of sequential tasks.
+The |Then| constructor combines multiple chains to form a sequence of sequential tasks.
 To make this easier to use an operator |>>>| is defined that represents |Then|:
 
 
@@ -263,7 +261,7 @@ This new version of |Chain| named |Chain'|, is almost identical in the way it be
 This, however, leaves a key question, how do |Task|s get mapped to |PID|s.
 This can be done by employing the State monad.
 The state stores a map from PID to task and a counter for PIDs.
-As |Task|s each have a different type a new datatype is required to use existential types, to close over the types, and produce values of the same type.
+As |Task|s each have a different type a new wrapper datatype is required, making use of existential types, to close over the types, and produce values of apparently the same type.
 This is because a |Map| can only store one type.
 The |Workflow| monad is a type alias for the |State| monad, which stores the |WorkflowState|.
 
@@ -278,7 +276,7 @@ data WorkflowState = WorkflowState {
 type Workflow = State WorkflowState
 \end{code}
 
-An operation that is defined in the monad is |registerTask|.
+An operation that is defined for the monad is |registerTask|.
 This takes a |Task| and returns a |Chain| that stores a |PID| inside it.
 Whenever a user would like to add a new task to the workflow, they register it.
 They can then use this returned value to construct multiple chains, which can now be joined easily by comparing the stored \ac{PID}.
@@ -291,13 +289,13 @@ One benefit to this approach is that if the user would like to use a task again 
 they can simply register it again and use the new PID value.
 
 \subsection{Evaluation}
-\paragraph{$\text{\rlap{$\checkmark$}}\square$ Describe any Dataflow}
-This method is capable of describing any dataflow, although in its current state, it can only support trees.
+\paragraph{$\text{\rlap{{\scriptsize\textonehalf}}}\square$ Describe any Dataflow}\todo{try fix the half if i have time}
+This method would be capable of describing any dataflow, although in its current state, it can only support trees.
 The algorithm that would be used to join different chains together could be developed to allow them to rejoin onto another chain.
 This will allow for any \ac{DAG} to be defined.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Quickness to Learn}
-With only 4 different combinators and the |Task| constructor, this language is very simple to learn.
+With only 4 different combinators (|Chain|, |>>>|, |Pipe|, |And|) and the |Task| constructor, this language should be simple to learn.
 There are only two main concepts the user needs to understand: how to join tasks into a chain and how to join chains together.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Write}
@@ -325,7 +323,7 @@ This could lead to crashes at run-time as the compiler is not able to fully veri
 Another approach could be to look to category theory, for ways to compose functions together in a type-safe way.
 
 
-\section{Final Attempt: Circuit}
+\section{Solution: Circuit}
 This approach is inspired by monadic resource theory, which has a collection of mathematical operators for composing functions together.
 It uses parallel prefix circuits, described by Hinze~\cite{scans}, as a starting point for the design of the combinators.
 A set of constructors can be defined that are used to represent a \ac{DAG}.
@@ -402,6 +400,9 @@ Each parameter represents a certain piece of information needed to construct a c
 \item |nInputs| is a type-level Nat that is the length of the input lists.
 \end{itemize}
 
+Although, to a human some of these types may seem irrelevant, GHC is not able to make all of the deductions itself, when type checking the code.
+It requires additional information, such as |inputsApplied| or |nInputs|.
+
 In the language there are two different types of constructor, those that recurse and those that can be considered leaf nodes.
 The behaviour of both types of constructor is recorded within the types.
 For example, the |id| constructor has the type:
@@ -410,7 +411,7 @@ For example, the |id| constructor has the type:
 id :: DataStore' (Q([f])) (Q([a])) => Circuit (Q([f])) (Q([a])) (Q([f a])) (Q([f]) (Q([a])) (Q([f a])) N1
 \end{spec}
 
-It can be seen how the type information for this constructor states that it has 1 input value of type |f a| and it returns that same value.
+It can be seen how the type information for this constructor states that it has 1 input value (|N1 ~ (Q(Succ)) (Q(Zero))|) of type |f a| and it returns that same value.
 Each type parameter in |id| is a phantom type~\cite{phantom_types}, since there are no values stored in the data type that use the type parameters.
 The rest of the constructors that are leaf nodes are: |replicate|, |swap|, |dropL|, and |dropR|:
 
@@ -427,7 +428,7 @@ The |swap| constructor takes two values as input: |f a| and |g b|. It will then 
 The |dropR| has the same behaviour as |dropL|, it just drops the right argument instead.
 
 To be able to make use of the leaf nodes, they need to be combined in some way.
-To do this two new constructors named `beside' and `then' will be used.
+To do this two new recursive constructors named `beside' and `then' will be used.
 However, before defining these constructors there are some tools that are required.
 This is due to the types no longer being concrete.
 For example, the input type list is no longer known: it can only be referred to as |fs| and |as|.
@@ -449,7 +450,6 @@ For example, |Apply (Q([f, g, h])) (Q([a, b, c])) ~ (Q([f a, g b, h c]))|.
 
 
 %format :+ = ":\!\!+"
-%format :++ = ":\!\!+\!\!+"
 
 \todo[inline]{': looks awful }
 
@@ -462,6 +462,7 @@ type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
 
 \paragraph{Append Type Family}
 There will also be the need to append two type level lists together.
+Lists would need to be appended in this way, when combining inputs and outputs to form a larger circuit.
 For example, |(Q([a, b, c])) :++ (Q([d, e, f])) ~ (Q([a, b, c, d, e, f]))|.
 To do this an append type family~\cite{10.1145/1017472.1017488} can be used:
 
@@ -512,10 +513,11 @@ The resulting |Circuit| has the types of left and right circuits appended togeth
 This constructor works by making use of the |:++| type family to append the input and output type list of the left constructor to those of the right constructor.
 It also makes use of the |:+| type family --- defined in Section~\ref{sec:bg-type-families} --- to add the number of inputs from the left and right together.
 
-The |<>| constructor combined with the |id| constructor can be considered a Monoid at the behaviour level.
-However, due to the types on the constructors it is not possible to define a Monoid instance for |<>| in Haskell.
-\todo[inline]{Give example on the types as to why it isnt.}
-\todo[inline]{I think its a monoid in cat theory, but it isn't one in haskell. empty exists with id, but this would not conform to the types.}
+
+%% The |<>| constructor combined with the |id| constructor can be considered a Monoid at the behaviour level.
+%% However, due to the types on the constructors it is not possible to define a Monoid instance for |<>| in Haskell.
+%% \todo[inline]{Give example on the types as to why it isnt.}
+%% \todo[inline]{I think its a monoid in cat theory, but it isn't one in haskell. empty exists with id, but this would not conform to the types.}
 
 \subsection{Combined Data Stores}
 
@@ -636,34 +638,61 @@ The input is fed into the inner circuit, accumulated back into a list, and then 
 
 \begin{spec}
 mapC :: (DataStore' (Q([f])) (Q([[a]])), DataStore g [b])
-  => Circuit (Q([VariableStore])) (Q([a])) (Q([VariableStore a])) (Q([VariableStore])) (Q([b])) (Q([VariableStore b])) N1
+  => Circuit  (Q([VariableStore]))  (Q([a]))    (Q([VariableStore a]))  (Q([VariableStore]))  (Q([b]))    (Q([VariableStore b]))  N1
   -> g [b]
-  -> Circuit (Q([f])) (Q([[a]])) (Q([f [a]])) (Q([g])) (Q([[b]])) (Q([g [b]])) N1
+  -> Circuit  (Q([f]))              (Q([[a]]))  (Q([f [a]]))            (Q([g]))              (Q([[b]]))  (Q([g [b]]))            N1
 \end{spec}
 
-\todo[inline]{Graphical representation of this?}
-\todo[inline]{Add an example where this is useful}
+This example can be though of a production line (|[a] -> [b]|).
+The circuit given as an argument describes how to produce one item (|a -> b|).
+The |mapC| can then be provided with a pallet (or a list) of resources to build multiple items (|[a]|), it will then return a pallet of made items (|[b]|).
 
 
 \subsection{Completeness}
-\todo[inline]{something about the stuff Alex said}
-monadic resource theories.
+The constructors in this library make up a symmetric monoidal preorder.
+For simplicity only the |inputsApplied| and |outputsApplied| type parameters will be used to formalise a |Circuit| --- all other type parameters are only required to aid GHC in compilation.
+
+A preorder is defined over tasks and |DataStore|s.
+The preorder relation $\le$, can be used to describe the dependencies in the |DataStore|s, with a task being able to transform |DataStore|s into new |DataStore|s.
+The relation is defined over the set $X$, which describes the set of all possible |DataStore|s.
+
+The monoidal product $\otimes$ can be thought of as the concatenation of multiple |DataStore|s into type-lists.
+For example the monoidal product of $(f\:a) \otimes (g\:b) = $ |(Q([f a])) :++ (Q([g b])) ~ (Q([f a, g b]))|.
+The monoidal unit, is tricky to define as it has no real meaning within a |Circuit|, however it could be considered the empty |DataStore|: |(Q([]))|.
+
+%format x1
+%format y1
+%format x2
+%format y2
+
+The axioms are then satisfied as follows:
+\begin{enumerate}
+  \item Reflexivity --- this is the |id :: Circuit (Q([f a])) (Q([f a]))| constructor, it represents a straight line with the same input and output.
+  \item Transitivity --- this is the |<-> :: Circuit x y -> Circuit y z -> Circuit x z| constructor, it allows for circuits to be placed in sequence.
+  \item Monotonicity --- this is the |<> :: Circuit x1 y1 -> Circuit x2 y2 -> Circuit (x1 :++ x2) (y1 :++ y2)| constructor. This can place circuits next to each other.
+  \item Unitality --- given the monoidal unit |(Q([]))| and a |DataStore| |xs|, then the rules hold true: |(Q([])) :++ xs ~ xs| and |xs :++ (Q([])) ~ xs|.
+  \item Associativity --- given three |DataStore|s: |xs|, |ys|, |zs|. Since concatenation of lists is associative then this rule holds: |(xs :++ ys) :++ zs ~ xs :++ (ys :++ zs)|.
+  \item Symmetry --- this is the |swap :: Circuit (Q([f a, g b])) (Q([g b, f a]))| constructor, it allows for values to swap over.
+  \item Delete Axiom --- this is satisfied by the |dropL :: Circuit (Q([f a, g b])) (Q([g b]))| and |dropR :: Circuit (Q([f a, g b])) (Q([f a]))|.
+    Although this does not directly fit with the axiom, it also has to ensure the constraint on a circuit that there must always be 1 output value.
+  \item Copy Axiom --- this is the |replicate :: Circuit (Q([f a])) (Q([f a, f a]))| constructor. It allows for a |DataStore| to be duplicated.
+\end{enumerate}
+
+By satisfying all the axioms a |Circuit| is a symmetric monoidal preorder.
 
 
 \subsection{Evaluation}
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Describe any Dataflow}
-Due to the use of constructors which align with a symmetric monoidal pre-order,
-it can be concluded that it is possible to define any \ac{DAG} needed for a dataflow.
-\todo[inline]{I can't find anything to cite that discusses this though :(, but afaik i cannot find a scenario that cannot be made...}
+It is possible to represent a \ac{DAG} with the constructors in this library. Its completeness has been formalised as a symmetric monoidal preorder.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Quickness to Learn}
 The language uses, combinators that also have a visual representation, this makes it easy to quickly understand how they all work.
 A user can then also benefit from the familiarity of using the host language Haskell.
 
-\paragraph{$\text{\rlap{\hspace{1mm}-}}\square$ Easy to Write}
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Write}
 Building a circuit is a more difficult task: to be able to define it the user needs to have an understanding of the shape of the dataflow diagram.
-One the user has a sketch for the dataflow they would like to create, translating to a circuit is a much simpler job.
+Once the user has a sketch for the dataflow they would like to create, translating to a circuit is a much simpler job.
 This creates more upfront work for the user, however, it is offset by the additional benefits that a circuit brings.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Read}

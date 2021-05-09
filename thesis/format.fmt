@@ -25,6 +25,8 @@
 %format <-> = "<\!\!\!\!-\!\!\!\!>"
 %format :+: = ":\!\!+\!\!:"
 %format :<: = ":\prec:"
+%format <$> = "<\!\!\$\!\!>"
+%format :++ = ":\!\!+\!\!+"
 %endif
 
 %if style == newcode

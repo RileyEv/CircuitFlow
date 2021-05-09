@@ -5,5 +5,5 @@ lhsFiles: [dissertation.lhs
          , chapters/background.lhs
          , chapters/the-language.lhs
          , chapters/implementation.lhs
-         , chapters/evaluation.lhs
+         , chapters/benchmarks.lhs
          , chapters/examples.lhs]

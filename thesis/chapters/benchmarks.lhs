@@ -1,3 +1,4 @@
+%TC:envir hscode [] ignore
 \documentclass[dissertation.tex]{subfiles}
 
 %include format.fmt
@@ -6,7 +7,7 @@
 \begin{document}
 
 
-\chapter{Critical Evaluation}\label{chap:evaluation}
+\chapter{Benchmarks}\label{chap:benchmarks}
 
 \section{Runtime comparison}
 \subsection{Lazy evaluation problems}
