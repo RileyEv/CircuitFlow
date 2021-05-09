@@ -1,7 +1,10 @@
+%TC:envir hscode [] ignore
 \documentclass[dissertation.tex]{subfiles}
 
 %include format.fmt
 %options ghci -pgmL lhs2tex -optL--pre
+
+\long\def\ignore#1{}
 
 \begin{document}
 
@@ -581,14 +584,16 @@ instance BuildNetworkAlg BasicNetwork Then where
     )
 \end{code}
 \end{minipage}
+\ignore{$} % Syntax highlighting is being annoying on my laptop :'(
 
 This instance has an interesting definition: firstly it takes the accumulated network |n| as input.
 It then uses the function |fx|, with the input |n| to generate a network for the top half of the |Then| constructor.
 Finally, it takes the returned network |nx|, from the top half of the constructor, and generates a network using the function |fy| representing the bottom half of the constructor.
 
-
 \paragraph{Beside}
-Time to unleash hell...
+The |Beside| constructor places two circuits side by side.
+This is the most difficult algebra to define as the accumulated network needs to be split in half to pass to the two recursive sides of |Beside|.
+An instance of the algebra is defined as:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -597,6 +602,8 @@ instance BuildNetworkAlg BasicNetwork Beside where
 \end{code}
 \end{minipage}
 
+This requires a |beside| function, however to define this function some extra tools are required.
+The first is |takeP|, which will take the first |n| elements from a |PipeList|:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -606,6 +613,12 @@ takeP  (SSucc _)  PipeNil          =  PipeNil
 takeP  (SSucc n)  (PipeCons x xs)  =  PipeCons x (takeP n xs)
 \end{code}
 \end{minipage}
+
+This makes use of the |Take| type family to take |n| elements from each of the type lists: |fs|, |as|, and |xs|.
+It follows the same structure as the |take :: Int -> [a] -> [a]| defined in the |Prelude|.
+
+The next function is |dropP|, it drops |n| elements from a |PipeList|:
+
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 dropP :: SNat n -> PipeList fs as xs -> PipeList (Drop n fs) (Drop n as) (Drop n xs)
@@ -614,12 +627,39 @@ dropP  (SSucc _)  PipeNil          = PipeNil
 dropP  (SSucc n)  (PipeCons _ xs)  = dropP n xs
 \end{code}
 \end{minipage}
+
+This function again follows the same structure as |drop :: Int -> [a] -> [a]| defined in the |Prelude|.
+Both |takeP| and |dropP| are used to split the outputs of a network after |n| elements.
+This requires the knowledge of what |n| is at the value level, however n is only stored at the type level as the argument |ninputs|.
+To be able to recover this value the |IsNat| type class, as defined in Section~\ref{sec:bg-is-nat} is used.
+The |recoverNInputs| function is able to direct the |IsNat| type class to the correct type argument,
+and produces an |SNat| with the same value as that stored in the type.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+recoverNInputs :: (  Length bsS ~ Length bsT, Length bsT ~ Length bsA, Length bsA ~ Length bsS,
+                     ninputs ~ Length bsS, IsNat ninputs, Network n)
+  => (N n asS asT asA) bsS bsT bsA csS csT csA (ninputs :: Nat)
+  -> SNat (Length bsS)
+circuitInputs _ = nat
+\end{code}
+\end{minipage}
+
+
+After splitting a network and generating two new networks, the outputs will need to be joined together again: this will require the appending of two |PipeLists|.
+To do this an |AppendP| type class is defined:
+
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 class AppendP fs as xs gs bs ys where
   appendP :: PipeList fs as xs -> PipeList gs bs ys -> PipeList (fs :++ gs) (as :++ bs) (xs :++ ys)
 \end{code}
 \end{minipage}
+
+This type class has one function |appendP|, it is able to append two |PipeLists| together.
+It makes use of the  |:++| type family to append the type lists together.
+The instances for this type class are made up of two cases: the base case and a recursive case.
+
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 instance AppendP (Q([])) (Q([])) (Q([])) gs bs ys where
@@ -630,26 +670,31 @@ instance (AppendP fs as xs gs bs ys) => AppendP (f (Q(:)) fs) (a (Q(:)) as) (f a
 \end{code}
 \end{minipage}
 
-
-\noindent\begin{minipage}{\linewidth}
-\begin{code}
-circuitInputs
-  :: ( Length bsS ~ Length bsT
-     , Length bsT ~ Length bsA
-     , Length bsA ~ Length bsS
-     , ninputs ~ Length bsS
-     , IsNat ninputs
-     , Network n
-     )
-  => (N n asS asT asA) bsS bsT bsA csS csT csA (ninputs :: Nat)
-  -> SNat (Length bsS)
-circuitInputs _ = nat
-\end{code}
-\end{minipage}
+The base case corresponds to having an empty list on the left, with some other list on the right. Here the list on the right is returned.
+The recursive case, simply takes 1 element from the left hand side and conses it onto the from of a recursive call, with the rest of the left hand side.
 
 
 %format nL'
 %format nR'
+
+\noindent\begin{minipage}{\linewidth}
+It is now possible to define the |beside| function. The result is calculated in 4 steps, with helper functions for each step:
+
+\begin{enumerate}
+  \item Get the number of inputs (|ninputs|) on the left hand side of the |Beside| constructor.
+        This will give the information needed to split the inputted accumulated network |n|.
+  \item Split the network into a left and right hand side.
+        This will retain the same input type to the network, as there is no information on how to split that.
+        Only the output |PipeList| will be split into two parts.
+  \item Translate the both the left and right network.
+        This will perform the recursive step and generate two new networks with the networks from the left and right added to the accumulated network |n|.
+  \item Join the networks back together.
+        Now that the left and right hand side of this layer has been added to the accumulated network,
+        the two sides need to be joined back together to get a single network that can be returned.
+\end{enumerate}
+\end{minipage}
+
+\todo{This is very long, but I cant really break it up because it needed the scoped type variables from beside }
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -694,12 +739,17 @@ beside (Beside l r) = return $ AccuN
 \end{code}
 \end{minipage}
 
-
-\todo[inline]{This is very long, but I cant really break it up because it needed the scoped type variables from beside }
-
+The |splitNetwork| function creates two new |BasicNetwork|s. To split the output values, |takeP|, and |dropP| are used.
+|translate| performs the recursive step in the accumulating fold, which produces two new networks that include this layer.
+|joinNetwork| takes the two new networks and appends the outputs with |appendP|.
+It also has to append the thread ids from both sides, however, this will now include duplicates as threads were not split in |splitNetwork|.
+To combat this |nub| is used, which returns a list containing all the unique values in the original.
 
 
 \section{UUIDS}
+When inputting multiple values into a |Network| problems can occur.
+
+
 \paragraph{Why are they needed?}
 \paragraph{How are they added?}
 
