@@ -615,6 +615,7 @@ A function that fetches the length of a vector can now definable.
 %if style /= newcode
 %format vecLength2
 %format :+ = ":\!\!+"
+%format vecLength3
 %endif
 
 \begin{code}
@@ -623,16 +624,36 @@ vecLength2 Nil          = SZero
 vecLength2 (Cons x xs)  = SSucc (vecLength2 xs)
 \end{code}
 
-\paragraph{Recovering an SNat}
-\todo[inline]{talk}
-\begin{code}
-class IsNat (n :: Nat) where nat :: SNat n
+\paragraph{Recovering an SNat}\label{sec:bg-is-nat}
+Although being able to define a function that can recover the length of a vector is great, there is a more general way this can be approached.
+This is to define a new type class that is able to recover an |SNat| from any type level |Nat|:
 
+\begin{code}
+class IsNat (n :: Nat) where
+  nat :: SNat n
+\end{code}
+
+The type class has one value inside it |nat|, which can produce an |SNat| for a type level |Nat|.
+There are two instances from this type class: a base case and a recursive case.
+
+\begin{code}
 instance IsNat (Q(Zero)) where
   nat = SZero
 
 instance IsNat n => IsNat ((Q(Succ)) n) where
   nat = SSucc nat
+\end{code}
+
+The base case matches on the type level |Nat| |(Q(Zero))|, in this case |nat| is defined to be |SZero| --- the singleton equivalent.
+The recursive step deals with the |(Q(Succ n))| case, where the singleton equivalent |SSucc| is used to define |nat|.
+
+A new vector length function can then be defined as:
+
+
+
+\begin{code}
+vecLength3 :: IsNat n => Vec a n -> SNat n
+vecLength3 _ = nat
 \end{code}
 
 

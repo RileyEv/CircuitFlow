@@ -253,7 +253,7 @@ The |writePipes| function will input a list of values into each of the respectiv
 The |readPipes| function will make a blocking call to each channel to read an output from it.
 This function will block till an output is read from every output channel.
 
-\todo[inline]{add a definition of these}
+% \todo[inline]{add a definition of these}
 
 \section{Translation to a Network}\label{sec:circuit-translation}
 
@@ -361,9 +361,10 @@ A simple example of |foldl| can be considered.
 To be able to have an accumulating fold, inside an indexed catamorphism a carrier data type is required to wrap up this function.
 This carrier, which shall be named |AccuN|, contains a function that when given a network that has been accumulated up to that point,
 then it is able to produce a network including the next layer in a circuit.
+This can be likened to the lambda function given to |foldr|, when defining |foldl|.
 The type of the layer being folded will be |Circuit a b c d e f g|.
 
-\todo{this clear enough? maybe a diagram showing the layer and all the types}
+% \todo{this clear enough? maybe a diagram showing the layer and all the types}
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -531,8 +532,8 @@ taskExecutor
   -> IO ()
 taskExecutor (Task f outStore) inPipes outPipes = forever
   (do
-    taskInput) <- readPipes inPipes
-    r          <- f taskInputs outStore
+    taskInput  <- readPipes inPipes
+    r           <- f taskInputs outStore
     writePipes (HCons' r HNil') outPipes
   )
 \end{code}
@@ -745,26 +746,200 @@ The |splitNetwork| function creates two new |BasicNetwork|s. To split the output
 It also has to append the thread ids from both sides, however, this will now include duplicates as threads were not split in |splitNetwork|.
 To combat this |nub| is used, which returns a list containing all the unique values in the original.
 
+\todo[inline]{Define buildBasicNetwork}
 
 \section{UUIDS}
 When inputting multiple values into a |Network| problems can occur.
+For example, a task's output pointer is statically defined.
+If this were a file, it would result in files being overwritten before they have been read.
+This is eliminated through the use of UUIDs, they act as a unique identifier for each input into the network.
+
+\subsection{Modifications}
+To be able to support a UUID, several small modifications need to be made.
+
+\paragraph{Data Store}
+The value is accessible to the data store when saving by making a small modification:
+
+%format UUID = "\Conid{\textcolor{red}{UUID}}"
+%format uuid = "\Conid{\textcolor{red}{uuid}}"
+
+\begin{code}
+class DataStore f a where
+  fetch :: UUID -> f a -> IO a
+  save :: UUID -> f a -> a -> IO (f a)
+\end{code}
+
+This can then be made use of when reading or writing to a data store. For example, a filename could be prepended with the unique identifier, or it could be used as a primary key when saving to a database table.
+
+\paragraph{PipeList}
+To transfer the value around the network, the |PipeList| data type is modified to store channels of type |(UUID, f a)|, instead of just |f a|:
+
+\begin{code}
+data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
+  PipeCons :: Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs)
+  PipeNil :: PipeList (Q([])) (Q([])) (Apply (Q([])) (Q([])))
+\end{code}
+
+\paragraph{Task Executor}
+The task executor needs to be modified, so that it retries the UUID, gives it to the task and passes it on with the output.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+taskExecutor :: Task iF inputsS inputsT inputsA outputS outputT outputsA ninputs
+  -> PipeList inputsS inputsT inputsA
+  -> PipeList outputS outputT outputA
+  -> IO ()
+taskExecutor (Task f outStore) inPipes outPipes = forever
+  (do
+    (uuid, taskInput)  <- readPipes inPipes
+    r                  <- f uuid taskInputs outStore
+    writePipes uuid (HCons' r HNil') outPipes
+  )
+\end{code}
+\end{minipage}
 
 
-\paragraph{Why are they needed?}
-\paragraph{How are they added?}
+\paragraph{Network: Read \& Write}
+The read and write methods defined in the |Network| type class are modified to also take a UUID:
+
+\begin{code}
+class Network n where
+  ...
+
+  read :: n inputsS inputsT inputsA outputsS outputsT outputsA -> IO (UUID, HList' outputsS outputsT)
+  write :: UUID -> HList' inputsS inputsT -> n inputsS inputsT inputsA outputsS outputsT outputsA -> IO ()
+\end{code}
+
+% reset the highlighting back to normal...
+%format UUID = "\Conid{UUID}"
+%format uuid = "\Conid{uuid}"
+
+\subsection{Helper Functions}
+There are several helper functions for reading and writing into a network:
+
+\begin{spec}
+input :: Network n => HList' inputsS inputsT
+  -> n inputsS inputsT inputsA outputsS outputsT outputsA
+  -> IO UUID
+
+input_ :: Network n => HList' inputsS inputsT
+  -> n inputsS inputsT inputsA outputsS outputsT outputsA
+  -> IO ()
+
+output_ :: Network n => n inputsS inputsT inputsA outputsS outputsT outputsA
+  -> IO (HList' outputsS outputsT)
+\end{spec}
+
+Both of the input functions generate a random UUID, meaning the user does not have to specify one.
+|input| will return this generated values, whereas |input_| will not.
+|output_| fetches values from a network, but does not return the UUID with the outputs.
+
 
 \section{Failure in the Process Network}
-\paragraph{Why?}
-\subsection{Maybe Monad}
-\paragraph{No error messages}
+Currently, when an exception occurs in a task the whole network crashes --- this isn't desired behaviour.
+There are many ways to model failure in Haskell, one such example could be the |Maybe| monad.
+
+\subsection{Maybe not Maybe}
+|Maybe| can capture failure, with |Just x| being the success case, and |Nothing| being the failed case.
+When |Nothing| is produced the rest of the computation automatically fails due to the definition of |>>=|.
+
+\begin{code}
+instance Monad Maybe where
+  return x  = Just x
+
+  (>>=) Nothing   _  = Nothing
+  (>>=) (Just x)  f  = f x
+\end{code}
+
+This would work well in a network as an error in one task can be propagated to all it dependents, causing them to fail gracefully, and the error propagating further through the network.
+Howver, there is one problem with |Maybe|, it does not retain any information about the error that occured.
+This information would be very useful to a user, as it helps them debug the issue.
+
 \subsection{Except Monad}
-based on |Either|
-\paragraph{Propagation}
+The |Except| monad is based on |Either|, with the |Left| constructor representing failure, and the |Right| constructor indicating success.
+This means that an error message can now be stored, when a failure ultimately occurs.
+Since tasks already execute in the |IO| monad, a monad transformer |ExceptT| is required, so that failure can be implemented into the network.
+This allows for computation in both |IO|, and |Except|, however, any |IO| computation will need to be lifted into the |ExceptT| monad.
+
+The following modifications are required to add modelling of failure in a network.
+
+\paragraph{PipeList}
+A pipelist will now need to also transfer information about whether the previous task failed to execute.
+To do this it will carry an |Either TaskError (f a)|, with |TaskError| being a custom data type storing the error message text.
+
+%format (EitherTaskError) = "\Conid{\textcolor{red}{Either}}\codeskip \Conid{\textcolor{red}{TaskError}}"
+
+\begin{code}
+data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
+  PipeCons :: Chan (UUID, EitherTaskError (f a))
+       ->  PipeList fs as xs
+       ->  PipeList (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs)
+  PipeNil :: PipeList (Q([])) (Q([])) (Apply (Q([])) (Q([])))
+\end{code}
+
+\paragraph{Task Executor}
+The task executor will need to be modified so that it executes the tasks in the |ExceptT| monad.
+
+
+\begin{code}
+taskExecuter :: Task iF inputsS inputsT inputsA outputS outputT outputsA ninputs
+  -> PipeList inputsS inputsT inputsA
+  -> PipeList outputS outputT outputA
+  -> IO ()
+taskExecuter (Task f outStore) inPipes outPipes = forever
+  (do
+    (uuid, taskInputs)  <- readPipes inPipes
+    r                   <- runExceptT $
+        (do
+          input  <- (ExceptT . return) taskInputs
+          r      <-  catchE (intercept (f uuid input outStore))
+                     (throwE . TaskError . ExceptionMessage . displayException)
+          return (HCons' (r `deepseq` r) HNil')
+        )
+
+    writePipes uuid r outPipes
+  )
+\end{code}
+\ignore{$}
+
+This version of the executor, first reads the values from the input channels.
+It then runs some computation in the |ExceptT| monad to get a return value |r :: Either TaskError (HList' outputsS outputsT)|.
+The return value is then sent along the output channels.
+
+The |catchE| function can be used to catch an exception thrown in a task, the exception is then converted to a |TaskError|, and re-thrown.
+This will mean that only a |Either TaskError (HList' outputsS outputsT)| is returned, rather than another type of error.
+
+There is, however, an error that is caused by Haskell's laziness: if a value is not evaluated inside the |runExceptT| block then it will not be caught, and the program will continue to crash.
+To solve this the |deepseq| function is used, which fully evaluates the left argument, before returning the right argument.
+This forces any error that could occur to happen inside the |runExceptT| block.
 
 
 \section{Evaluation}
 
+\begin{itemize}
+  \item \textbf{Type-safe} --- This is a continuation of the previous requirement for the language. It is also important that once the user has built a well-typed |Circuit|, that the code also continues to be executed in a well-typed environment, to ensure that all inputs and outputs are correctly typed.
+  \item \textbf{Parallel} --- One of the key benefits that comes from dataflow programming is implicit parallelisation.
+        With this \ac{DSL} being tailored towards data pipelines, which could be computationally expensive,
+        it should be able to benefit from parallel execution.
+  \item \textbf{Competitive Speed} --- This library should be able to execute dataflows in a competitive time, with other libraries that already exist.
+  \item \textbf{Failure Tolerance} --- It is important that if one invocation of a task crashes, it does not crash the whole program.
+        This implementation should be able to gracefully handle errors and propagate them through the circuit.
+  \item \textbf{Usable} --- The implementation of the library should not break any of the usability of the language design.
+  \item \textbf{Maintainable} --- It should be easy to maintain the library and add new constructors in the future.
+\end{itemize}
 
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Type-safe}
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Parallel}
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Competitive Speed}
+The network is, indeed, able to compute results in a time that is competitive with other libraries. More detail on this can be found in Chapter~\ref{chap:benchmarks}.
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Failure Tolerance}
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Usable}
+
+\paragraph{$\text{\rlap{$\checkmark$}}\square$ Maintainable}
 
 % ------
 % not really as important

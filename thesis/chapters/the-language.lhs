@@ -51,9 +51,8 @@ Multi-input tasks are explained further in Sub-Section~\ref{sec:multi-input-task
 \subsection{Data Stores}\label{sec:data-stores}
 Data stores are used to pass values between different tasks, this ensures that the input and output of tasks are closely controlled.
 They are used to represent different ways of storing values: one example could be a point to a CSV file.
+By also having just one place that defines how to read and write to data stores, it will reduce the possibility of an error occurring and make it easier to test.
 A data store can be defined as a type class, with two methods |fetch| and |save|:
-
-\todo[inline]{Motivate further why a |DataStore| needs to exist --- prevents the user from reading from a source incorrectly.}
 
 \begin{code}
 class DataStore f a where
@@ -137,8 +136,6 @@ data Chain (f :: Type -> Type) (a :: Type) (g :: Type -> Type) (b :: Type) where
   Chain  ::  Task   f  a  g  b  ->  Chain  f  a  g  b
   Then   ::  Chain  f  a  g  b  ->  Chain  g  b  h  c -> Chain f a h c
 \end{code}
-
-\todo[inline]{free moniod? maybe yes it looks like what eddie did...}
 
 %if style /= newcode
 %format >>> = ">\!\!>\!\!>"
