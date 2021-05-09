@@ -916,30 +916,73 @@ This forces any error that could occur to happen inside the |runExceptT| block.
 
 \section{Evaluation}
 
-\begin{itemize}
-  \item \textbf{Type-safe} --- This is a continuation of the previous requirement for the language. It is also important that once the user has built a well-typed |Circuit|, that the code also continues to be executed in a well-typed environment, to ensure that all inputs and outputs are correctly typed.
-  \item \textbf{Parallel} --- One of the key benefits that comes from dataflow programming is implicit parallelisation.
-        With this \ac{DSL} being tailored towards data pipelines, which could be computationally expensive,
-        it should be able to benefit from parallel execution.
-  \item \textbf{Competitive Speed} --- This library should be able to execute dataflows in a competitive time, with other libraries that already exist.
-  \item \textbf{Failure Tolerance} --- It is important that if one invocation of a task crashes, it does not crash the whole program.
-        This implementation should be able to gracefully handle errors and propagate them through the circuit.
-  \item \textbf{Usable} --- The implementation of the library should not break any of the usability of the language design.
-  \item \textbf{Maintainable} --- It should be easy to maintain the library and add new constructors in the future.
-\end{itemize}
-
+\subsection{Requirements}
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Type-safe}
+A |Network| uses strong types to verify the correctness of the implementation and the translation to it.
+The implementation does not make use of any unsafe casts or coerces.
+The strength of types during the translation caught numerous bugs: the implementation and translation worked first time after it fully compiled.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Parallel}
+The network achieves parallel computation through its use of threads and channels.
+This allows it to perform multiple tasks simultaneously, increasing the run-time.
+The |BasicNetwork|, however, does have a limitation that it has to create a thread for every task: this may not be idea for large networks.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Competitive Speed}
 The network is, indeed, able to compute results in a time that is competitive with other libraries. More detail on this can be found in Chapter~\ref{chap:benchmarks}.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Failure Tolerance}
+A network is able to catch an error occurring in a task, and then propagate it through the network.
+Due to this an exception in a task cannot crash the program, instead the error is return as the output of the network.
+This means that if multiple inputs are inputted into the network, and one of them crashes, all results will be returned apart from the one that crashed.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Usable}
+The implementation of constructors does not add any extra constraints that would impact on the original language design.
+Smart constructors have been used to hide the \ac{AST}, that is built under the hood to represent a |Circuit|.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Maintainable}
+The implementation has been designed with maintainability in mind.
+It is possible to add now constructors, without impacting on those currently defined.
+The translation uses individual algebra instances for each constructor, which means they are only required to be defined where it makes sense.
+
+The network system has also been defined in a way that is easily extendable in the future.
+New instances could be defined that allow for other types of network, such as a profiling network, or a distributed network.
+
+
+
+\subsection{Unit Tests}
+The implementation of the language has been verified by a set of unit tests.
+A test for each constructor has been defined that ensures it has the expected behaviour.
+For example, the test for |replicate| is:
+
+\begin{spec}
+replicateCircuit :: Circuit
+  (Q([VariableStore]))
+  (Q([Int]))
+  (Q([VariableStore Int]))
+  (Q([VariableStore, VariableStore]))
+  (Q([Int, Int]))
+  (Q([VariableStore Int, VariableStore Int]))
+  N1
+replicateCircuit = replicate
+
+replicateTests :: TestTree
+replicateTests = testGroup
+  "replicate should"
+  [ testCase "return a duplicated input value" $ do
+      let i = HCons' (Var 0) HNil'
+      n <- startNetwork circuit :: IO (BasicNetwork a b c d e f)
+      input_ i n
+      o <- output_ n
+      stopNetwork n
+      o @?= Right (HCons' (Var 0) (HCons' (Var 0) HNil'))
+  ]
+\end{spec}
+
+This test defines a circuit that uses just the replicate operator.
+It then starts and network and inputs one value into it.
+The result is then read from the network and compared to the expected output.
+
+The tests for Task, also ensure that if an exception occurs it is caught correclty and the error message is returned.
 
 % ------
 % not really as important
