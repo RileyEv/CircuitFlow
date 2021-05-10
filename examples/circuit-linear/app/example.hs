@@ -332,7 +332,7 @@ main :: IO ()
 main = do
   let clock = Realtime
   startTime <- getTime clock
-  let users = [ show x | x <- [0 .. 999] ]
+  let users = [ show x | x <- [0 .. 1999] ]
 
   forM_
     users

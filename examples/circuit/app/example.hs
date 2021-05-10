@@ -311,7 +311,7 @@ main = do
   startTime          <- getTime clock
   n                  <- startNetwork pipeline
   networkStartedTime <- getTime clock
-  let users = [ show x | x <- [0 .. 1999] ]
+  let users = [ show x | x <- [0 .. 0] ]
 
   -- Input values into network
   forM_ users (addUser n)
