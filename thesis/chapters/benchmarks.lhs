@@ -7,23 +7,31 @@
 \begin{document}
 
 \chapter{Benchmarks}\label{chap:benchmarks}
+To perform benchmarks in this Chapter, the data pre-processing pipeline will be used from Section~\ref{example-pre-proc-pipeline}.
+The |CircuitFlow| implementation will be benchmarked against a serial implementation and one in a similar library Luigi.
 
-\section{Runtime comparison}
-\subsection{Lazy evaluation problems}
+\section{Benchmarking Technicalities}
+\paragraph{Lazy Evaluation}
+Ensure computation does not escape the timed section.
 
-\section{Use of Library}
-Something about how DataStores prevent the need for luigi.ExternalTask at the beginning.
-\subsection{Other Libraries}
-How does it compare?
-\paragraph{Luigi}
-Object-orientated approach
-Python library
-
-\paragraph{Funflow}
-Uses arrows to compose flows sequentially.
+\paragraph{Multi-Code Haskell}
 
 
-\section{Type saftey}
+\section{Parallel vs Serial}
+The first test will ensure that using multiple threads has a positive affect on run-times.
+
+\paragraph{An Aside: 1 Core Circuit vs Serial}
+
+
+\section{CircuitFlow vs Luigi}
+
+
+\subsection{Why is CircuitFlow so good?}
+well it revolves around luigi=bad.
+
+luigi = \ac{DPN}, so needs a scheduler. but this does not scale well to high numbers of tasks.
+New process is created for each firing of a task. CircuitFlow only creates a \textit{thread} for each task --- much more lightweight.
+
 
 \end{document}
 

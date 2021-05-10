@@ -358,7 +358,7 @@ A simple example of |foldl| can be considered.
     (\x->(\x-> id (x+2)) (x+1)) 0
 \end{spec}
 
-To be able to have an accumulating fold, inside an indexed catamorphism a carrier data type is required to wrap up this function.
+To be able to have an accumulating fold inside an indexed catamorphism a carrier data type is required to wrap up this function.
 This carrier, which shall be named |AccuN|, contains a function that when given a network that has been accumulated up to that point,
 then it is able to produce a network including the next layer in a circuit.
 This can be likened to the lambda function given to |foldr|, when defining |foldl|.
@@ -379,8 +379,7 @@ Since the accumulating fold will work layer by layer from the top downwards, the
 
 \noindent\begin{minipage}{\linewidth}
 \paragraph{Classy Algebra}
-An algebra type class can now be defined.
-This will ensure that the approach remains with modular: a new instance can be made when adding a new constructor to the language.
+To ensure that the approach remains modular, the algebra takes the form of a type class: the interpretation of a new constructor is just a new type class instance.
 
 \begin{code}
 class (Network n, IFunctor7 iF) => BuildNetworkAlg n iF where
@@ -389,12 +388,14 @@ class (Network n, IFunctor7 iF) => BuildNetworkAlg n iF where
 \end{code}
 \end{minipage}
 
-This algebra type class is parameterised by |n| and |iF|. The |n| is constrained to have a |Network| instance, this allows the same algebra to be used for defining folds for multiple network types. The |iF| is the |IFunctor7| that this instance is being defined for, an example is |Then| or |Id|.
-This algebra uses the |N| data type to perform an accumulating fold.
+This algebra type class takes two parameters: |n| and |iF|. The |n| is constrained to have a |Network| instance, this allows the same algebra to be used for defining folds for multiple network types.
+The |iF| is the |IFunctor7| that this instance is being defined for, an example is |Then| or |Id|.
+This algebra uses the |AccuN| data type to perform an accumulating fold.
 The input to the algebra is an |IFunctor7| with the inner elements containing values of type |AccuN|.
 The function can be retrieved from inside |AccuN| to perform steps that are dependent on the previous, for example, in the |Then| constructor.
 
-To be able to define the algebra on sums of |IFunctor7|s, without having a nest of |L|s and |R|s to pattern match, an instance for the sum of two data types is defined:
+For an algebra to handle sums of |IFunctor7|s, |:+:| has an algebra instance to direct it through the nest of |L|s and |R|s.
+It knows what to do in each case, due to the constraint that each side of the sum must also have an instance of the algebra.
 
 \begin{code}
 instance (BuildNetworkAlg n iF, BuildNetworkAlg n iG) => BuildNetworkAlg n (iF :+: iG) where
@@ -402,25 +403,22 @@ instance (BuildNetworkAlg n iF, BuildNetworkAlg n iG) => BuildNetworkAlg n (iF :
   buildNetworkAlg  (R y)  = buildNetworkAlg  y
 \end{code}
 
-This instance enforces that there must also be an instance for the left and right hand side of the sum.
-It will then be able to automatically recurse through the |L|s and |R|s, to get to the types that have been summed.\todo{Sketchy :s}
-
 
 \paragraph{The Initial Network}
 Before being able to define the actual translation, there is one more base to cover.
 This is an accumulating fold that depends on the previous layer to be able to define the current one.
 However, what happens on the first layer? There is no previous |Network| to use.
-The initial network should have matching input and output types, this means that the input channels should be the same as the output channels.
+The fold needs an initial network that has matching input and output types, this means that the input channels should be the same as the output channels.
 
-To generate the |PipeList| of channels that will be stored in the initial network a new type class is defined:
+The following new type class will generate a |PipeList| of channels that will be stored in the initial network:
 
 \begin{code}
 class InitialPipes (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type]) where
   initialPipes :: IO (PipeList inputsS inputsT inputsA)
 \end{code}
 
-This type class is able to construct an |initialPipes| based on the type required, in the initial network.
-To be able to construct this value two instances are defined:
+This type class constructs an |initialPipes| based on the type required in the initial network.
+The following two instances will allow for the construction of the |initialPipes| value:
 
 \begin{code}
 instance InitialPipes (Q([])) (Q([])) (Q([])) where
@@ -433,7 +431,7 @@ instance InitialPipes fs as xs => InitialPipes (f (Q(:)) fs) (a (Q(:)) as) (f a 
 \end{code}
 
 The first instance deals with the base case: when the type lists are empty, an empty |PipeList| is created.
-The later more interesting case deals with a cons in the type lists.
+The latter more interesting case deals with a cons in the type lists.
 Here a new channel is created with the same type as the type removed from the front of the type list.
 The channel is then consed to the front of a |PipeList| with the remaining list generated by a recursive call.
 
@@ -452,7 +450,7 @@ initialNetwork = do
 \end{minipage}
 
 This creates a network that has matching input and output types.
-To do so a |PipeList| of the initial channels is created, which is then used as both the inputs and outputs of the network.
+To do so |initialNetwork| creates a |PipeList| of the initial channels, which is then used as both the inputs and outputs of the network.
 
 
 \subsection{The Translation}
@@ -578,11 +576,7 @@ The instance is defined as:
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 instance BuildNetworkAlg BasicNetwork Then where
-  buildNetworkAlg (Then (AccuN fx) (AccuN fy)) = return $ N
-    (\n -> do
-      nx <- fx n
-      fy nx
-    )
+  buildNetworkAlg (Then (AccuN fx) (AccuN fy)) = return $ N (fx >=> fy)
 \end{code}
 \end{minipage}
 \ignore{$} % Syntax highlighting is being annoying on my laptop :'(
@@ -695,8 +689,6 @@ It is now possible to define the |beside| function. The result is calculated in 
 \end{enumerate}
 \end{minipage}
 
-\todo{This is very long, but I cant really break it up because it needed the scoped type variables from beside }
-
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 beside :: forall asS asT asA bsS bsT bsA csS csT csA (nbs :: Nat)
@@ -746,7 +738,19 @@ The |splitNetwork| function creates two new |BasicNetwork|s. To split the output
 It also has to append the thread ids from both sides, however, this will now include duplicates as threads were not split in |splitNetwork|.
 To combat this |nub| is used, which returns a list containing all the unique values in the original.
 
-\todo[inline]{Define buildBasicNetwork}
+Using the algebra in conjunction with |icataM7|, |buildBasicNetwork| is now defined:
+
+\begin{code}
+buildBasicNetwork :: InitialPipes a b c => Circuit a b c d e f g -> IO (BasicNetwork a b c d e f)
+buildBasicNetwork x = do
+  n   <- icataM7 buildNetworkAlg x
+  n'  <- initialNetwork
+  unAccuN n n'
+\end{code}
+
+|icataM7| builds a value of type |AccuN|, which is unpacked and applied with the |initialNetwork|.
+The application step, causes the nest of accumulator functions to collapse and generate a new network, creating the channels and threads.
+
 
 \section{UUIDS}
 When inputting multiple values into a |Network| problems can occur.
@@ -781,7 +785,7 @@ data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
 \end{code}
 
 \paragraph{Task Executor}
-The task executor needs to be modified, so that it retries the UUID, gives it to the task and passes it on with the output.
+The task executor needs to be modified, so that it retrieves the UUID from the input channels, gives it to the task, and passes it on down the output channels.
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -852,19 +856,19 @@ instance Monad Maybe where
 \end{code}
 
 This would work well in a network as an error in one task can be propagated to all it dependents, causing them to fail gracefully, and the error propagating further through the network.
-Howver, there is one problem with |Maybe|, it does not retain any information about the error that occured.
+However, there is one problem with |Maybe|, it does not retain any information about the error that occurred.
 This information would be very useful to a user, as it helps them debug the issue.
 
 \subsection{Except Monad}
 The |Except| monad is based on |Either|, with the |Left| constructor representing failure, and the |Right| constructor indicating success.
-This means that an error message can now be stored, when a failure ultimately occurs.
+This means that an error message can now be stored, when a failure may occur.
 Since tasks already execute in the |IO| monad, a monad transformer |ExceptT| is required, so that failure can be implemented into the network.
 This allows for computation in both |IO|, and |Except|, however, any |IO| computation will need to be lifted into the |ExceptT| monad.
 
 The following modifications are required to add modelling of failure in a network.
 
 \paragraph{PipeList}
-A pipelist will now need to also transfer information about whether the previous task failed to execute.
+A |PipeList| will now need to also transfer information about whether the previous task failed to execute.
 To do this it will carry an |Either TaskError (f a)|, with |TaskError| being a custom data type storing the error message text.
 
 %format (EitherTaskError) = "\Conid{\textcolor{red}{Either}}\codeskip \Conid{\textcolor{red}{TaskError}}"

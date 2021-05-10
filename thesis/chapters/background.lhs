@@ -372,19 +372,19 @@ This could be |IFix ParserF|, which would be a transformation to the same struct
 \subsection{Monadic Catamorphism with IFunctors}\label{sec:bg-monadic-cat}
 Using an indexed catamorphism, allows for principled recursion and makes it easier to define a fold over a data type, as any recursive step is abstracted from the user.
 However, there may be times when the there is a need for monadic computations in the algebra.
-To be able to do this a monadic catamorphism is defined:
+To be able to do this a monadic catamorphism~\cite{monadic_cata} is defined:
 
 \begin{code}
 cataM :: (Traversable f, Monad m) => (forall a . f a -> m a) -> Fix f -> m a
 cataM algM (In x) = algM =<< mapM (cataM algM) x
 \end{code}
 
-This catamorphism follows a similar pattern to a standard catamorphism, however, it does not have the |Functor| constraint.
-Instead it constrains |f| by |Traversable|: this type class still requires that |f| is a functor, it just provides additional functions such as a monadic map --- |mapM :: Monad m => (a -> m b) -> f a -> m (f b)|.
+This catamorphism follows a similar pattern to a standard catamorphism, however, it upgrades the |Functor| constraint to |Traversable|,
+which still requires that |f| is a |Functor|, but also provides additional functions such as a monadic map --- |mapM :: Monad m => (a -> m b) -> f a -> m (f b)|.
 This allows the monadic catamorphism to be applied recursively on the data type being folded.
 
-This technique can also be applied to indexed catamorphisms, however to do so an indexed monadic map has to be introduced.
-This will be included as part of the |IFunctor| type class.
+This technique can also be applied to indexed catamorphisms to gain a monadic version~\cite{10.1145/2036918.2036930}, however, to do so an indexed monadic map has to be introduced.
+This will be included as part of the |IFunctor| type class:
 
 \begin{spec}
 class IFunctor iF where
@@ -398,7 +398,7 @@ The new |IFunctor| instance for |ParserF| is defined as:
 
 \begin{spec}
 instance IFunctor ParserF where
-  imap = ... -- already defined
+  imap = ... -- previously defined in this section.
   imapM  _  (SatisfyF s)  = return SatisfyF s
   imapM  f  (OrF px py)   = do
     px' <- f px
@@ -670,6 +670,11 @@ vecAppend :: Vec a n -> Vec a m -> Vec a (n :+ m)
 \noindent
 This requires a |:+| type family that can add two |Nat|s together.
 
+\begin{code}
+type family (a :: Nat) :+ (b :: Nat) where
+  a  :+  (Q(Zero))    =  a
+  a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
+\end{code}
 
 \subsection{Heterogeneous Lists}\label{sec:bg-heterogeneous-lists}
 Heterogeneous lists~\cite{10.1145/1017472.1017488} are a way of having multiple types in the same list.
@@ -692,7 +697,7 @@ This data type has two constructors:
 \subsubsection{Functions on HLists}
 
 \paragraph{Length}
-using singletons and type families, it is possible to get the length of a |HList| in a type-safe way.
+Using singletons and type families, it is possible to get the length of a |HList| in a type-safe way.
 Firstly, a type family is defined that is able to return the length of a type list.
 
 \begin{code}
@@ -701,7 +706,14 @@ type family Length (l :: [k]) :: Nat where
   Length (e (Q(:)) l)  =  (Q(Succ)) (Length l)
 \end{code}
 
-|Length| follows a similar definition to the |length :: [a] -> Int| function defined in the |Prelude|.
+|Length| follows a similar definition to the |length :: [a] -> Int| function defined in the |Prelude|:
+
+\begin{code}
+length :: [a] -> Int
+length []      = 0
+length (x:xs)  = 1 + length xs
+\end{code}
+
 The base case of |Length| defines the length to be |(Q(Zero))|.
 The recursive case increments the length by 1 for each item in the list, until it reaches the base case.
 
@@ -759,12 +771,6 @@ dropH (SSucc _) HNil = HNil
 dropH (SSucc n) (HCons _ xs) = dropH n xs
 \end{code}
 
-
-\begin{code}
-type family (a :: Nat) :+ (b :: Nat) where
-  a  :+  (Q(Zero))    =  a
-  a  :+  (Q(Succ)) b  =  (Q(Succ)) (a :+ b)
-\end{code}
 
 
 \subsection{Summary}
@@ -843,6 +849,7 @@ The |closeDoor| function, enforces that only an open door can be given as input,
 
 
 \section{Monoidal Resource Theories}\label{sec:bg-mrt}
+\todo[inline]{Motivate a bit more...}
 Resource theories~\cite{Coecke_2016} are a branch of mathematics that allow for the reasoning of questions surrounding resources, for example:
 \begin{itemize}
   \item If I have some resources, can I make something?
@@ -859,24 +866,29 @@ The relation must obey two laws:
 \end{enumerate}
 
 A preorder is a pair $(X, \le)$ made up of a set and a preorder relation on that set.
+Preorders can represent many different things, such as, the less than relationship on numbers, or even dependencies between different values.
+For example, $A \le B$ would mean that $A$ is required to calculate $B$.
 
 
 \subsection{Symmetric Monoidal Preorders}\label{sec:bg-sym-monoidal-preorders}
-A symmetric monoidal structure $(X, \le, I, \otimes)$ on a preorder $(X, \le)$ has two additional components:
-\begin{enumerate}
-  \item The monoidal unit --- an element $I \in X$
-  \item The monoidal product --- a function $\otimes : X \times X \to X$
-\end{enumerate}
-\noindent
-To be a symmetric monoidal then the following laws must be satisfied:
+To be a symmetric monoid then the following laws must be satisfied:
 \begin{enumerate}
   \item Monotonicity --- $\forall x_1, x_2, y_1, y_2 \in X$, if $x_1 \le y_1$ and $x_2 \le y_2$, then $x_1 \otimes x_2 \le y_1 \otimes y_2$
   \item Unitality --- $\forall x \in X$, $I \otimes x = x$ and $x \otimes I = x$
   \item Associativity --- $\forall x, y, z \in X$, $(x \otimes y) \otimes z = x \otimes (y \otimes z)$
   \item Symmetry --- $\forall x, y \in X$, $x \otimes y = y \otimes x$
 \end{enumerate}
+\noindent
+A symmetric monoidal structure $(X, \le, I, \otimes)$ on a preorder $(X, \le)$ has two additional components:
+\begin{enumerate}
+  \item The monoidal unit --- an element $I \in X$
+  \item The monoidal product --- a function $\otimes : X \times X \to X$
+\end{enumerate}
 
-\subsection{Wiring Diagrams}
+One example is where $X$ is a collection of resources, $\otimes$ combines resources together, and $\le$ defines dependencies between resources.
+
+\subsection{Wiring Diagrams}\label{sec:bg-wiring-diagrams}
+A graphical representation of symmetric monoidal preorders is a wiring diagram.
 A wiring diagram is made up of: boxes that can have multiple inputs and outputs.
 The boxes can be arranged in series or in parallel.
 Figure~\ref{fig:bg-wiring-diagram-example}, shows an example wiring diagram.
@@ -888,9 +900,9 @@ Figure~\ref{fig:bg-wiring-diagram-example}, shows an example wiring diagram.
   \label{fig:bg-wiring-diagram-example}
 \end{figure}
 
-A wiring diagram can be formalised as a symmetric monoidal preorder.
-Each element $x \in X$ can exists as the label on a wire.
-Two wires $x$ and $y$, can be drawn in parallel:
+A wiring diagram formalises a symmetric monoidal preorder, with each element $x \in X$ existing as the label on a wire.
+Two wires, $x$ and $y$, drawn in parallel are considered to be the monoidal product $x \otimes y$.
+The monodial unit is defined as a wire with the label $I$ or no wire.
 
 \begin{center}
 \begin{tikzpicture}
@@ -898,9 +910,6 @@ Two wires $x$ and $y$, can be drawn in parallel:
 \draw (0, 0.25) -- (1.5, 0.25) node[midway, above] {$x$};
 \end{tikzpicture}
 \end{center}
-
-Two wires in parallel are be considered to be the monoidal product $x \otimes y$.
-The monodial unit is defined as a wire with the label $I$ or no wire.
 
 A box connects parallel wires on the left to parallel wires on the right.
 A wiring diagram is considered valid if the monoidal product of the left is less than the right.
@@ -916,7 +925,9 @@ A wiring diagram is considered valid if the monoidal product of the left is less
 \end{tikzpicture}
 \end{center}
 
-This example wiring diagram corresponds to the inequality $x_1 \otimes x_2 \otimes x_3 \le y_1 \otimes y_2$.
+This example wiring diagram corresponds to the inequality $x_1 \otimes x_2 \otimes x_3 \le y_1 \otimes y_2$, which corresponds to the idea that $x_1$, $x_2$, and $x_3$ are required to get $y_1$, and $y_2$.
+
+Each axiom in a symmetric monoidal preorder has a corresponding graphical form, using wiring diagrams.
 
 \paragraph{Reflexivity}
 The reflexivity law states that $x \le x$, this states that a diagram of one wire is valid.
@@ -927,6 +938,7 @@ The reflexivity law states that $x \le x$, this states that a diagram of one wir
 \end{tikzpicture}
 \end{center}
 
+This law corresponds to the idea that a resource is preserved.
 
 \paragraph{Transitivity}
 The transitivity law says that if $x \le y$ and $y \le z$ then $x \le y$. This corresponds to connecting two diagrams together in sequence.
@@ -960,6 +972,8 @@ are valid, then they can be joined together to obtain another valid diagram.
 \end{tikzpicture}
 \end{center}
 
+If a box is considered a task that can transform values, then this law corresponds to the idea that two tasks can be composed in sequence, with the output of one being the input to the next.
+
 \paragraph{Monotonicity}
 Monotonicity states that, if $x_1 \le y_1$ and $x_2 \le y_2$, then $x_1 \otimes x_2 \le y_1 \otimes y_2$. This can be thought of as stacking two boxes on top of each other:
 
@@ -984,6 +998,9 @@ Monotonicity states that, if $x_1 \le y_1$ and $x_2 \le y_2$, then $x_1 \otimes 
 \end{tikzpicture}
 \end{center}
 
+This law conceptualises the idea that when resources are combined, the dependencies are respected.
+
+
 \paragraph{Unitality}
 The unitality law states that $I \otimes x = x$ and $x \otimes I = x$, this means that a blank space can be ignored and that diagrams such as
 
@@ -996,6 +1013,11 @@ The unitality law states that $I \otimes x = x$ and $x \otimes I = x$, this mean
 \draw (1.5, 0) edge[out=0,in=180] (2.5, 0.25);
 
 \draw (2.5, 0.25) -- (4, 0.25) node[midway, below] {$x$};
+
+\draw (4, 0.25) edge[out=0,in=180] (5, 0.5);
+
+\node at (5.75, 0) {Nothing};
+\draw (5, 0.5) -- (6.5, 0.5) node[midway, above] {$x$};
 \end{tikzpicture}
 \end{center}
 
@@ -1004,6 +1026,7 @@ are valid.
 
 \paragraph{Associativity}
 The associativity law says that $(x \otimes y) \otimes z = x \otimes (y \otimes z)$, this states that diagrams can be built from either the top or bottom.
+This means that the order of grouping resources does not matter.
 In reality it is trivial to see how this is true with wires:
 
 \begin{center}
@@ -1023,7 +1046,6 @@ In reality it is trivial to see how this is true with wires:
 \paragraph{Symmetry}
 The symmetry law states that $x \otimes y = y \otimes x$, this encodes the notion that a diagram is still valid even if the wires cross.
 
-
 \begin{center}
 \begin{tikzpicture}
 \node at (-0.2,0.4) {$x$};
@@ -1034,7 +1056,6 @@ The symmetry law states that $x \otimes y = y \otimes x$, this encodes the notio
 \node at (2.7,0) {$x$};
 \end{tikzpicture}
 \end{center}
-
 
 
 \paragraph{Discard Axiom}
@@ -1048,6 +1069,7 @@ In a wiring diagram this is represented as:
 \end{center}
 
 This can be added as an additional axiom to the definition of a symmetric monoidal preorder: $\forall x \in X, x \le I$
+It corresponds to the idea that resources can be destroyed when they are no longer needed.
 
 \paragraph{Copy Axiom}
 The final axiom to add is the notion of copying a value: $\forall x \in X, x \le x + x$.
@@ -1067,6 +1089,7 @@ This can be represented in wiring diagram as a split wire:
 \end{tikzpicture}
 \end{center}
 
+This embodies the idea that it is possible to duplicate a resource.
 
 \end{document}
 

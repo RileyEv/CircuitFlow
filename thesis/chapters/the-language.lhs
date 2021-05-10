@@ -326,7 +326,7 @@ Another approach could be to look to category theory, for ways to compose functi
 \section{Solution: Circuit}
 This approach is inspired by monadic resource theory, which has a collection of mathematical operators for composing functions together.
 It uses parallel prefix circuits, described by Hinze~\cite{scans}, as a starting point for the design of the combinators.
-A set of constructors can be defined that are used to represent a \ac{DAG}.
+A set of constructors can be defined that are used to represent a \ac{DAG}, which are similar to the wiring diagrams in Section~\ref{sec:bg-wiring-diagrams}.
 The constructors seen in Figure~\ref{fig:circuit-constructors} represent the behaviour of edges in the graph.
 
 \begin{figure}[hbt]
@@ -691,8 +691,9 @@ The language uses, combinators that also have a visual representation, this make
 A user can then also benefit from the familiarity of using the host language Haskell.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Write}
-Building a circuit is a more difficult task: to be able to define it the user needs to have an understanding of the shape of the dataflow diagram.
-Once the user has a sketch for the dataflow they would like to create, translating to a circuit is a much simpler job.
+Although a circuit may appear hard to construct initially, the skills of the domain expert also need to be considered.
+To be able to define a circuit the user needs to have an understanding of the shape of the dataflow diagram: a skill the domain expert is expected to have.
+Once the user has a sketch for the dataflow they would like to create, translating to a circuit is a relatively simple job.
 This creates more upfront work for the user, however, it is offset by the additional benefits that a circuit brings.
 
 \paragraph{$\text{\rlap{$\checkmark$}}\square$ Easy to Read}

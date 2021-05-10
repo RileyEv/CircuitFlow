@@ -11,7 +11,7 @@ import           Control.DeepSeq                   (deepseq)
 import           Control.Exception                 (SomeException,
                                                     displayException)
 import           Control.Exception.Lifted          (try)
-import           Control.Monad                     (forM_, forever)
+import           Control.Monad                     (forM_, forever, (>=>))
 import           Control.Monad.Trans               (lift)
 import           Control.Monad.Trans.Except        (ExceptT (..), catchE,
                                                     runExceptT, throwE)
@@ -228,10 +228,7 @@ instance BuildNetworkAlg BasicNetwork Replicate where
 
 instance BuildNetworkAlg BasicNetwork Then where
   buildNetworkAlg (Then (N x) (N y)) = return $ N
-    (\n -> do
-      nx <- x n
-      y nx
-    )
+    (x >=> y)
 
 instance BuildNetworkAlg BasicNetwork Swap where
   buildNetworkAlg Swap = return $ N

@@ -33,7 +33,7 @@ However, each of the months data is stored in different files that need aggregat
 
 
 
-\subsection{Building the pre-processing Circuit}
+\subsection{Building the pre-processing Circuit}\label{example-pre-proc-pipeline}
 This circuit will need to have 3 different inputs --- each months listening history.
 It will also have 2 outputs: the top 10 songs and artists.
 To begin with a dataflow diagram can be constructed --- seen in Figure~\ref{fig:example-song-pre-proc}.
