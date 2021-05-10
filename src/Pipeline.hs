@@ -14,11 +14,18 @@ module Pipeline
   , module Pipeline.Network
   , module Pipeline.Task
   , module Pipeline.Error
+  , Task(..)
+  , (:+:)(..)
+  , IFix7(..)
   ) where
 
 import           Pipeline.Circuit
 import           Pipeline.DataStore
 import           Pipeline.Error
+import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
+import           Pipeline.Internal.Core.CircuitAST         (Task (..))
 import           Pipeline.Nat
 import           Pipeline.Network
 import           Pipeline.Task
+
+import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))

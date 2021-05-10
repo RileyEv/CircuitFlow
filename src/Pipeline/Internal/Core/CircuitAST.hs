@@ -167,7 +167,7 @@ instance IFunctor7 Map where
   imap7 _ (Map c out) = Map c out
   imapM7 _ (Map c out) = return $ Map c out
 
-type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task :+: Map
+type CircuitF = Task :+: Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Map
 
 {-|
 The core type for a Circuit. It takes 7 different type arguments
