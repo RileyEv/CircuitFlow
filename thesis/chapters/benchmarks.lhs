@@ -6,7 +6,6 @@
 
 \begin{document}
 
-
 \chapter{Benchmarks}\label{chap:benchmarks}
 
 \section{Runtime comparison}

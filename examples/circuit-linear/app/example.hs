@@ -7,15 +7,16 @@
 module Main where
 
 import           Data.Csv
-import           Data.List.Unique (count_)
-import qualified Data.Vector      as V (fromList)
+import           Data.List.Unique           (count_)
+import qualified Data.Vector                as V (fromList)
 import           GHC.Generics
 import           Pipeline
-import           Prelude          hiding (id, replicate, (<>))
+import           Prelude                    hiding (id, replicate, (<>))
 import           System.Clock
 import           Text.Printf
 
-import           Control.Monad    (forM, forM_, mzero)
+import           Control.Monad              (forM, forM_, mzero)
+import           Control.Monad.Trans.Except (runExceptT)
 
 newtype Artist = Artist {artistName :: String} deriving (Eq, Show, Generic, Ord, NFData)
 
@@ -305,33 +306,48 @@ getUserTop10 n _ = do
   (Right (HCons' ac (HCons' tc HNil'))) <- output_ n
   return (ac, tc)
 
+
+computeResult
+  :: HList' '[NamedCSVStore , NamedCSVStore , NamedCSVStore] '[[Listen] , [Listen] , [Listen]]
+  -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
+computeResult inputs = do
+  let (IIn7 (L (Task aggArtistsF aggArtistsEmpty))) = aggArtistsTask
+  let (IIn7 (L (Task aggSongsF aggSongsEmpty)))     = aggSongsTask
+
+  (Right aggArtists) <- runExceptT (aggArtistsF "test" inputs aggArtistsEmpty)
+  (Right aggSongs  ) <- runExceptT (aggSongsF "test" inputs aggSongsEmpty)
+
+  let artists = HCons' aggArtists HNil'
+  let songs   = HCons' aggSongs HNil'
+  let (IIn7 (L (Task top10ArtistsF top10ArtistsEmpty))) = top10Task "output/top10Artists.csv"
+  let (IIn7 (L (Task top10SongsF top10SongsEmpty))) = top10Task "output/top10Songs.csv"
+
+  (Right ac) <- runExceptT (top10ArtistsF "test" artists top10ArtistsEmpty)
+  (Right tc) <- runExceptT (top10SongsF "test" songs top10SongsEmpty)
+
+  return (ac, tc)
+
+
 main :: IO ()
 main = do
   let clock = Realtime
-  startTime          <- getTime clock
-  n                  <- startNetwork pipeline
-  networkStartedTime <- getTime clock
-  let users = [ show x | x <- [0 .. 1999] ]
+  startTime <- getTime clock
+  let users = [ show x | x <- [0 .. 999] ]
 
-  -- Input values into network
-  forM_ users (addUser n)
+  forM_
+    users
+    (const
+      (computeResult
+        (HCons'
+          (NamedCSVStore "../data/jan.csv")
+          (HCons' (NamedCSVStore "../data/feb.csv") (HCons' (NamedCSVStore "../data/mar.csv") HNil')
+          )
+        )
+      )
+    )
 
-  -- Get outputs of network
-  top10   <- forM users (getUserTop10 n)
 
   endTime <- getTime clock
-  -- Stop the network
-  stopNetwork n
 
-  -- print values
-  -- print top10
-
-  let
-    totalRunTime = fromIntegral (toNanoSecs (diffTimeSpec endTime startTime)) / (1e9 :: Double)
-    initTime =
-      fromIntegral (toNanoSecs (diffTimeSpec networkStartedTime startTime)) / (1e9 :: Double)
-    processTime =
-      fromIntegral (toNanoSecs (diffTimeSpec endTime networkStartedTime)) / (1e9 :: Double)
-  printf "Total Runtime (s): %.6f\n"   totalRunTime
-  printf "Init Runtime (s): %.6f\n"    initTime
-  printf "Process Runtime (s): %.6f\n" processTime
+  let totalRunTime = fromIntegral (toNanoSecs (diffTimeSpec endTime startTime)) / (1e9 :: Double)
+  printf "Total Runtime (s): %.6f\n" totalRunTime
