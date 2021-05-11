@@ -10,7 +10,7 @@ Data science applications usually revolve around the composition of multiple tas
 The tasks in such applications are arranged into a \acfp{DAG}, which is widely referred to as a workflow.
 Commonly used tools focus on the composition of tasks to form workflows.
 
-The CircuitFlow \ac{DSL} takes an alternative approach of focusing on the data --- not the tasks.
+The CircuitFlow \ac{DSL} takes an alternative approach by focusing on the data --- not the tasks.
 Monoidal resource theories are used to form circuits that describe how data flows through a workflow.
 Workflows are described by a symmetric monoidal preorder on data stores, where tasks are preorder relation on data stores.
 Workflow are executed using a \acf{KPN}, that exceeds existing libraries for speed, whist being able to propagate failure in the unlikely event a fault occurs.

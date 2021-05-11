@@ -8,14 +8,11 @@
 
 \chapter{Conclusion}\label{chap:conclusion}
 
-\section{Future Work}
-Visualiser, show state of network
-Different versions of network: has had groundwork setup already! distributed.
-Ability to profile a network/perform optimisations on the composition of tasks.
-
-
 \section{Related Work}
-Composing Effects into Tasks and Workflows
+
+\paragraph{Composing Effects into Tasks and Workflows~\cite{10.1145/3406088.3409023}}
+
+
  - general about:
  * domain = data science workflow, so more specific than ours
  * contributions
@@ -29,7 +26,8 @@ Composing Effects into Tasks and Workflows
  => implementation in haskell that is natural, but oddly not done before so novel
  * time spend on domain cos it is not expected that people will know about workflow / ML so we will do similar
 
-Scoping Monadic Relational Database Queries
+ \paragraph{Scoping Monadic Relational Database Queries~\cite{10.1145/3331545.3342598}}
+
  (read to see writing style of a Haskell Symp paper for a DSL)
  - story goes from domain to need for DSL
  - they lean on monadic interface
@@ -40,6 +38,20 @@ Scoping Monadic Relational Database Queries
  * higher level of abstraction
  - also uses advanced haskell stuff like Hlists and type heft if you wanna look to the writing of those intros
  - clear simple and small example of the problem they are solving
+
+\section{Future Work}
+Whilst CircuitFlow performs well against the competition, there have been some possible improvements highlighted that could help to improve the runtime further.
+
+
+
+more benchmarks
+
+Visualiser, show state of network
+Different versions of network: has had groundwork setup already! distributed.
+Ability to profile a network/perform optimisations on the composition of tasks.
+
+
+\section{What do i call this ? }
 
 \end{document}
 
