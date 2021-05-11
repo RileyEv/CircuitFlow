@@ -50,3 +50,7 @@ cabal.project.local~
 .auctex-auto/
 *.tdo
 *.tex
+
+# Jupyter
+.ipynb_checkpoints
+    

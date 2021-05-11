@@ -138,7 +138,8 @@ The thread is not allowed to test for the presence of data in a queue.
   \label{fig:kpn-firing}
 \end{figure}
 
-Parks described a variant of \acp{KPN}, called \acp{DPN}~\cite{381846}.
+\paragraph{\acfp{DPN}}
+Parks described a variant of \acp{KPN}, called \acfp{DPN}~\cite{381846}.
 They recognise that if functions have no side effects then they have no values to be shared between each firing.
 Therefore, a pool of threads can be used with a central scheduler instead.
 

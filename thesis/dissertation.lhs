@@ -24,7 +24,10 @@ year={2021}
 \usepackage{lmodern}
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{decorations.markings}
-
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary{dateplot}
 
 \usepackage{subfiles} % load last
 
