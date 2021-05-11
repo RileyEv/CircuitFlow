@@ -42,14 +42,13 @@
 \section{Future Work}
 Whilst CircuitFlow performs well against the competition, there have been some possible improvements highlighted that could help to improve the runtime further.
 
-
-
 more benchmarks
 
 Visualiser, show state of network
 Different versions of network: has had groundwork setup already! distributed.
 Ability to profile a network/perform optimisations on the composition of tasks.
 
+more smart constructors to make defining data transformations easier.
 
 \section{What do i call this ? }
 
