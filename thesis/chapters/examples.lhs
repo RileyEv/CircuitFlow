@@ -281,7 +281,7 @@ createPlaylist =  preProcPipeline <> id
 \end{minipage}
 
 The |createPlaylist|, circuit can now be converted into a |Network| and used on user data to generate new playlists, based on their top songs.
-|preProcPipeline| will be revisited in Chapter~\ref{chap:evaluation}, to act as a benchmark to compare the performance of the CircuitFlow library.
+|preProcPipeline| will be revisited in Chapter~\ref{chap:benchmarks}, to act as a benchmark to compare the performance of the CircuitFlow library.
 
 
 

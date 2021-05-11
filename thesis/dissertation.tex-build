@@ -6,4 +6,5 @@ lhsFiles: [dissertation.lhs
          , chapters/the-language.lhs
          , chapters/implementation.lhs
          , chapters/benchmarks.lhs
-         , chapters/examples.lhs]
+         , chapters/examples.lhs
+         , chapters/conclusion.lhs]

@@ -45,13 +45,26 @@ year={2021}
 % =============================================================================
 
 \frontmatter
+
+% -----------------------------------------------------------------
+
 \makedecl{}
+
+% -----------------------------------------------------------------
+
 \tableofcontents
+
+% -----------------------------------------------------------------
+
 \listoffigures
 
 % -----------------------------------------------------------------------------
 
-% \chapter*{Supporting Technologies}
+\subfileinclude{chapters/abstract}
+
+% -----------------------------------------------------------------
+
+\subfileinclude{chapters/technologies}
 
 % -----------------------------------------------------------------------------
 
@@ -78,9 +91,9 @@ year={2021}
 \noindent
 It is common practice (although totally optional) to acknowledge any
 third-party advice, contribution or influence you have found useful
-during your work.  Examples include support from friends or family, 
-the input of your Supervisor and/or Advisor, external organisations 
-or persons who  have supplied resources of some kind (e.g., funding, 
+during your work.  Examples include support from friends or family,
+the input of your Supervisor and/or Advisor, external organisations
+or persons who  have supplied resources of some kind (e.g., funding,
 advice or time), and so on.
 
 % =============================================================================
@@ -111,7 +124,7 @@ advice or time), and so on.
 
 % -----------------------------------------------------------------------------
 
-\chapter{Conclusion}\label{chap:conclusion}
+\subfileinclude{chapters/conclusion}
 
 % =============================================================================
 
