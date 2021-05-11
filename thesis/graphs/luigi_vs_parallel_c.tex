@@ -1,0 +1,48 @@
+% This file was created by tikzplotlib v0.9.8.
+\begin{tikzpicture}
+
+\definecolor{color0}{rgb}{0.12156862745098,0.466666666666667,0.705882352941177}
+\definecolor{color1}{rgb}{0.2980,0.73333,0.090196} % Luigi green!!!
+
+\begin{axis}[
+legend cell align={left},
+legend style={
+  fill opacity=0.8,
+  draw opacity=1,
+  text opacity=1,
+  at={(0.03,0.97)},
+  anchor=north west,
+  draw=white!80!black
+},
+tick align=outside,
+tick pos=left,
+x grid style={white!69.0196078431373!black},
+xlabel={Number of inputs},
+xmin=-98.95, xmax=2099.95,
+xtick style={color=black},
+y grid style={white!69.0196078431373!black},
+ylabel={Runtime (s)},
+ymin=-45.8457058, ymax=965.9454878,
+ytick style={color=black}
+]
+\addplot [semithick, color0, mark=x, mark size=3, mark options={solid}]
+table {%
+1 0.144803
+10 1.3444406
+100 12.0620326
+1000 115.44489675
+2000 231.9013125
+};
+\addlegendentry{circuit}
+\addplot [semithick, color1, mark=x, mark size=3, mark options={solid}]
+table {%
+1 0.2204958
+10 1.6201972
+100 14.3882146
+1000 281.3843915
+2000 919.954979
+};
+\addlegendentry{luigi}
+\end{axis}
+
+\end{tikzpicture}
