@@ -576,7 +576,7 @@ The instance is defined as:
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 instance BuildNetworkAlg BasicNetwork Then where
-  buildNetworkAlg (Then (AccuN fx) (AccuN fy)) = return $ N (fx >=> fy)
+  buildNetworkAlg (Then (AccuN fx) (AccuN fy)) = return $ AccuN (fx >=> fy)
 \end{code}
 \end{minipage}
 \ignore{$} % Syntax highlighting is being annoying on my laptop :'(
