@@ -115,7 +115,7 @@ There is no need for them to create a different implementation for devices where
 
 
 \section{CircuitFlow vs Luigi}
-The final benchmark on CircuitFlow is comparing it to widely used library: Luigi by Spotify~\cite{luigi}.
+The final benchmark on CircuitFlow is comparing it to widely used library: Luigi by Spotify~\cite{spotify_luigi}.
 Since Luigi uses a \ac{DPN}, it can use any number of threads: in this test it is set to 4 --- the same as CircuitFlow.
 Figure~\ref{fig:luigi-parallel-c}, shows the results of the benchmark.
 
