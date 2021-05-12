@@ -68,11 +68,13 @@ year={2021}
 
 % -----------------------------------------------------------------------------
 
-\chapter*{Notation and Acronyms}
+\chapter*{Acronyms}
+
+Throughout this thesis, several acronyms will be used:
 
 \begin{acronym}
   \acro{DSL}{Domain Specific Language}
-  \acro{EDSL}{Embedded DSL}
+  \acro{e-DSL}{Embedded DSL}
   \acro{FIFO}{First-In First-Out}
   \acro{KPN}{Kahn Process Network}
   \acro{GPL}{General Purpose Language}

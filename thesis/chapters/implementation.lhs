@@ -953,7 +953,8 @@ New instances could be defined that allow for other types of network, such as a 
 
 
 
-\subsection{Unit Tests}
+\subsection{Development Practices}
+\paragraph{Unit Tests}
 The implementation of the language has been verified by a set of unit tests.
 A test for each constructor has been defined that ensures it has the expected behaviour.
 For example, the test for |replicate| is:
@@ -987,6 +988,25 @@ It then starts and network and inputs one value into it.
 The result is then read from the network and compared to the expected output.
 
 The tests for Task, also ensure that if an exception occurs it is caught correclty and the error message is returned.
+
+\paragraph{Source Code Management \& Continuous Integration}
+The source code for this implementation is stored in a GitHub repository: \url{https://github.com/RileyEv/CircuitFlow}.
+The repository for this project makes use of continuous integration (GitHub Actions), to ensure that no breaking changes are introduced into the code.
+Each new feature has been developed and merged using pull requests that enforce several checks before any new feature can be merged:
+
+\begin{itemize}
+  \item The code must build
+  \item All tests must pass
+  \item The HLint tool must report that there are no linting issues.
+\end{itemize}
+
+This ensures that the library is well maintained and that no changes accidentally introduce breaking faults.
+
+
+\paragraph{Documentation}
+Unlike most Haskell libraries, this implementation is fully documented with 100\% coverage.
+The generation of the documentation is integrated into the continuous integration workflow, with it being deployed to a publicly hosted system: \url{https://circuitflow.rly.rocks}.
+
 
 % ------
 % not really as important

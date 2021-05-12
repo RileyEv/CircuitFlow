@@ -6,17 +6,34 @@
 
 \chapter*{Abstract}\label{chap:abstract}
 
-Data science applications usually revolve around the composition of multiple tasks.
+% The problem
+With the ever growing amount of data collected every day, new approaches are needed to build data science applications.
+These applications usually revolve around the composition of multiple tasks.
 The tasks in such applications are arranged into a \acfp{DAG}, which is widely referred to as a workflow.
-Commonly used tools focus on the composition of tasks to form workflows.
-
-The CircuitFlow \ac{DSL} takes an alternative approach by focusing on the data --- not the tasks.
-Monoidal resource theories are used to form circuits that describe how data flows through a workflow.
-Workflows are described by a symmetric monoidal preorder on data stores, where tasks are preorder relation on data stores.
-Workflow are executed using a \acf{KPN}, that exceeds existing libraries for speed, whist being able to propagate failure in the unlikely event a fault occurs.
+Its desirable to have assurances that these applications will work correctly, as they can run for days.
+However, too often interactions between tasks are not made in a type-safe way, leading to undesirable runtime errors.
 
 
-\todo[inline]{It's a start... but needs more motivation and the second paragraph is a bit shit}
+% Contributions
+This thesis presents a new Haskell \acs{e-DSL}, with a strong mathematical basis, refocusing on how data flows through an application, resulting in a more expressive solution that is faster.
+Monoidal resource theories are used to define a symmetric monoidal preorder on data that models dependencies in the workflow.
+This is implemented with indexed functors, and uses principled recursion schemes to perform a type-safe translation to a \acf{KPN}.
+
+% Why is it good?
+
+
+
+
+
+% Commonly used tools focus on the composition of tasks to form workflows.
+
+% The CircuitFlow \ac{DSL} takes an alternative approach by focusing on the data --- not the tasks.
+% Monoidal resource theories are used to form circuits that describe how data flows through a workflow.
+% Workflows are described by a symmetric monoidal preorder on data stores, where tasks are preorder relation on data stores.
+% Workflow are executed using a \acf{KPN}, that exceeds existing libraries for speed, whist being able to propagate failure in the unlikely event a fault occurs.
+
+
+% \todo[inline]{It's a start... but needs more motivation and the second paragraph is a bit shit}
 
 
 % This dissertation\todo{or thesis?} explores the composition of tasks using an approach that focuses on \textit{dependencies} between different pieces of data, making use of Monoidal Resource Theories.

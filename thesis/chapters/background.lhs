@@ -154,9 +154,9 @@ it cannot be used for more generic purposes, such as adding two numbers together
 \paragraph{Approaches to Implementation}
 DSLs are typically split into two categories: standalone and embedded.
 Standalone DSLs require their own compiler and typically their own syntax; HTML would be an example of a standalone \ac{DSL}.
-\acp{EDSL} use an existing language as a host, therefore they use the syntax and compiler from the host.
+\acp{e-DSL} use an existing language as a host, therefore they use the syntax and compiler from the host.
 This means that they are easier to maintain and often quicker to develop than standalone \acp{DSL}.
-An \ac{EDSL}, can be implemented using two differing techniques: deep and shallow embeddings.
+An \ac{e-DSL}, can be implemented using two differing techniques: deep and shallow embeddings.
 
 
 %if style /= newcode
