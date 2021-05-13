@@ -8,16 +8,15 @@
 
 % The problem
 With the ever growing amount of data collected every day, new approaches are needed to build data science applications.
-These applications usually revolve around the composition of multiple tasks.
-The tasks in such applications are arranged into a \acfp{DAG}, which is widely referred to as a workflow.
 Its desirable to have assurances that these applications will work correctly, as they can run for days.
-However, too often interactions between tasks are not made in a type-safe way, leading to undesirable runtime errors.
+However, current dataflow tools are not good enough, too often the interactions between tasks are not made in a type-safe way, leading to undesirable runtime errors.
 
 
 % Contributions
 This thesis presents a new Haskell \acs{e-DSL}, with a strong mathematical basis, refocusing on how data flows through an application, resulting in a more expressive solution that is faster.
 Monoidal resource theories are used to define a symmetric monoidal preorder on data that models dependencies in the workflow.
-This is implemented with indexed functors, and uses principled recursion schemes to perform a type-safe translation to a \acf{KPN}.
+It uses DataKinds and TypeFamilies in phantom type parameters to bake each axiom into the language constructors.
+Then using indexed functors and Data types \`{a} la carte to represent the \acs{AST}, and makes use of principled recursion schemes to perform a type-safe translation to a \acf{KPN}.
 
 % Why is it good?
 

@@ -30,8 +30,11 @@
 %endif
 
 %if style == newcode
+%format (SQ(x)) = "''" x
 %format (Q(x)) = "''" x
 %else
+%format STICK = "\,''\!\!"
+%format (SQ(x)) = STICK x
 %format TICK = "''"
 %format (Q(x)) = TICK x
 %endif

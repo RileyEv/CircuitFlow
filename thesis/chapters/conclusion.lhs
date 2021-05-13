@@ -7,7 +7,7 @@
 \begin{document}
 
 \chapter{Conclusion}\label{chap:conclusion}
-
+\vspace{-5mm}
 \section{Related Work}
 
 \subsection{Existing Workflow Tools}
@@ -15,6 +15,7 @@
 Another approach taken that solves the un-typed task composition problem is the Funflow library based on the techniques in the paper \textit{Composing Effects into Tasks and Workflows}.
 This work notices that tasks in a workflow are similar to effects in the functional community.
 It draws from existing work on combining and analysing effects, with categories and arrows, and applies this to constructing workflows.
+It differs from CircuitFlow by using arrows to compose tasks together, whereas CircuitFlow makes use of circuits based on symmetric monoidal preorders.
 
 \paragraph{SciPipe: A workflow library for agile development of complex and dynamic bioinformatics pipelines~\cite{10.1093/gigascience/giz044}}
 Whilst CircuitFlow and many other libraries place emphasis on defining tasks as functions within the embedding language, SciPipe takes a different approach.
@@ -52,15 +53,15 @@ This allows it to make optimisations and translations while ensuring that the va
 % * higher level of abstraction
 % - also uses advanced haskell stuff like Hlists and type heft if you wanna look to the writing of those intros
 % - clear simple and small example of the problem they are solving
-
+\vspace{-2mm}
 \section{Future Work}
-
+\vspace{-2mm}
 \paragraph{Performance Improvements}
 Whilst CircuitFlow beats the competition, there are some possible improvements that could help to improve the runtime even further.
 One optimisations is to fuse tasks together, when the fusing would have a greater increase than the parallelisation from being left un-fused.
 This would require analysis of the computation inside a task, to rate the relative computational intensity of each task.
-Unfortunately, it is not possible to inspect the AST of another Haskell function, so another approach must be taken.
-This could involve using defunctionalisation and building a new DSL that can construct tasks.
+Unfortunately, it is not possible to inspect the \ac{AST} of another Haskell function, so another approach must be taken.
+This could involve using defunctionalisation and building a new \ac{DSL} that can construct tasks.
 This would generate an \ac{AST}, that can be traversed to measure its computational intensity.
 However, this could restrict the computation a task is capable of doing.
 Another approach could be, introducing a new |Network| instance that is capable of profiling a network with a few example inputs.
@@ -92,7 +93,7 @@ For this specific example a new smart constructor |replicateN :: SNat n -> Circu
 \paragraph{Better Support for External Tasks}
 The lhs2TeX build system made use of external tasks, however, it did so at a very raw level.
 More smart constructors for tasks can be introduced that allows for easier definition of external tasks.
-I could also add a specific methods for how inputs and outputs are handled with those external tasks, possibly through stdin and stdout, or as file.
+There could also be a more universal method for how inputs and outputs are handled with those external tasks, possibly through stdin and stdout, or as file.
 
 \paragraph{Visual Construction}
 All the constructors for CircuitFlow have graphical meanings, so why not have a graphical way to compose them?
@@ -100,9 +101,19 @@ A new GUI could be introduced that allows users to drag and drop building blocks
 This would enable the library to be used by developers who may have less experience or prefer to view visual representations instead.
 
 
-
 \section{Summary}
+This thesis has introduced a new DSL to construct data workflows.
+It set out to be type-safe and run in a competitive time, but has exceeded expectations, proving to be almost 4x faster than Luigi.
 
+The battle for type-safety was a tough one, needing to employ new and advanced Haskell techniques for creating a strongly typed program.
+CircuitFlow employs phantom type parameters consisting of data types promoted to Kinds by DataKinds, to add constraints for how each constructor can be combined.
+This allows for a language that is strongly typed and avoids the problems demonstrated with Luigi in Chapter~\ref{chap:examples}.
+The types proving pivotal to ensuring the language's correctness, with GHC refusing to compile for weeks on end, until finally it compiled and worked first time.
+
+The design of the language draws its origins from a strong mathematical background, with each constructor directly representing an axiom in a symmetric monoidal preorder.
+This demonstrates the language's completeness at being able to represent any \ac{DAG}, that a data workflow may need.
+
+The work on CircuitFlow is far from over though! As the future work suggested there are many additional features that would allow CircuitFlow to become even easier to use and more available to more use cases. CircuitFlow is already released as an open-source project, with the intention of developing it further.
 
 
 

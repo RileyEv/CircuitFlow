@@ -50,6 +50,20 @@ year={2021}
 
 \makedecl{}
 
+% -----------------------------------------------------------------------------
+
+\chapter*{Acknowledgements}
+
+I would like to thank the following people for their help and support:
+
+
+\begin{itemize}
+  \item Jamie Willis for giving me pointers on Haskell techniques to look at, and convincing me to keep going even when I thought it wasn't possible.
+  \item My flatmates Chris \& Jack for their support.
+  \item My supervisor Meng, who noticed the value of indexed functors and encouraged me complete a project based on them.
+  \item Finally, Sam who has provided tips and ideas that have been invaluable throughout this project, as well as taking the time to proof-read this work.
+\end{itemize}
+
 % -----------------------------------------------------------------
 
 \tableofcontents
@@ -82,21 +96,11 @@ Throughout this thesis, several acronyms will be used:
   \acro{DAG}{Directed Acyclic Graph}
   \acro{AST}{Abstract Syntax Tree}
   \acro{PID}{Process Identifier}
+  \acro{WHNF}{Weak Head Normal Form}
 \end{acronym}
 
 
-% -----------------------------------------------------------------------------
 
-\chapter*{Acknowledgements}
-
-\todo[inline]{Change this to something meaningful}
-\noindent
-It is common practice (although totally optional) to acknowledge any
-third-party advice, contribution or influence you have found useful
-during your work.  Examples include support from friends or family,
-the input of your Supervisor and/or Advisor, external organisations
-or persons who  have supplied resources of some kind (e.g., funding,
-advice or time), and so on.
 
 % =============================================================================
 

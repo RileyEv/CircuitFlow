@@ -686,7 +686,7 @@ A heterogeneous list is defined as:
 \begin{code}
 data HList (xs :: [Type]) where
   HNil   :: HList (Q([]))
-  HCons  :: x -> HList xs -> HList (x (Q(:)) xs)
+  HCons  :: x -> HList xs -> HList (x (SQ(:)) xs)
 \end{code}
 
 This data type has two constructors:
@@ -703,8 +703,8 @@ Firstly, a type family is defined that is able to return the length of a type li
 
 \begin{code}
 type family Length (l :: [k]) :: Nat where
-  Length (Q([]))       =  (Q(Zero))
-  Length (e (Q(:)) l)  =  (Q(Succ)) (Length l)
+  Length (Q([]))        =  (Q(Zero))
+  Length (e (SQ(:)) l)  =  (Q(Succ)) (Length l)
 \end{code}
 
 |Length| follows a similar definition to the |length :: [a] -> Int| function defined in the |Prelude|:
@@ -736,9 +736,9 @@ Again, to be able to do this a new type family is needed -- |Take|:
 
 \begin{code}
 type family Take (n :: Nat) (l :: [k]) :: [k] where
-  Take (Q(Zero))      l             =  (Q([]))
-  Take ((Q(Succ)) n)  (Q([]))       =  (Q([]))
-  Take ((Q(Succ)) n)  (e (Q(:)) l)  =  e (Q(:)) Take n l
+  Take (Q(Zero))      l              =  (Q([]))
+  Take ((Q(Succ)) n)  (Q([]))        =  (Q([]))
+  Take ((Q(Succ)) n)  (e (SQ(:)) l)  =  e (SQ(:)) Take n l
 \end{code}
 
 The type family follows the same definition as the standard |take :: Int -> [a] -> [a]| as defined in the |Prelude|.
@@ -758,9 +758,9 @@ The |Drop| type family can be defined as:
 
 \begin{code}
 type family Drop (n :: Nat) (l :: [k]) :: [k] where
-  Drop  (Q(Zero))      l             = l
-  Drop  ((Q(Succ)) _)  (Q([]))       = (Q([]))
-  Drop  ((Q(Succ)) n)  (_ (Q(:)) l)  = Drop n l
+  Drop  (Q(Zero))      l              = l
+  Drop  ((Q(Succ)) _)  (Q([]))        = (Q([]))
+  Drop  ((Q(Succ)) n)  (_ (SQ(:)) l)  = Drop n l
 \end{code}
 
 The |Drop| type family also closely follows the definition of |drop :: Int -> [a] -> [a]| from the |Prelude|, and its result is reflected in the values level just as with |lengthH| and |takeH|.
@@ -850,7 +850,6 @@ The |closeDoor| function, enforces that only an open door can be given as input,
 
 
 \section{Monoidal Resource Theories}\label{sec:bg-mrt}
-\todo[inline]{Motivate a bit more...}
 Resource theories~\cite{Coecke_2016} are a branch of mathematics that allow for the reasoning of questions surrounding resources, for example:
 \begin{itemize}
   \item If I have some resources, can I make something?

@@ -289,7 +289,7 @@ One benefit to this approach is that if the user would like to use a task again 
 they can simply register it again and use the new PID value.
 
 \subsection{Evaluation}
-\paragraph{$\text{\rlap{{\scriptsize\textonehalf}}}\square$ Describe any Dataflow}\todo{try fix the half if i have time}
+\paragraph{$\text{\rlap{{\scriptsize\textonehalf}}}\square$ Describe any Dataflow}
 This method would be capable of describing any dataflow, although in its current state, it can only support trees.
 The algorithm that would be used to join different chains together could be developed to allow them to rejoin onto another chain.
 This will allow for any \ac{DAG} to be defined.
@@ -451,12 +451,10 @@ For example, |Apply (Q([f, g, h])) (Q([a, b, c])) ~ (Q([f a, g b, h c]))|.
 
 %format :+ = ":\!\!+"
 
-\todo[inline]{': looks awful }
-
 \begin{spec}
 type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
-  Apply  (Q([]))       (Q([]))       = (Q([]))
-  Apply  (f (Q(:)) fs) (a (Q(:)) as) = f a (Q(:)) Apply fs as
+  Apply  (Q([]))         (Q([]))         =  (Q([]))
+  Apply  (f (SQ(:)) fs)  (a (SQ(:)) as)  =  f a (SQ(:)) Apply fs as
 \end{spec}
 
 
@@ -470,8 +468,8 @@ To do this an append type family~\cite{10.1145/1017472.1017488} can be used:
 
 \begin{spec}
 type family (:++) (l1 :: [k]) (l2 :: [k]) :: [k] where
-  (:++)  (Q([]))       l  = l
-  (:++)  (e (Q(:)) l)  l' = e (Q(:)) (l :++ l')
+  (:++)  (Q([]))        l   = l
+  (:++)  (e (SQ(:)) l)  l'  = e (SQ(:)) (l :++ l')
 \end{spec}
 
 The |:++| type family is defined in the same way as the standard |++| function on value lists, however, it appends type lists together instead.
@@ -543,11 +541,11 @@ Their definitions are:
 
 \begin{spec}
 data HList' (fs :: [Type -> Type]) (as :: [Type]) where
-  HCons'  :: f a -> HList' fs as -> HList' (f (Q(:)) fs) (a (Q(:)) as)
+  HCons'  :: f a -> HList' fs as -> HList' (f (SQ(:)) fs) (a (SQ(:)) as)
   HNil'   :: HList' (Q([])) (Q([]))
 
 data IOList (xs :: [Type]) where
-  IOCons  :: IO x -> IOList xs -> IOList (x (Q(:)) xs)
+  IOCons  :: IO x -> IOList xs -> IOList (x (SQ(:)) xs)
   IONil   :: IOList (Q([]))
 \end{spec}
 
@@ -568,7 +566,7 @@ They can instead focus on each single case, with the knowledge that they will au
 instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' (Q([f])) (Q([a])) where
   fetch'  (HCons' x  HNil')  = IOCons  (fetch x)  IONil
 
-instance (DataStore f a, DataStore' fs as) => DataStore' (f (Q(:)) fs) (a (Q(:)) as)  where
+instance (DataStore f a, DataStore' fs as) => DataStore' (f (SQ(:)) fs) (a (SQ(:)) as)  where
   fetch'  (HCons' x  xs)     = IOCons  (fetch x)  (fetch' xs)
 \end{spec}
 
@@ -577,7 +575,7 @@ In most cases the base case instance that would be defined is |DataStore' (Q([])
 However, it does not makes sense to have an empty data store.
 Therefore, the base case is selected to be a list with one element |DataStore' (Q([f])) (Q([a]))|.
 This leads to a problem: GHC is unable to decide which instance to use.
-It could use either the |DataStore' (Q([f])) (Q([a]))| or the |DataStore' (f (Q(:)) (Q([]))) (a (Q(:)) (Q([])))| instance.
+It could use either the |DataStore' (Q([f])) (Q([a]))| or the |DataStore' (f (SQ(:)) (Q([]))) (a (SQ(:)) (Q([])))| instance.
 The overlapping pragma tells GHC, that if it encounters this scenario, it should choose the one with the pragma.
 
 

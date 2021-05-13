@@ -33,14 +33,32 @@ However, both of these libraries are developed using Python --- the antithesis o
 This promotes the need for a new library that can safely compose tasks and make use of types to perform static analysis to ensure that dependencies are valid.
 
 
+Both Luigi~\cite{spotify_luigi} and Airflow~\cite{airflow}, apply techniques that describe how to compose tasks.
+Luigi takes an object-oriented approach, defining a class for each task and having a property defining any requirements of the task being defined.
+Airflow defines tasks and then composes them using an arrow like syntax.
+
+This thesis flips the approach on its head: rather than focus on how to compose tasks together, it defines a language that describes how data flows through a workflow..
+The language draws its origins from monoidal resource theory~\cite{Coecke_2016}, which is used to reason about problems involving resources.
+Resources have similarities to data workflows, where the inputs and outputs of tasks are thought of as resources.
+It will then be possible to ask questions about these systems, such as are they valid --- i.e. do they type check?
+
+When a system is valid, it will need to be executed to perform meaningful computation.
+This thesis will translate this language and construct a \acf{KPN}, that executes the workflow in parallel, to provide the speed benefits of multi-core processors.
+The \ac{KPN} will be capable of handling an exception in a task, without causing the full network to crash, allowing computation to continue after for successive inputs.
+
+
 \section{Contributions}
 
 \begin{itemize}
     \item A new Haskell \acs{e-DSL} for constructing dataflow programs that:
         \begin{itemize}
           \item is able to exceed the performance of other competing libraries --- outperforming Luigi by almost 4x on larger numbers of inputs.
-          \item leverages state of the art Haskell methods, ranging from DataKinds to Data types \`{a} la carte, to construct a language that is type-safe and modular.
-          \item makes use of indexed functors, to construct a type-indexed \acs{AST}.
+          \item employs state of the are DSL design techniques, using indexed data types \`{a} la carte and principled recursion,
+                to provide interpretations for the \acs{AST}.
+          \item leverages state of the art Haskell methods, to produce a type-safe implementation: DataKinds, TypeFamilies, Singletons, HLists, and phantom types.
+          \item makes use of indexed functors, extended to support multiple indicies, to construct a type-indexed \acs{AST}.
+                Then used in conjunction with an indexed monadic catamorphism to provide a type-safe translation to a \acs{KPN}.
+          \item has a strong mathematical grounding in monadic resource theories, providing confidence that the language can represent all dataflow diagrams.
         \end{itemize}
     \item Provides a range of examples that demonstrates the language's applicability to many different problems.
     \item The first known implementation of a \acl{KPN} in Haskell.
@@ -48,14 +66,14 @@ This promotes the need for a new library that can safely compose tasks and make 
 
 
 \section{Outline}
-The story begins at Chapter~\ref{chap:background}, where dataflow programming is defined and the benefits that it brings to the table are described.
+The story begins with Chapter~\ref{chap:background}, where dataflow programming is defined and the benefits that it brings to the table are described.
 The chapter also defines all the Haskell goodies needed to understand and implement the CircuitFlow \ac{DSL}.
 
 As already hinted, there are many differing approaches to the new design of a data workflow \ac{DSL}.
 In Chapter~\ref{chap:the-language}, two possible implementations are described: Chains and Circuits.
 They are both evaluated against a desirable criteria for the design of the language.
 
-Once settled on a good design for the language it needs to be implemented: this will be described in Chapter~\ref{chap:implementation}.
+Once settled on a good design for the language, it needs to be implemented: this will be described in Chapter~\ref{chap:implementation}.
 It will outline how a circuit is constructed under the hood, using a deep embedding, that allows for multiple interpretations to be given to the circuit.
 Then it describes a method that can be used for transforming a circuit into a process network in a type-safe way, using principled recursion schemes.
 With a working network in place, it will describe how a network will be modified to capture errors and propagate them through the network.
@@ -68,17 +86,6 @@ A final example pits CircuitFlow against Luigi, demonstrating CircuitFlow's abil
 Chapter~\ref{chap:benchmarks}, will aim to compare the performance of CircuitFlow against Luigi and serial implementations.
 It then investigates deeper into the possible reasons for the results that are obtained.
 
-\todo[inline]{Add something for the final chapter when it actually exists}
-
-%% \newpage
-
-%% Intro
-%%  - describe a situation % \checkmark
-%%  - describe a problem that comes from that situation % \checkmark
-%%  - describe how others have approached it
-%%  - explain the need for a new approach % \checkmark
-%%  - say what you aim to do
-%% This structure can be reused with all the baby steps that you need to take to succeed in your aim.
 \end{document}
 
 % ----- Configure Emacs -----

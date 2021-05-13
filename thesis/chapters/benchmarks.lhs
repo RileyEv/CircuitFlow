@@ -40,7 +40,9 @@ The laziness of Haskell means that, the evaluation of |r| will not take place un
 
 Luckily, Haskell provides infrastructure to avoid these problems.
 |deepseq :: a -> b -> b| forces the full evaluation of |a|, before it returns |b|: making use of this function the evaluation of |r| is forced in the timed code.
-The |BangPatterns| language extension is used to force evaluation to weak head normal form.
+The |BangPatterns| language extension is used to force evaluation to \ac{WHNF}, when an expression is evaluated the the outermost data constructor or lambda expression. |"he" ++ "llo"| is an example of an expression not in \ac{WHNF}, this example in \ac{WHNF} is |'h' : ("e" ++ "llo")|, with the outermost constructor being |:|.
+
+
 
 %format r'
 
@@ -56,7 +58,8 @@ main = do
 \end{code}
 
 This examples firstly uses |deepseq| to force the full evaluation of the result, however, Haskell will lazily evaluate this application of |deepseq|.
-A bang pattern is used to force the evaluation the application of |deepseq|.
+This is because the result of |r `deepseq` r| is not needed until the final |print|, therefore,
+a bang pattern is used to force the evaluation the application of |deepseq|.
 
 
 \paragraph{Multi-Core Haskell}
@@ -82,7 +85,7 @@ The results from this test are found in figure~\ref{fig:parallel-speedup}
 \end{figure}
 
 This shows that CircuitFlow does indeed provide a performance gain, with on average speedup of 1.3x.
-However, with 4 threads available a higher speedup may have been expected, as there is now 4x as much processing power.
+However, with 4 threads available a higher speedup may have been expected, as there is now 4x as much processing power, especially on larger numbers of inputs, where the channels should buffer and allow for all 4 threads to be running simultaneously.
 
 \subsection{Areas for improvement}
 Profiling the circuit shows that a significant proportion of time is spend reading CSV files.
@@ -93,7 +96,7 @@ In the pipeline example, this would mean that each input CSV is only read once.
 Another area for improvement is that there is an expectation on the user to know where is best to split up the workflow into tasks.
 With a user who is familiar with the domain this should not be too hard,
 but it would also be beneficial if a circuit could automatically fuse tasks together,
-when it would have a positive effect on the runtime.
+then it would have a positive effect on the runtime.
 
 
 \subsection{An Aside: 1 Core Circuit vs Serial}
@@ -110,7 +113,7 @@ Figure~\ref{fig:linear-linear-c}, shows the results of this benchmark.
 
 This shows that both the linear and single core implementation scale together in a linear fashion.
 Most importantly, neither implementation is faster than the other, therefore, it is concluded that |CircuitFlow| does not add additional overheads.
-This will be particularly helpful for a user, that needs to run code on multiple types of devices.
+This will be particularly helpful for a user which needs to run code on multiple types of devices.
 There is no need for them to create a different implementation for devices where parallelisation may not be possible.
 
 

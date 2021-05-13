@@ -8,6 +8,8 @@
 
 \begin{document}
 
+%format HNil'
+%format HCons'
 
 \chapter{Implementation}\label{chap:implementation}
 
@@ -164,6 +166,8 @@ Now that it is possible to build a |Circuit|, which can be considered a specific
 The standard implementation of a process network will use a \acf{KPN}.
 This means that each task in a circuit will run on its own separate thread, with inputs being passed between them on unbounded channels.
 
+%format HList'
+
 \subsection{Network Typeclass}
 To allow for different process networks, a typeclass will be used to specify all the functions that every network should have.
 The |Network| typeclass is defined as:
@@ -207,7 +211,7 @@ This allows the |BasicNetwork| to store multiple channels in the same list with 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons  :: Chan (f a) -> PipeList fs as xs -> PipeList (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs)
+  PipeCons  :: Chan (f a) -> PipeList fs as xs -> PipeList (f (SQ(:)) fs) (a (SQ(:)) as) (f a (SQ(:)) xs)
   PipeNil   :: PipeList (Q([])) (Q([])) (Q([]))
 \end{code}
 \end{minipage}
@@ -424,7 +428,7 @@ The following two instances will allow for the construction of the |initialPipes
 instance InitialPipes (Q([])) (Q([])) (Q([])) where
   initialPipes = return PipeNil
 
-instance InitialPipes fs as xs => InitialPipes (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs) where
+instance InitialPipes fs as xs => InitialPipes (f (SQ(:)) fs) (a (SQ(:)) as) (f a (SQ(:)) xs) where
   initialPipes = do
     c <- newChan :: IO (Chan (f a))
     PipeCons c <$> (initialPipes :: IO (PipeList fs as xs))
@@ -660,7 +664,7 @@ The instances for this type class are made up of two cases: the base case and a 
 instance AppendP (Q([])) (Q([])) (Q([])) gs bs ys where
   appendP  PipeNil          ys  = ys
 
-instance (AppendP fs as xs gs bs ys) => AppendP (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs) gs bs ys where
+instance (AppendP fs as xs gs bs ys) => AppendP (f (SQ(:)) fs) (a (SQ(:)) as) (f a (SQ(:)) xs) gs bs ys where
   appendP  (PipeCons x xs)  ys  = PipeCons x (appendP xs ys)
 \end{code}
 \end{minipage}
@@ -780,7 +784,7 @@ To transfer the value around the network, the |PipeList| data type is modified t
 
 \begin{code}
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
-  PipeCons :: Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs)
+  PipeCons :: Chan (UUID, f a) -> PipeList fs as xs -> PipeList (f (SQ(:)) fs) (a (SQ(:)) as) (f a (SQ(:)) xs)
   PipeNil :: PipeList (Q([])) (Q([])) (Apply (Q([])) (Q([])))
 \end{code}
 
@@ -877,7 +881,7 @@ To do this it will carry an |Either TaskError (f a)|, with |TaskError| being a c
 data PipeList (fs :: [Type -> Type]) (as :: [Type]) (xs :: [Type]) where
   PipeCons :: Chan (UUID, EitherTaskError (f a))
        ->  PipeList fs as xs
-       ->  PipeList (f (Q(:)) fs) (a (Q(:)) as) (f a (Q(:)) xs)
+       ->  PipeList (f (SQ(:)) fs) (a (SQ(:)) as) (f a (SQ(:)) xs)
   PipeNil :: PipeList (Q([])) (Q([])) (Apply (Q([])) (Q([])))
 \end{code}
 
