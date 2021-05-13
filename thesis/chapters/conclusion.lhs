@@ -101,7 +101,7 @@ This would enable the library to be used by developers who may have less experie
 
 
 
-\section{Conclusion}
+\section{Summary}
 
 
 
