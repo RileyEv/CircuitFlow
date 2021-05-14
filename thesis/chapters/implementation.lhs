@@ -478,7 +478,7 @@ The |Swap| constructor takes two inputs and then swaps them over:
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 instance BuildNetworkAlg BasicNetwork Swap where
-  buildNetworkAlg Swap = return $ AccuN
+  buildNetworkAlg Swap = return $ AccuN $
     (\n -> d
       output <- swapOutput (outputs n
       return $ BasicNetwork (threads n) (inputs n) output
