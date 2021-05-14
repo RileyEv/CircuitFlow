@@ -7,6 +7,14 @@
 
 \begin{document}
 
+
+\long\def\ignore#1{}
+\ignore{
+\begin{code}
+{-# ANN module "HLint: ignore" #-}
+\end{code}
+}
+
 \chapter{Examples}\label{chap:examples}
 
 % \section{How to build a Circuit}

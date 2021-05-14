@@ -11,6 +11,7 @@
 \ignore{
 \begin{code}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, KindSignatures, GADTs, RankNTypes, DataKinds, TypeFamilies, PolyKinds #-}
+{-# ANN module "HLint: ignore" #-}
 module Language where
 import Data.Kind (Type)
 \end{code}

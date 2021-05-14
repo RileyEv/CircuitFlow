@@ -8,6 +8,14 @@
 
 \begin{document}
 
+
+\ignore{
+\begin{code}
+{-# ANN module "HLint: ignore" #-}
+\end{code}
+}
+
+
 %format HNil'
 %format HCons'
 

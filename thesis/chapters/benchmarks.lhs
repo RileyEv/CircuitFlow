@@ -6,6 +6,13 @@
 
 \begin{document}
 
+\long\def\ignore#1{}
+\ignore{
+\begin{code}
+{-# ANN module "HLint: ignore" #-}
+\end{code}
+}
+
 \chapter{Benchmarks}\label{chap:benchmarks}
 To perform benchmarks in this Chapter, the data pre-processing pipeline that aggregated audio history will be used from Section~\ref{example-pre-proc-pipeline}.
 Each benchmark made will be tested on 5 different numbers of inputs: 1, 10, 100, 1000, 2000.

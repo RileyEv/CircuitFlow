@@ -40,6 +40,13 @@ year={2021}
 \begin{document}
 
 
+\long\def\ignore#1{}
+\ignore{
+\begin{code}
+{-# ANN module "HLint: ignore" #-}
+\end{code}
+}
+
 \maketitle
 
 % =============================================================================

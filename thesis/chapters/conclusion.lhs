@@ -6,6 +6,15 @@
 
 \begin{document}
 
+
+\long\def\ignore#1{}
+\ignore{
+\begin{code}
+{-# ANN module "HLint: ignore" #-}
+\end{code}
+}
+
+
 \chapter{Conclusion}\label{chap:conclusion}
 \vspace{-5mm}
 \section{Related Work}

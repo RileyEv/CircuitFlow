@@ -11,6 +11,7 @@
 \ignore{
 \begin{code}
 {-# LANGUAGE KindSignatures, GADTs, LambdaCase, RankNTypes, TypeOperators, OverlappingInstances, DataKinds, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeFamilies, PolyKinds, GeneralizedNewtypeDeriving #-}
+{-# ANN module "HLint: ignore" #-}
 module Background where
 import Prelude hiding (or, length, take, drop)
 import Data.Kind (Type)

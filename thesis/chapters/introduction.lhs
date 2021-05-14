@@ -6,6 +6,12 @@
 
 \begin{document}
 
+\long\def\ignore#1{}
+\ignore{
+\begin{code}
+{-# ANN module "HLint: ignore" #-}
+\end{code}
+}
 
 \chapter{Introduction}\label{chap:intro}
 
