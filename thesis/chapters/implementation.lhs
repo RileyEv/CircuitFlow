@@ -591,7 +591,6 @@ instance BuildNetworkAlg BasicNetwork Then where
   buildNetworkAlg (Then (AccuN fx) (AccuN fy)) = return $ AccuN (fx >=> fy)
 \end{code}
 \end{minipage}
-\ignore{$} % Syntax highlighting is being annoying on my laptop :'(
 
 This instance has an interesting definition: firstly it takes the accumulated network |n| as input.
 It then uses the function |fx|, with the input |n| to generate a network for the top half of the |Then| constructor.
@@ -916,7 +915,6 @@ taskExecuter (Task f outStore) inPipes outPipes = forever
     writePipes uuid r outPipes
   )
 \end{code}
-\ignore{$}
 
 This version of the executor, first reads the values from the input channels.
 It then runs some computation in the |ExceptT| monad to get a return value |r :: Either TaskError (HList' outputsS outputsT)|.
