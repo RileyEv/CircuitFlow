@@ -1,6 +1,6 @@
 module Main where
 
-import           BenchSongAgg.SongAgg (benchMain)
+import           BenchLinearSongAgg.SongAgg (benchMain)
 import           Criterion.Main
 
 
