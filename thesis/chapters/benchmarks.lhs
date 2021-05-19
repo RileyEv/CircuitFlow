@@ -173,7 +173,7 @@ To avoid this Luigi uses processes not threads, which adds extra overhead.
 Luigi also creates a new process for each invocation of a task, which CircuitFlow does not do.
 This means that Luigi will start 8000 processes vs CircuitFlow's 4 threads for the 2000 inputs benchmark.
 Luigi's static number of threads could also be considered a downside due to the lack of flexibility depending on run-time values.
-More combinators can be introduced that allow for branching, in fact, |mapC| is a combinator of this type.
+To combat this more combinators can be introduced that allow for branching or other similar operations, in fact, |mapC| is a combinator of this type.
 
 \paragraph{More Lightweight}
 There are other features that Luigi has, which Circuit flow does not, that cause CircuitFlow to gain an unfair speed advantage over Luigi --- one such feature is back filling.
