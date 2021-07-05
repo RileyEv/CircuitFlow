@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import luigi
 import time
 
@@ -154,11 +155,9 @@ class Top10Songs(luigi.Task):
 #     def requires(self):
 #         return Top10Artists(self.date_interval)
 
-n_inputs = 2000
 
-if __name__ == "__main__":
+def run(n_inputs):
     months = ["jan", "feb", "mar"]
-    tstart = time.time()
     luigi.build(
         [
             task
@@ -168,5 +167,12 @@ if __name__ == "__main__":
         workers=4,
         local_scheduler=True,
     )
+
+n_inputs = 2000
+
+
+if __name__ == "__main__":
+    tstart = time.time()
+    run(n_inputs)
     tend = time.time()
     print("Total Runtime (s): {:.6f}".format(tend - tstart))

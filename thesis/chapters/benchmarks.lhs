@@ -154,6 +154,38 @@ CircuitFlow aims to be as lightweight on threads as possible, it only starts 1 t
 Luigi, does not make use of threads, instead it creates new processes, however it does so in an inefficient way: it creates a new process for each invocation of a task, which is destroyed after.
 This means that in the example benchmarked with 2000 inputs, it creates 8000 new processes: this adds significant overhead that CircuitFlow does not have.
 
+\subsection{Why is CircuitFlow so good? (v2)}
+Luigi and Circuit flow have their differences, which will likely explain why there is a difference in run times, especially with larger numbers of inputs.
+
+\paragraph{Computation Models}
+The two libraries use variants of the same computation model: CircuitFlow uses a KPN and Luigi uses a DPN.
+This difference is the main reason why CircuitFlow scales linearly when it needs to process more input values.
+CircuitFlow makes use of buffered channels to keep a queue of all inputs that need to be processed.
+However, Luigi does not rely on this design, instead it has a pool of workers with a scheduler controlling what is executed on each worker.
+It is this scheduler that causes Luigi to scale non-linearly.
+As the number of inputs grow, the scheduler will have to schedule more and more tasks: this process is not $\mathcal{O}(n)$.
+
+
+\paragraph{Multi-processing in Python}
+Circuit Flow makes use of a static number of threads * defined by the number of tasks in a circuit.
+Luigi on the other hand can support any number of workers, however, Luigi suffers from a downfall of Python: threads cannot run in parallel due to the Global Interpreter Lock.
+To avoid this Luigi uses processes not threads, which adds extra overhead.
+Luigi also creates a new process for each invocation of a task, which CircuitFlow does not do.
+This means that Luigi will start 8000 processes vs CircuitFlow's 4 threads for the 2000 inputs benchmark.
+Luigi's static number of threads could also be considered a downside due to the lack of flexibility depending on run-time values.
+To combat this more combinators can be introduced that allow for branching or other similar operations, in fact, |mapC| is a combinator of this type.
+
+\paragraph{More Lightweight}
+There are other features that Luigi has, which Circuit flow does not, that cause CircuitFlow to gain an unfair speed advantage over Luigi --- one such feature is back filling.
+This allows Luigi to avoid running tasks that have already been run.
+This feature means that before executing a task the Luigi scheduler has to check if a task has already been executed.
+This adds additional overhead to the scheduler that Circuit Flow does not have.
+Although this feature does have its benefits, after the first run of Luigi all run times after are very quick as no tasks will need to be executed.
+If CircuitFlow were to implement this feature any overhead it adds will be partially mitigated by the checks being distributed across multiple threads, instead of in one central scheduler.
+
+
+
+
 \end{document}
 
 % ----- Configure Emacs -----

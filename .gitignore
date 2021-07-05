@@ -53,4 +53,4 @@ cabal.project.local~
 
 # Jupyter
 .ipynb_checkpoints
-    
+__pycache__/   
