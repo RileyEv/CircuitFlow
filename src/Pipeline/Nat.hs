@@ -14,8 +14,9 @@ module Pipeline.Nat
   (
   -- * Main Type
     Nat(..)
+  , SNat(..)
   ,
-  -- * Helpful Types
+  -- * Helpful Aliases
     N1
   , N2
   , N3
@@ -28,4 +29,4 @@ module Pipeline.Nat
   ) where
 
 import           Pipeline.Internal.Common.Nat (N1, N2, N3, N4, N5, N6, N7, N8,
-                                               N9, Nat (..))
+                                               N9, Nat (..), SNat (..))

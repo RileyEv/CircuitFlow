@@ -263,9 +263,9 @@ pipeline
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
        N3
 pipeline =
-  replicate
-    <>  replicate
-    <>  replicate
+  replicate2
+    <>  replicate2
+    <>  replicate2
     <-> id
     <>  swap
     <>  swap
