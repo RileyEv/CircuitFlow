@@ -29,3 +29,7 @@ infixr 5 :++
 type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
   Apply '[] '[] = '[]
   Apply (f ': fs) (a ': as) = f a ': Apply fs as
+
+type family Replicate (n :: Nat) (a :: k) :: [k] where
+  Replicate 'Zero _ = '[]
+  Replicate ('Succ n) x = x ': (Replicate n x)

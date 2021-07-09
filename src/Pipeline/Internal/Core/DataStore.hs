@@ -41,7 +41,7 @@ instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' '[f] '[a] where
   fetch' uuid (HCons' x HNil') = IOCons (fetch uuid x) IONil
   save' uuid (HCons' ref HNil') (HCons x HNil) = IOCons (save uuid ref x) IONil
 
-instance (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
+instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
   fetch' uuid (HCons' x xs) = IOCons (fetch uuid x) (fetch' uuid xs)
   save' uuid (HCons' ref rs) (HCons x xs) = IOCons (save uuid ref x) (save' uuid rs xs)
 

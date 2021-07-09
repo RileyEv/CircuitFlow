@@ -3,6 +3,7 @@ module Pipeline.Network.MinimalTests
   ) where
 
 import           Pipeline
+import           Pipeline.Nat (SNat (..))
 import           Pipeline.Network.Helper
 import           Pipeline.Network.HelperCircuit
 import           Prelude                        hiding (id, replicate, (<>))
@@ -13,7 +14,7 @@ minimalTests :: TestTree
 minimalTests = testGroup
   "Minimal Examples"
   [ idTests
-  , replicateTests
+  , replicate2Tests
   , thenTests
   , besideTests
   , swapTests
@@ -47,7 +48,7 @@ idTests = testGroup
   ]
 
 -- Tests for the 'Replicate' constructor
-replicateCircuit
+replicate2Circuit
   :: Circuit
        '[VariableStore]
        '[Int]
@@ -56,17 +57,37 @@ replicateCircuit
        '[Int , Int]
        '[VariableStore Int , VariableStore Int]
        N1
-replicateCircuit = replicate
+replicate2Circuit = replicate2
 
-replicateTests :: TestTree
-replicateTests = testGroup
-  "replicate should"
+replicate2Tests :: TestTree
+replicate2Tests = testGroup
+  "replicate2 should"
   [ testCase "return a duplicated input value" $ do
       let i = HCons' (Var 0) HNil'
-      o <- singleInputTest replicateCircuit i
+      o <- singleInputTest replicate2Circuit i
       o @?= Right (HCons' (Var 0) (HCons' (Var 0) HNil'))
   ]
 
+replicate3Circuit
+  :: Circuit
+       '[VariableStore]
+       '[Int]
+       '[VariableStore Int]
+       '[VariableStore , VariableStore , VariableStore]
+       '[Int , Int , Int]
+       '[VariableStore Int , VariableStore Int , VariableStore Int]
+       N1
+replicate3Circuit = replicateN (SSucc (SSucc (SSucc SZero)))
+
+replicate3Tests :: TestTree
+replicate3Tests = testGroup
+  "(replicateN 3) should"
+  [ testCase "return a trupled input value" $ do
+      let i = HCons' (Var 0) HNil'
+      o <- singleInputTest replicate3Circuit i
+      o @?= Right (HCons' (Var 0) (HCons' (Var 0) (HCons' (Var 0) HNil')))
+  ]
+ 
 -- Tests for the 'Then' constructor
 thenCircuit
   :: Circuit
