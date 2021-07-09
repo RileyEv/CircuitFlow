@@ -5,4 +5,5 @@
 
 
 View docs [here](https://circuitflow.rly.rocks)
-The thesis about this work can is visible [here](https://github.com/RileyEv/thesis)
+
+The thesis based on this work is visible [here](https://github.com/RileyEv/thesis)
