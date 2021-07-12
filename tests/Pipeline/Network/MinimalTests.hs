@@ -25,6 +25,7 @@ minimalTests = testGroup
   "Minimal Examples"
   [ idTests
   , replicate2Tests
+  , replicate3Tests
   , thenTests
   , besideTests
   , swapTests
@@ -33,6 +34,7 @@ minimalTests = testGroup
   , functionTaskTests
   , multiInputTaskTests
   , mapTests
+  , replicateInputsTests
   ]
 
 
@@ -84,7 +86,7 @@ replicate2Tests = testGroup
       out <- fetch' o
       out @?= HCons 0 (HCons 0 HNil)
   ]
-
+  
 replicate3Circuit
   :: Circuit
        '[Var]
@@ -103,6 +105,27 @@ replicate3Tests = testGroup
       (Right o) <- singleInputTest replicate3Circuit i
       out <- fetch' o
       out @?= HCons 0 (HCons 0 (HCons 0 HNil))
+  ]
+
+
+replicateInputsCircuit
+  :: Circuit
+       '[VariableStore, VariableStore]
+       '[Int, Int]
+       '[VariableStore Int, VariableStore Int]
+       '[VariableStore , VariableStore , VariableStore, VariableStore]
+       '[Int , Int , Int, Int]
+       '[VariableStore Int , VariableStore Int , VariableStore Int, VariableStore Int]
+       N2
+replicateInputsCircuit = replicateInputs (SSucc (SSucc SZero))
+
+replicateInputsTests :: TestTree
+replicateInputsTests = testGroup
+  "(replicateN 3) should"
+  [ testCase "return a trupled input value" $ do
+      let i = HCons' (Var 0) (HCons' (Var 2) HNil')
+      o <- singleInputTest replicateInputsCircuit i
+      o @?= Right (HCons' (Var 0) (HCons' (Var 0) (HCons' (Var 2) (HCons' (Var 2) HNil'))))
   ]
  
 -- Tests for the 'Then' constructor

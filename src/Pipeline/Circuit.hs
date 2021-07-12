@@ -8,6 +8,8 @@ Maintainer  : haskell@rly.rocks
 This package contains all the constructors needed to build a 'Circuit'.
 
 -}
+
+{-# LANGUAGE UndecidableInstances #-}
 module Pipeline.Circuit
   (
   -- * Main Type
@@ -23,6 +25,7 @@ module Pipeline.Circuit
   , dropL
   , dropR
   , mapC
+  , replicateInputs
   ) where
 
 
@@ -31,7 +34,7 @@ import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (IsNat, N1, N2,
                                                             Nat (..), SNat (..), (:+))
 import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
-                                                            Take, Replicate, (:++))
+                                                            Take, Replicate, Duplicate, (:++))
 import qualified Pipeline.Internal.Core.CircuitAST as AST
 import           Pipeline.Internal.Core.DataStore          (DataStore,
                                                             DataStore', Var)
@@ -169,5 +172,35 @@ instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ 'Zero)) f a
 instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ ('Succ 'Zero))) f a where
   replicateN (SSucc n) = replicate2 <-> id <> replicateN n
 
-replicateMany :: SNat m -> AST.Circuit fs as (fs :++ fs) (as :++ as) m
-replicateMany = undefined
+
+class (DataStore' fs as) => ReplicateInputs m fs as where
+  replicateInputs :: ( Length fs ~ m
+                     , Length as ~ m
+                     , Length (Duplicate fs) ~ Length (Duplicate as)
+                     , ('Succ 'Zero :+ m) ~ 'Succ m
+                     , IsNat m
+                     ) => SNat m -> AST.Circuit fs as (Duplicate fs) (Duplicate as) m
+
+instance (DataStore f a, Eq a, Eq (f a)) => ReplicateInputs ('Succ 'Zero) '[f] '[a] where
+  replicateInputs (SSucc SZero) = replicate2
+
+instance ( DataStore f a
+         , DataStore' fs as
+         , DataStore' (Duplicate fs) (Duplicate as)
+         , ReplicateInputs ('Succ n) fs as
+         , Length fs ~ 'Succ n
+         , IsNat n
+         , Eq a
+         , Eq (f a)
+         ) => ReplicateInputs ('Succ ('Succ n)) (f ': fs) (a ': as) where
+  replicateInputs (SSucc (SSucc n)) = replicate2 <> replicateInputs (SSucc n)
+-- replicateMany :: SNat m -> AST.Circuit fs as (fs :++ fs) (as :++ as) m
+-- replicateMany n = undefined
+--   where
+--     replicateInputs :: ( m ~ Length fs
+--                        , m ~ Length as
+--                        , m ~ Length (Apply fs as)
+--                        , m ~ 'Succ n
+--                        ) => SNat m -> AST.Circuit fs as (Duplicate fs) (Duplicate as) m
+--     replicateInputs (SSucc SZero) = replicate2
+--     replicateInputs (SSucc (SSucc n)) = replicate2 <> replicateInputs (SSucc n)
