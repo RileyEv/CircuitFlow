@@ -33,7 +33,7 @@ import           Pipeline.Internal.Common.IFunctor         (IFix5 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (IsNat, N1, N2,
                                                             Nat (..), SNat (..), (:+))
-import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
+import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length, Swap, Pair, Transpose, Concat,
                                                             Take, Replicate, Duplicate, (:++))
 import qualified Pipeline.Internal.Core.CircuitAST as AST
 import           Pipeline.Internal.Core.DataStore          (DataStore,
@@ -194,13 +194,69 @@ instance ( DataStore f a
          , Eq (f a)
          ) => ReplicateInputs ('Succ ('Succ n)) (f ': fs) (a ': as) where
   replicateInputs (SSucc (SSucc n)) = replicate2 <> replicateInputs (SSucc n)
--- replicateMany :: SNat m -> AST.Circuit fs as (fs :++ fs) (as :++ as) m
--- replicateMany n = undefined
---   where
---     replicateInputs :: ( m ~ Length fs
---                        , m ~ Length as
---                        , m ~ Length (Apply fs as)
---                        , m ~ 'Succ n
---                        ) => SNat m -> AST.Circuit fs as (Duplicate fs) (Duplicate as) m
---     replicateInputs (SSucc SZero) = replicate2
---     replicateInputs (SSucc (SSucc n)) = replicate2 <> replicateInputs (SSucc n)
+
+
+class DataStore' fs as => OrganiseInputs m fs as where
+  organiseInputs :: SNat m
+    -> AST.Circuit fs
+                    as
+                    (Concat (Transpose (Pair fs)))
+                    (Concat (Transpose (Pair as)))
+                    (Length fs)
+
+instance (DataStore f a, DataStore g b, Eq a, Eq (f a), Eq b, Eq (g b)) => OrganiseInputs ('Succ 'Zero) '[f, g] '[a, b] where
+  organiseInputs (SSucc SZero) = id <> id
+
+instance (DataStore f a, DataStore' fs as, Eq a, Eq (f a)) => OrganiseInputs ('Succ ('Succ n)) (f ': fs) (a ': as) where
+  organiseInputs = undefined -- Stuck here
+
+
+class DataStore' fs as => SwapInputs n fs as where
+  swapInputs :: SNat n -> AST.Circuit fs as (Swap n fs) (Swap n as) (Length fs)
+
+instance (DataStore f a, DataStore g b, Eq b, Eq (g b), Eq a, Eq (f a)) => SwapInputs ('Succ 'Zero) '[f, g] '[a, b] where
+  swapInputs (SSucc SZero) = swap
+
+instance ( DataStore f a
+         , DataStore g b
+         , SwapInputs ('Succ n) hs cs
+         , Length hs ~ Length cs
+         , Length (Swap ('Succ n) hs) ~ Length (Swap ('Succ n) cs)
+         , (N2 :+ Length cs) ~ 'Succ ('Succ (Length cs))
+         , (DataStore' (Swap ('Succ n) hs) (Swap ('Succ n) cs))
+         , IsNat (Length cs)
+         , Eq b, Eq (g b)
+         , Eq a, Eq (f a)
+         ) => SwapInputs ('Succ ('Succ n)) (f ': g ': hs) (a ': b ': cs) where
+  swapInputs (SSucc n) = swap <> swapInputs n
+
+replicateMany :: ( 'Succ 'Zero :+ m ~ 'Succ m
+                 , Length fs ~ m
+                 , Length as ~ m
+                 , Length (Apply fs as) ~ m
+                 , Length (Duplicate fs) ~ Length (Duplicate as)
+                 , Length (Duplicate fs) ~ Length (Apply (Duplicate fs) (Duplicate as))
+                 , (as :++ as) ~ Concat (Transpose (Pair (Duplicate as)))
+                 , (fs :++ fs) ~ Concat (Transpose (Pair (Duplicate fs)))
+                 , ReplicateInputs m fs as
+                 , OrganiseInputs m (Duplicate fs) (Duplicate as)
+                 , IsNat m
+                 , DataStore' (Duplicate fs) (Duplicate as)
+                 , DataStore' fs as
+                 , DataStore' (Concat (Transpose (Pair (Duplicate fs)))) (Concat (Transpose (Pair (Duplicate as))))
+                 ) => SNat m -> AST.Circuit fs as (fs :++ fs) (as :++ as) m
+replicateMany n = replicateInputs n
+                  <->
+                  organiseInputs n
+  -- where
+  --   organiseInputs :: SNat n
+  --     -> AST.Circuit fs
+  --                    as
+  --                    (Apply fs as)
+  --                    (Concat (Transpose (Pair fs)))
+  --                    (Concat (Transpose (Pair as)))
+  --                    (Apply (Concat (Transpose (Pair fs))) (Concat (Transpose (Pair as))))
+  --                    (Length fs)
+  --   organiseInputs (SSucc SZero) = id <> id
+  --   organiseInputs (SSucc n) = (id <> swapInputs     n <> id
+  --                           <-> id <> organiseInputs n <> id)
