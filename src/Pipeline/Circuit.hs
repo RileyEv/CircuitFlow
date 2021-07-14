@@ -207,6 +207,11 @@ class DataStore' fs as => OrganiseInputs m fs as where
 instance (DataStore f a, DataStore g b, Eq a, Eq (f a), Eq b, Eq (g b)) => OrganiseInputs ('Succ 'Zero) '[f, g] '[a, b] where
   organiseInputs (SSucc SZero) = id <> id
 
+
+-- Problem with the type as I need it to be something like f ': fs ': '[g]
+-- function peels one off each end of the list, which can't do with Haskell list!
+-- Any other way to write a function that does the same thing...?
+-- Currently its 'centre-recursive', a tail-recursive function would probably avoid the problem
 instance (DataStore f a, DataStore' fs as, Eq a, Eq (f a)) => OrganiseInputs ('Succ ('Succ n)) (f ': fs) (a ': as) where
   organiseInputs = undefined -- Stuck here
 
