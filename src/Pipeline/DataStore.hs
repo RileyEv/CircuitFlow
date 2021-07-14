@@ -17,11 +17,7 @@ module Pipeline.DataStore
   ,
   -- * Pre-Defined DataStores
   -- ** VariableStore
-    VariableStore(..)
-  ,
   -- ** IOStore
-    IOStore(..)
-  ,
   -- ** FileStore
     FileStore(..)
   ,
@@ -35,8 +31,7 @@ module Pipeline.DataStore
 
 
 import           Pipeline.Internal.Core.DataStore (DataStore (..),
-                                                   DataStore' (..),
-                                                   VariableStore (..))
+                                                   DataStore' (..))
 import           Pipeline.Internal.Core.UUID      (UUID)
 
 import           Control.DeepSeq                  (NFData)
@@ -53,26 +48,26 @@ import           System.FilePath                  (splitFileName, (</>))
 
 
 
-{-|
-  An 'IOStore' is a simple in memory 'DataStore', with some extra features.
+-- {-|
+--   An 'IOStore' is a simple in memory 'DataStore', with some extra features.
 
-  Fetching from an empty store will read input from stdin and writing to a
-  store will cause the output to be wrote to stdout.
--}
-data IOStore a = IOVar a | IOEmpty deriving (Eq, Show, Generic, NFData)
+--   Fetching from an empty store will read input from stdin and writing to a
+--   store will cause the output to be wrote to stdout.
+-- -}
+-- data IOStore a = IOVar a | IOEmpty deriving (Eq, Show, Generic, NFData)
 
-{-|
-  An instance is only defined for String types
--}
-instance DataStore IOStore String where
-  fetch _ (IOVar x) = return x
-  fetch _ IOEmpty   = do
-    putStr "Input: "
-    getLine
+-- {-|
+--   An instance is only defined for String types
+-- -}
+-- instance DataStore IOStore String where
+--   fetch _ (IOVar x) = return x
+--   fetch _ IOEmpty   = do
+--     putStr "Input: "
+--     getLine
 
-  save _ _ x = do
-    print x
-    return (IOVar x)
+--   save _ _ x = do
+--     print x
+--     return (IOVar x)
 
 addUUIDToFileName :: String -> UUID -> String
 addUUIDToFileName fpath uuid =
@@ -93,7 +88,6 @@ instance DataStore FileStore String where
   save uuid (FileStore fname) x = do
     let fname' = addUUIDToFileName fname uuid
     writeFile fname' x
-    return (FileStore fname')
 
 {-|
   It is possible to write a list of strings to a 'FileStore'.
@@ -107,7 +101,6 @@ instance DataStore FileStore [String] where
     let x'     = unlines x
         fname' = addUUIDToFileName fname uuid
     writeFile fname' x'
-    return (FileStore fname')
 
 
 {-|
@@ -132,7 +125,6 @@ instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
     let enc    = encode x
         fname' = addUUIDToFileName fname uuid
     B.writeFile fname' enc
-    return (CSVStore fname')
 
 {-|
   A 'NamedCSVStore' is able to write data to a csv file, with a header.
@@ -156,4 +148,3 @@ instance (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a) => DataStore Nam
     let enc    = encodeDefaultOrderedByName x
         fname' = addUUIDToFileName fname uuid
     B.writeFile fname' enc
-    return (NamedCSVStore fname')

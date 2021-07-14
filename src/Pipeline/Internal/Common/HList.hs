@@ -7,17 +7,13 @@ import           Data.Kind (Type)
 --   This is commonly used in the 'Pipeline.Task.multiInputTask' function,
 --   which automatically fetches the data from 'Pipeline.DataStore.DataStore'.
 data HList (xs :: [Type]) where
-  HCons ::x -> HList xs -> HList (x ': xs)
-  HNil ::HList '[]
+  HCons :: x -> HList xs -> HList (x ': xs)
+  HNil :: HList '[]
 
 -- | A heterogeneous list used as input/output to a network or task.
 data HList' (fs :: [Type -> Type]) (as :: [Type]) where
-  HCons' ::(Eq (f a), Show (f a)) => f a -> HList' fs as -> HList' (f ': fs) (a ': as)
-  HNil' ::HList' '[] '[]
-
-data IOList (xs :: [Type]) where
-  IOCons ::IO x -> IOList xs -> IOList (x ': xs)
-  IONil ::IOList '[]
+  HCons' :: (Eq (f a), Show (f a)) => f a -> HList' fs as -> HList' (f ': fs) (a ': as)
+  HNil' :: HList' '[] '[]
 
 
 instance Show (HList' fs as) where
@@ -29,9 +25,3 @@ instance Eq (HList' fs as) where
   (HCons' x xs) == (HCons' y ys) = x == y && xs == ys
 
 
-hSequence :: IOList as -> IO (HList as)
-hSequence IONil         = return HNil
-hSequence (IOCons x xs) = do
-  x'  <- x
-  xs' <- hSequence xs
-  return $ x' `HCons` xs'

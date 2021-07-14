@@ -29,9 +29,7 @@ import           Control.Exception.Lifted                  (SomeException)
 import           Control.Monad.Except                      (ExceptT)
 import           Control.Monad.Trans                       (lift)
 import           Pipeline.Internal.Common.HList            (HList (..),
-                                                            HList' (..),
-                                                            IOList (..),
-                                                            hSequence)
+                                                            HList' (..))
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (Nat (..))
@@ -53,7 +51,7 @@ multiInputTask f output = IIn7
   (inj
     (Task
       (\uuid sources sink -> do
-        input <- lift ((hSequence . fetch' uuid) sources)
+        input <- lift ((fetch' uuid) sources)
         let outputValue   = f input
             !outputValue' = outputValue `deepseq` outputValue
         lift (save uuid sink outputValue')
@@ -93,7 +91,7 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 -- | Constructor for a task
 task
   :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b))
-  => (UUID -> HList' fs as -> g b -> ExceptT SomeException IO (g b))  -- ^ The function a Task will execute.
+  => (UUID -> HList' fs as -> g b -> ExceptT SomeException IO ())  -- ^ The function a Task will execute.
   -> g b                                -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
 task f out = IIn7 (inj (Task f out))
