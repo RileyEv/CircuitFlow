@@ -1,11 +1,14 @@
 module Pipeline.Internal.Core.DataStore
   ( DataStore(..)
   , DataStore'(..)
+  , Var
+  , emptyVar
   ) where
 
 import           Data.Kind                         (Type)
 import           Pipeline.Internal.Common.HList    (HList (..), HList' (..))
 import           Pipeline.Internal.Core.UUID       (UUID)
+import           Control.Concurrent.MVar           (MVar, putMVar, readMVar, newEmptyMVar)
 
 -- | DataStore that can be defined for each datastore needed to be used.
 class DataStore f a where
@@ -42,13 +45,12 @@ instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as) => DataStore' (f
   save' uuid (HCons' ref rs) (HCons x xs) = (save uuid ref x) >> (save' uuid rs xs)
 
 
--- {-|
---   A 'VariableStore' is a simple in memory 'DataStore'.
--- -}
--- data VariableStore a = Var a | Empty deriving (Eq, Show, Generic, NFData)
+-- | Simple in memory variable store, and unmutable.
+newtype Var a = Var {unVar :: MVar a} deriving (Eq)
 
+emptyVar :: IO (Var a)
+emptyVar = Var <$> newEmptyMVar
 
--- instance DataStore VariableStore a where
---   fetch _ (Var x) = return x
---   fetch _ Empty   = error "empty source"
---   save _ _ _ = return ()
+instance DataStore Var a where
+  fetch _ = readMVar . unVar
+  save _ = putMVar . unVar

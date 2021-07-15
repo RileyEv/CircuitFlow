@@ -11,7 +11,7 @@ module Pipeline.Internal.Core.CircuitAST
   , DropL(..)
   , DropR(..)
   , Task(..)
-  -- , Map(..)
+  , Map(..)
   ) where
 
 import           Control.DeepSeq                           (NFData)
@@ -28,7 +28,7 @@ import           Pipeline.Internal.Common.Nat              (IsNat (..), N1, N2,
 import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
                                                             Take, (:++))
 import           Pipeline.Internal.Core.DataStore          (DataStore,
-                                                            DataStore')
+                                                            DataStore', Var)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
 import           Pipeline.Internal.Core.UUID               (UUID)
 
@@ -114,13 +114,13 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
 
 
--- data Map (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
---          (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
---          (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
---   Map ::(DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
---     => Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
---     -> g [b]
---     -> Map iF '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
+data Map (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
+         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
+         (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
+  Map ::(DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
+    => Circuit '[Var] '[a] '[Var a] '[Var] '[b] '[Var b] N1
+    -> g [b]
+    -> Map iF '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
 
 
 -- IFunctor instances
@@ -162,11 +162,11 @@ instance IFunctor7 Task where
   imap7 _ (Task f output) = Task f output
   imapM7 _ (Task f output) = return $ Task f output
 
--- instance IFunctor7 Map where
---   imap7 _ (Map c out) = Map c out
---   imapM7 _ (Map c out) = return $ Map c out
+instance IFunctor7 Map where
+  imap7 _ (Map c out) = Map c out
+  imapM7 _ (Map c out) = return $ Map c out
 
-type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task -- :+: Map
+type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task :+: Map
 
 {-|
 The core type for a Circuit. It takes 7 different type arguments

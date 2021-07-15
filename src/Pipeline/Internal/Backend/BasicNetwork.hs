@@ -7,33 +7,31 @@ import           Control.Concurrent                (ThreadId, forkIO,
                                                     killThread)
 import           Control.Concurrent.Chan           (dupChan, newChan, readChan,
                                                     writeChan)
-import           Control.DeepSeq                   (deepseq)
 import           Control.Exception                 (SomeException,
                                                     displayException)
 import           Control.Exception.Lifted          (try)
 import           Control.Monad                     (forM_, forever, (>=>))
-import           Control.Monad.Trans               (lift)
 import           Control.Monad.Trans.Except        (ExceptT (..), catchE,
                                                     runExceptT, throwE)
 import           Data.Kind                         (Type)
 import           Data.List                         (nub)
+import           Control.Monad.Trans               (lift)
 import           Pipeline.Internal.Backend.Network (BuildNetworkAlg (..),
                                                     InitialPipes (..), N (..),
                                                     Network (..))
-import           Pipeline.Internal.Common.HList    (HList (..), HList' (..))
+import           Pipeline.Internal.Common.HList    (HList' (..), HList(..))
 import           Pipeline.Internal.Common.IFunctor (icataM7)
-import           Pipeline.Internal.Common.Nat      (IsNat (..), N1, Nat,
-                                                    SNat (..))
-import           Pipeline.Internal.Common.TypeList (Apply, Drop, Length, Take,
+import           Pipeline.Internal.Common.Nat      (IsNat (..), Nat,
+                                                    SNat (..), N1)
+import           Pipeline.Internal.Common.TypeList (Drop, Length, Take,
                                                     (:++))
 import           Pipeline.Internal.Core.CircuitAST
-import           Pipeline.Internal.Core.DataStore  (DataStore (..),
-                                                    DataStore' (..))
 import           Pipeline.Internal.Core.Error      (ExceptionMessage (..),
                                                     TaskError (..))
 import           Pipeline.Internal.Core.PipeList   (AppendP (..), PipeList (..),
                                                     dropP, takeP)
 import           Pipeline.Internal.Core.UUID       (UUID)
+import           Pipeline.Internal.Core.DataStore  (Var, emptyVar, DataStore'(..), DataStore(..))
 import           Prelude                           hiding (read)
 
 -- | Main type for storing information about the process network.
@@ -66,8 +64,8 @@ taskExecuter (Task f outStore) inPipes outPipes = forever
       (runExceptT
         (do
           input <- (ExceptT . return) taskInputs
-          r     <- catchE (intercept (f uuid input outStore))
-                          (throwE . TaskError . ExceptionMessage . displayException)
+          catchE (intercept (f uuid input outStore))
+                 (throwE . TaskError . ExceptionMessage . displayException)
           return (HCons' outStore HNil')
         )
       )
@@ -153,64 +151,64 @@ instance BuildNetworkAlg BasicNetwork Task where
       return $ BasicNetwork (threadId : threads n) (inputs n) output
     )
 
--- instance BuildNetworkAlg BasicNetwork Map where
---   buildNetworkAlg (Map (c :: Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] N1) outputStore) =
---     return $ N
---       (\n -> do
---         outChan <- newChan
---         let output = PipeCons outChan PipeNil
+instance BuildNetworkAlg BasicNetwork Map where
+  buildNetworkAlg (Map (c :: Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] N1) outputStore) =
+    return $ N
+      (\n -> do
+        outChan <- newChan
+        let output = PipeCons outChan PipeNil
 
 
---         threadId <- forkIO
---           (do
---             mapNetwork <-
---               startNetwork c :: IO
---                 ( BasicNetwork
---                     '[VariableStore]
---                     '[a]
---                     '[VariableStore a]
---                     '[VariableStore]
---                     '[b]
---                     '[VariableStore b]
---                 )
---             _ <- forever
---               (do
---                 (uuid, mapInputs) <- readPipes (outputs n)
---                 r                 <-
---                   (runExceptT
---                     (do
---                       inputs             <- (ExceptT . return) mapInputs
---                       HCons inputs' HNil <- (lift . hSequence . fetch' uuid) inputs
+        threadId <- forkIO
+          (do
+            mapNetwork <-
+              startNetwork c :: IO
+                ( BasicNetwork
+                    '[Var]
+                    '[a]
+                    '[Var a]
+                    '[Var]
+                    '[b]
+                    '[Var b]
+                )
+            _ <- forever
+              (do
+                (uuid, mapInputs) <- readPipes (outputs n)
+                r                 <-
+                  (runExceptT
+                    (do
+                      inputs             <- (ExceptT . return) mapInputs
+                      HCons inputs' HNil <- (lift . fetch' uuid) inputs
 
---                       mapM_ (\x -> lift (write uuid (HCons' (Var x) HNil') mapNetwork)) inputs'
---                       -- input each value into the mapNetwork
---                       output <- mapM
---                         (\x -> do
---                           (uuid, r)             <- lift (read mapNetwork)
---                           HCons' (Var r') HNil' <- (ExceptT . return) r -- Check for failure
---                           return r'
---                         )
---                         inputs'
---                       -- get each value out from the mapNetwork
---                       saved <- lift (save uuid outputStore output)
---                       return (HCons' saved HNil')
---                     )
---                   )
---                 writePipes uuid r output
---               )
---             stopNetwork mapNetwork
---           )
+                      mapM_ (\x -> do
+                                var <- lift emptyVar
+                                lift (save uuid var x)
+                                lift (write uuid (HCons' var HNil') mapNetwork)) inputs'
+                      -- input each value into the mapNetwork
+                      output <- mapM
+                        (\x -> do
+                          (uuid, r)             <- lift (read mapNetwork)
+                          HCons' out HNil' <- (ExceptT . return) r -- Check for failure
+                          r' <- lift (fetch uuid out)
+                          return r'
+                        )
+                        inputs'
+                      -- get each value out from the mapNetwork
+                      lift (save uuid outputStore output)
+                      return (HCons' outputStore HNil')
+                    )
+                  )
+                writePipes uuid r output
+              )
+            stopNetwork mapNetwork
+          )
 
---         -- threadId <- forkIO (taskExecuter (Task t out) (outputs n) output)
+        -- threadId <- forkIO (taskExecuter (Task t out) (outputs n) output)
 
---         return $ BasicNetwork (threadId : threads n) (inputs n) output
---       )
+        return $ BasicNetwork (threadId : threads n) (inputs n) output
+      )
 
 
--- test :: [HList' '[VariableStore] '[b]] -> HList' '[VariableStore] '[[b]]
--- test xs                            = HCons' (helper xs) HNil'
-
--- test ((HCons' (Var x) HNil') : xs) = HCons'
 
 instance BuildNetworkAlg BasicNetwork Replicate where
   buildNetworkAlg Replicate = return $ N

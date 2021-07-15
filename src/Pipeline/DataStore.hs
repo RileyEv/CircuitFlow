@@ -16,8 +16,10 @@ module Pipeline.DataStore
     DataStore'(..)
   ,
   -- * Pre-Defined DataStores
-  -- ** VariableStore
-  -- ** IOStore
+  -- ** Var
+    Var
+  , emptyVar
+  ,
   -- ** FileStore
     FileStore(..)
   ,
@@ -31,7 +33,7 @@ module Pipeline.DataStore
 
 
 import           Pipeline.Internal.Core.DataStore (DataStore (..),
-                                                   DataStore' (..))
+                                                   DataStore' (..), Var, emptyVar)
 import           Pipeline.Internal.Core.UUID      (UUID)
 
 import           Control.DeepSeq                  (NFData)
@@ -47,27 +49,6 @@ import           GHC.Generics                     (Generic)
 import           System.FilePath                  (splitFileName, (</>))
 
 
-
--- {-|
---   An 'IOStore' is a simple in memory 'DataStore', with some extra features.
-
---   Fetching from an empty store will read input from stdin and writing to a
---   store will cause the output to be wrote to stdout.
--- -}
--- data IOStore a = IOVar a | IOEmpty deriving (Eq, Show, Generic, NFData)
-
--- {-|
---   An instance is only defined for String types
--- -}
--- instance DataStore IOStore String where
---   fetch _ (IOVar x) = return x
---   fetch _ IOEmpty   = do
---     putStr "Input: "
---     getLine
-
---   save _ _ x = do
---     print x
---     return (IOVar x)
 
 addUUIDToFileName :: String -> UUID -> String
 addUUIDToFileName fpath uuid =

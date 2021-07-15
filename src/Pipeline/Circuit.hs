@@ -22,7 +22,7 @@ module Pipeline.Circuit
   , swap
   , dropL
   , dropR
-  -- , mapC
+  , mapC
   ) where
 
 
@@ -34,7 +34,7 @@ import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
                                                             Take, Replicate, (:++))
 import qualified Pipeline.Internal.Core.CircuitAST as AST
 import           Pipeline.Internal.Core.DataStore          (DataStore,
-                                                            DataStore')
+                                                            DataStore', Var)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
 
 import           Prelude                                   hiding (id,
@@ -162,12 +162,12 @@ dropR = (IIn7 . inj) AST.DropR
 {-|
 Maps a circuit on the inputs
 -}
--- mapC
---   :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
---   => AST.Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
---   -> g [b]
---   -> AST.Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
--- mapC c o = (IIn7 . inj) (AST.Map c o)
+mapC
+  :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
+  => AST.Circuit '[Var] '[a] '[Var a] '[Var] '[b] '[Var b] N1
+  -> g [b]
+  -> AST.Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
+mapC c o = (IIn7 . inj) (AST.Map c o)
 
 class DataStore f a => ReplicateN n f a where
   replicateN :: SNat n -> AST.Circuit '[f] '[a] '[f a] (Replicate n f) (Replicate n a) (Apply (Replicate n f) (Replicate n a)) N1
