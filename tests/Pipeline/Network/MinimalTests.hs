@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators, FlexibleInstances #-}
 module Pipeline.Network.MinimalTests
   ( minimalTests
   ) where
@@ -9,6 +10,14 @@ import           Pipeline.Network.HelperCircuit
 import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
 import           Test.Tasty.HUnit
+
+
+-- This is bad... !
+instance Show (HList '[]) where
+  show _ = "empty"
+
+instance Show (HList (x ': xs)) where
+  show _ = "cons"
 
 minimalTests :: TestTree
 minimalTests = testGroup

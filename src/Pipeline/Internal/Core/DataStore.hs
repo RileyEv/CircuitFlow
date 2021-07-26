@@ -37,11 +37,11 @@ class DataStore' (fs :: [Type -> Type]) (as :: [Type]) where
   save' :: UUID -> HList' fs as -> HList as -> IO ()
 
 
-instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' '[f] '[a] where
+instance {-# OVERLAPPING #-} (DataStore f a, Eq a) => DataStore' '[f] '[a] where
   fetch' uuid (HCons' x HNil') = fetch uuid x >>= \y -> return (HCons y HNil)
   save' uuid (HCons' ref HNil') (HCons x HNil) = save uuid ref x
 
-instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
+instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as, Eq a) => DataStore' (f ': fs) (a ': as)  where
   fetch' uuid (HCons' x xs) = (return $ HCons) <*> fetch uuid x <*> fetch' uuid xs
   save' uuid (HCons' ref rs) (HCons x xs) = (save uuid ref x) >> (save' uuid rs xs)
 

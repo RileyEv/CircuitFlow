@@ -163,7 +163,7 @@ dropR = (IIn7 . inj) AST.DropR
 Maps a circuit on the inputs
 -}
 mapC
-  :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
+  :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Eq a)
   => AST.Circuit '[Var] '[a] '[Var a] '[Var] '[b] '[Var b] N1
   -> g [b]
   -> AST.Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
@@ -172,10 +172,10 @@ mapC c o = (IIn7 . inj) (AST.Map c o)
 class DataStore f a => ReplicateN n f a where
   replicateN :: SNat n -> AST.Circuit '[f] '[a] '[f a] (Replicate n f) (Replicate n a) (Apply (Replicate n f) (Replicate n a)) N1
 
-instance DataStore f a => ReplicateN ('Succ ('Succ 'Zero)) f a where
+instance (DataStore f a, Eq a) => ReplicateN ('Succ ('Succ 'Zero)) f a where
   replicateN (SSucc (SSucc SZero)) = replicate2
 
-instance DataStore f a => ReplicateN ('Succ ('Succ ('Succ 'Zero))) f a where
+instance (DataStore f a, Eq a) => ReplicateN ('Succ ('Succ ('Succ 'Zero))) f a where
   replicateN (SSucc n) = replicate2 <-> id <> replicateN n
 
 replicateMany :: SNat m -> AST.Circuit fs as (Apply fs as) (fs :++ fs) (as :++ as) (Apply (fs :++ fs) (as :++ as)) m

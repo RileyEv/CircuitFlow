@@ -65,7 +65,7 @@ multiInputTask f output = IIn7
 This allows a single @a -> b@ to be converted into a 'Task'.
 -}
 functionTask
-  :: (DataStore f a, DataStore g b, Eq (g b), NFData b)
+  :: (DataStore f a, DataStore g b, Eq (g b), Eq a, NFData b)
   => (a -> b) -- ^ The function to execute
   -> g b      -- ^ The output 'DataStore'
   -> Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] ( 'Succ 'Zero)
