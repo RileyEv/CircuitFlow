@@ -10,6 +10,7 @@ import           Pipeline.Internal.Common.HList    (HList (..), HList' (..))
 import           Pipeline.Internal.Core.UUID       (UUID)
 import           Control.Concurrent.MVar           (MVar, putMVar, readMVar, newEmptyMVar)
 
+
 -- | DataStore that can be defined for each datastore needed to be used.
 class DataStore f a where
   -- | Fetch the value stored in the 'DataStore'
@@ -19,6 +20,7 @@ class DataStore f a where
   --   The first argument depends on the instance.
   --   It may be \"empty\" or it could be a pointer to a storage location.
   save :: UUID -> f a -> a -> IO ()
+
 
 -- | When tasks require multiple inputs, they also require a joint DataStore.
 --   This class provides this ability.
@@ -40,7 +42,6 @@ instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' '[f] '[a] where
   save' uuid (HCons' ref HNil') (HCons x HNil) = save uuid ref x
 
 instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
-
   fetch' uuid (HCons' x xs) = (return $ HCons) <*> fetch uuid x <*> fetch' uuid xs
   save' uuid (HCons' ref rs) (HCons x xs) = (save uuid ref x) >> (save' uuid rs xs)
 

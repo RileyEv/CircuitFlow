@@ -108,7 +108,7 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
   Task ::(Length outputsS := 'Succ 'Zero ~ 'True,
            outputsS ~ '[g'], outputsT ~ '[b'], outputsA ~ '[g' b'],
            DataStore' inputsS inputsT,
-           DataStore g' b', Eq (g' b'), Show (g' b'), NFData (g' b'))
+           DataStore g' b', Eq (g' b'))
        => (UUID -> HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO ())
        -> g' b'
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)

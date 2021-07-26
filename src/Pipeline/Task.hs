@@ -43,7 +43,7 @@ import           Pipeline.Internal.Core.UUID               (UUID)
 This allows a function with multiple inputs to be converted into a 'Task'.
 -}
 multiInputTask
-  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b), NFData b)
+  :: (DataStore' fs as, DataStore g b, Eq (g b), NFData b)
   => (HList as -> b) -- ^ The function to execute
   -> g b             -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
@@ -60,11 +60,12 @@ multiInputTask f output = IIn7
     )
   )
 
+
 {-|
 This allows a single @a -> b@ to be converted into a 'Task'.
 -}
 functionTask
-  :: (DataStore f a, DataStore g b, Eq (g b), Show (g b), NFData (g b), NFData b)
+  :: (DataStore f a, DataStore g b, Eq (g b), NFData b)
   => (a -> b) -- ^ The function to execute
   -> g b      -- ^ The output 'DataStore'
   -> Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] ( 'Succ 'Zero)
