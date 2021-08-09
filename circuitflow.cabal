@@ -28,14 +28,13 @@ library
     , Pipeline.Task
     , Pipeline.Nat
     , Pipeline.Internal.Core.CircuitAST
-    , Pipeline.Internal.Common.IFunctor
-    , Pipeline.Internal.Common.IFunctor.Modular
-    , Pipeline.Internal.Common.HList
-  other-modules:
-      Pipeline.Internal.Core.DataStore
+    , Pipeline.Internal.Core.DataStore
     , Pipeline.Internal.Core.Error
     , Pipeline.Internal.Core.PipeList
     , Pipeline.Internal.Core.UUID
+    , Pipeline.Internal.Common.HList
+    , Pipeline.Internal.Common.IFunctor
+    , Pipeline.Internal.Common.IFunctor.Modular
     , Pipeline.Internal.Common.Nat
     , Pipeline.Internal.Common.TypeList
     , Pipeline.Internal.Backend.Network
