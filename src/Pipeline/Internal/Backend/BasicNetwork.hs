@@ -189,8 +189,7 @@ instance BuildNetworkAlg BasicNetwork Map where
                         (\x -> do
                           (uuid, r)             <- lift (read mapNetwork)
                           HCons' out HNil' <- (ExceptT . return) r -- Check for failure
-                          r' <- lift (fetch uuid out)
-                          return r'
+                          lift (fetch uuid out)
                         )
                         inputs'
                       -- get each value out from the mapNetwork

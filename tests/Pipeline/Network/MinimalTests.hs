@@ -35,6 +35,13 @@ minimalTests = testGroup
   ]
 
 
+varWith :: a -> IO (Var a)
+varWith x = do
+  var <- emptyVar
+  save "" var x
+  return var 
+
+
 -- Tests for the 'Id' constructor
 idCircuit
   :: Circuit
@@ -51,8 +58,7 @@ idTests :: TestTree
 idTests = testGroup
   "id should"
   [ testCase "return the same value input" $ do
-      var <- emptyVar
-      save "" var 0 
+      var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest idCircuit i
       out <- fetch' "" o
@@ -75,8 +81,7 @@ replicate2Tests :: TestTree
 replicate2Tests = testGroup
   "replicate2 should"
   [ testCase "return a duplicated input value" $ do
-      var <- emptyVar
-      save "" var 0
+      var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest replicate2Circuit i
       out <- fetch' "" o
@@ -98,8 +103,7 @@ replicate3Tests :: TestTree
 replicate3Tests = testGroup
   "(replicateN 3) should"
   [ testCase "return a trupled input value" $ do
-      var <- emptyVar
-      save "" var 0
+      var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest replicate3Circuit i
       out <- fetch' "" o
@@ -122,8 +126,7 @@ thenTests :: TestTree
 thenTests = testGroup
   "<-> should"
   [ testCase "return a return the same input value" $ do
-      var <- emptyVar
-      save "" var 0
+      var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest thenCircuit i
       out <- fetch' "" o
@@ -146,10 +149,8 @@ besideTests :: TestTree
 besideTests = testGroup
   "<> should"
   [ testCase "return a return the same input value" $ do
-      var1 <- emptyVar
-      var2 <- emptyVar
-      save "" var1 0
-      save "" var2 "abc"
+      var1 <- varWith 0
+      var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest besideCircuit i
       out <- fetch' "" o
@@ -173,10 +174,8 @@ swapTests :: TestTree
 swapTests = testGroup
   "swap should"
   [ testCase "return a return the same input value" $ do
-      var1 <- emptyVar
-      var2 <- emptyVar
-      save "" var1 0
-      save "" var2 "abc"
+      var1 <- varWith 0
+      var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest swapCircuit i
       out <- fetch' "" o
@@ -200,10 +199,8 @@ dropLTests :: TestTree
 dropLTests = testGroup
   "dropL should"
   [ testCase "return the input with the left side dropped" $ do
-      var1 <- emptyVar
-      var2 <- emptyVar
-      save "" var1 0
-      save "" var2 "abc"
+      var1 <- varWith 0
+      var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest dropLCircuit i
       out <- fetch' "" o
@@ -226,10 +223,8 @@ dropRTests :: TestTree
 dropRTests = testGroup
   "dropR should"
   [ testCase "return a return the same input value" $ do
-      var1 <- emptyVar
-      var2 <- emptyVar
-      save "" var1 0
-      save "" var2 "abc"
+      var1 <- varWith 0
+      var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest dropRCircuit i
       out <- fetch' "" o
@@ -242,8 +237,7 @@ functionTaskTests :: TestTree
 functionTaskTests = testGroup
   "functionTask should"
   [ testCase "apply the function to the input value" $ do
-      var <- emptyVar
-      save "" var 0
+      var <- varWith 0
       let i = HCons' var HNil'
       cir <- functionTaskCircuit
       (Right o) <- singleInputTest cir i
@@ -256,10 +250,8 @@ multiInputTaskTests :: TestTree
 multiInputTaskTests = testGroup
   "swap should"
   [ testCase "apply the function to the input values" $ do
-      var1 <- emptyVar
-      var2 <- emptyVar
-      save "" var1 3
-      save "" var2 5
+      var1 <- varWith 3
+      var2 <- varWith 5
       let i = HCons' var1 (HCons' var2 HNil')
       cir <- multiInputTaskCircuit
       (Right o) <- singleInputTest cir i
@@ -285,8 +277,7 @@ mapTests :: TestTree
 mapTests = testGroup
   "map should"
   [ testCase "map a circuit on the input values" $ do
-      var <- emptyVar
-      save "" var [0, 1, 2, 3, 4, 5, 6, 7, 8] 
+      var <- varWith [0, 1, 2, 3, 4, 5, 6, 7, 8] 
       let i = HCons' var HNil'
       cir <- mapCircuit
       (Right o) <- singleInputTest cir i

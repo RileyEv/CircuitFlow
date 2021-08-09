@@ -12,9 +12,7 @@ functionTaskCircuit
        '[Int]
        '[Var Int]
        N1)
-functionTaskCircuit = do
-  var <- emptyVar
-  return $ functionTask (+ 1) var
+functionTaskCircuit = functionTask (+ 1) <$> emptyVar
 
 multiInputTaskCircuit
   :: IO (Circuit
@@ -25,6 +23,4 @@ multiInputTaskCircuit
        '[Int]
        '[Var Int]
        N2)
-multiInputTaskCircuit = do
-  var <- emptyVar
-  return $ multiInputTask (\(HCons x (HCons y HNil)) -> x + y) var
+multiInputTaskCircuit = multiInputTask (\(HCons x (HCons y HNil)) -> x + y) <$> emptyVar

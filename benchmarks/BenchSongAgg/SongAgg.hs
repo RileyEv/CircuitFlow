@@ -221,9 +221,7 @@ aggArtistsTask
        '[[ArtistCount]]
        '[Var [ArtistCount]]
        N3)
-aggArtistsTask = do
-  var <- emptyVar
-  return $ multiInputTask f var
+aggArtistsTask = multiInputTask f <$> emptyVar
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [ArtistCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
@@ -240,9 +238,7 @@ aggSongsTask
        '[[TrackCount]]
        '[Var [TrackCount]]
        N3)
-aggSongsTask = do
-  var <- emptyVar
-  return $ multiInputTask f var
+aggSongsTask = multiInputTask f <$> emptyVar
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [TrackCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
