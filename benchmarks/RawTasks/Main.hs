@@ -12,7 +12,6 @@ import           Data.List.Unique               (count_)
 import qualified Data.Vector                    as V (fromList)
 import           GHC.Generics
 import           Pipeline
-import           Pipeline.Internal.Common.HList (hSequence)
 import           Prelude                        hiding (id, replicate, (<>))
 
 
@@ -67,7 +66,7 @@ data Listen = Listen
   , storeCountryName            :: String
   , utcOffsetInSeconds          :: Float
   }
-  deriving (Generic, NFData)
+  deriving (Generic, NFData, Eq)
 
 instance FromNamedRecord Listen where
   parseNamedRecord r =
@@ -210,8 +209,7 @@ aggSongs (HCons day1 (HCons day2 (HCons day3 HNil))) =
 main :: IO ()
 main = do
 
-  r <- hSequence
-    (fetch'
+  r <- (fetch'
       "0"
       (HCons'
         (NamedCSVStore "benchmarks/data/jan.csv" :: NamedCSVStore [Listen])
