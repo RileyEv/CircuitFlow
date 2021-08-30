@@ -29,9 +29,7 @@ import           Control.Exception.Lifted                  (SomeException)
 import           Control.Monad.Except                      (ExceptT)
 import           Control.Monad.Trans                       (lift)
 import           Pipeline.Internal.Common.HList            (HList (..),
-                                                            HList' (..),
-                                                            IOList (..),
-                                                            hSequence)
+                                                            HList' (..))
 import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (Nat (..))
@@ -39,36 +37,34 @@ import           Pipeline.Internal.Common.TypeList         (Apply, Length)
 import           Pipeline.Internal.Core.CircuitAST         (Circuit, Task (..))
 import           Pipeline.Internal.Core.DataStore          (DataStore (..),
                                                             DataStore' (..))
-import           Pipeline.Internal.Core.UUID               (UUID)
+import           Pipeline.Internal.Core.UUID               (JobUUID)
 
 {-|
 This allows a function with multiple inputs to be converted into a 'Task'.
 -}
 multiInputTask
-  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b), NFData b)
+  :: (DataStore' fs as, DataStore g b, Eq (g b), NFData b)
   => (HList as -> b) -- ^ The function to execute
-  -> g b             -- ^ The output 'DataStore'
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
-multiInputTask f output = IIn7
+multiInputTask f = IIn7
   (inj
     (Task
-      (\uuid sources sink -> do
-        input <- lift ((hSequence . fetch' uuid) sources)
+      (\sources sink -> do
+        input <- lift (fetch' sources)
         let outputValue   = f input
             !outputValue' = outputValue `deepseq` outputValue
-        lift (save uuid sink outputValue')
+        lift (save sink outputValue')
       )
-      output
     )
   )
+
 
 {-|
 This allows a single @a -> b@ to be converted into a 'Task'.
 -}
 functionTask
-  :: (DataStore f a, DataStore g b, Eq (g b), Show (g b), NFData (g b), NFData b)
+  :: (DataStore f a, DataStore g b, Eq (g b), Eq a, Eq (f a), NFData b)
   => (a -> b) -- ^ The function to execute
-  -> g b      -- ^ The output 'DataStore'
   -> Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] ( 'Succ 'Zero)
 -- It is okay to pattern match the hlist to just one value, as the type states that it only consumes one element.
 functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
@@ -93,9 +89,6 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 -- | Constructor for a task
 task
   :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b))
-  => (UUID -> HList' fs as -> g b -> ExceptT SomeException IO (g b))  -- ^ The function a Task will execute.
-  -> g b                                -- ^ The output 'DataStore'
+  => (HList' fs as -> g b -> ExceptT SomeException IO ())  -- ^ The function a Task will execute.
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
-task f out = IIn7 (inj (Task f out))
-
-
+task f = IIn7 (inj (Task f))

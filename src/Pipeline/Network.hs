@@ -16,7 +16,7 @@ module Pipeline.Network
     BasicNetwork
   ,
   -- * Network IO
-    UUID
+    JobUUID
   ,
   -- ** Input
     input
@@ -35,7 +35,7 @@ import           Pipeline.Internal.Backend.Network      (InitialPipes,
                                                          Network (..))
 import           Pipeline.Internal.Common.HList         (HList' (..))
 import           Pipeline.Internal.Core.Error           (TaskError)
-import           Pipeline.Internal.Core.UUID            (UUID, genUUID)
+import           Pipeline.Internal.Core.UUID            (JobUUID, genJobUUID)
 import           Prelude                                hiding (read)
 
 
@@ -45,9 +45,9 @@ input
   :: Network n
   => HList' inputsS inputsT -- ^ Inputs to the network
   -> n inputsS inputsT inputsA outputsS outputsT outputsA -- ^ Network to insert the values in
-  -> IO UUID -- ^ Randomly generated identifier
+  -> IO JobUUID -- ^ Randomly generated identifier
 input x n = do
-  uuid <- genUUID
+  uuid <- genJobUUID
   write uuid x n
   return uuid
 

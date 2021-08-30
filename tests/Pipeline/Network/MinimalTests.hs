@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators, FlexibleInstances #-}
 module Pipeline.Network.MinimalTests
   ( minimalTests
   ) where
@@ -6,9 +7,18 @@ import           Pipeline
 import           Pipeline.Nat (SNat (..))
 import           Pipeline.Network.Helper
 import           Pipeline.Network.HelperCircuit
+import           Pipeline.Internal.Core.UUID
 import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
 import           Test.Tasty.HUnit
+
+
+-- This is bad... !
+instance Show (HList '[]) where
+  show _ = "empty"
+
+instance Show (HList (x ': xs)) where
+  show _ = "cons"
 
 minimalTests :: TestTree
 minimalTests = testGroup
@@ -26,15 +36,22 @@ minimalTests = testGroup
   ]
 
 
+varWith :: a -> IO (Var a)
+varWith x = do
+  var <- emptyVar
+  save var x
+  return var 
+
+
 -- Tests for the 'Id' constructor
 idCircuit
   :: Circuit
-       '[VariableStore]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
-       '[VariableStore]
+       '[Var Int]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
+       '[Var Int]
        N1
 idCircuit = id
 
@@ -42,20 +59,22 @@ idTests :: TestTree
 idTests = testGroup
   "id should"
   [ testCase "return the same value input" $ do
-      let i = HCons' (Var 0) HNil'
-      o <- singleInputTest idCircuit i
-      o @?= Right i
+      var <- varWith 0
+      let i = HCons' var HNil'
+      (Right o) <- singleInputTest idCircuit i
+      out <- fetch' o
+      out @?= HCons 0 HNil
   ]
 
 -- Tests for the 'Replicate' constructor
 replicate2Circuit
   :: Circuit
-       '[VariableStore]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
-       '[VariableStore , VariableStore]
+       '[Var Int]
+       '[Var , Var]
        '[Int , Int]
-       '[VariableStore Int , VariableStore Int]
+       '[Var Int , Var Int]
        N1
 replicate2Circuit = replicate2
 
@@ -63,19 +82,21 @@ replicate2Tests :: TestTree
 replicate2Tests = testGroup
   "replicate2 should"
   [ testCase "return a duplicated input value" $ do
-      let i = HCons' (Var 0) HNil'
-      o <- singleInputTest replicate2Circuit i
-      o @?= Right (HCons' (Var 0) (HCons' (Var 0) HNil'))
+      var <- varWith 0
+      let i = HCons' var HNil'
+      (Right o) <- singleInputTest replicate2Circuit i
+      out <- fetch' o
+      out @?= HCons 0 (HCons 0 HNil)
   ]
 
 replicate3Circuit
   :: Circuit
-       '[VariableStore]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
-       '[VariableStore , VariableStore , VariableStore]
+       '[Var Int]
+       '[Var , Var , Var]
        '[Int , Int , Int]
-       '[VariableStore Int , VariableStore Int , VariableStore Int]
+       '[Var Int , Var Int , Var Int]
        N1
 replicate3Circuit = replicateN (SSucc (SSucc (SSucc SZero)))
 
@@ -83,20 +104,22 @@ replicate3Tests :: TestTree
 replicate3Tests = testGroup
   "(replicateN 3) should"
   [ testCase "return a trupled input value" $ do
-      let i = HCons' (Var 0) HNil'
-      o <- singleInputTest replicate3Circuit i
-      o @?= Right (HCons' (Var 0) (HCons' (Var 0) (HCons' (Var 0) HNil')))
+      var <- varWith 0
+      let i = HCons' var HNil'
+      (Right o) <- singleInputTest replicate3Circuit i
+      out <- fetch' o
+      out @?= HCons 0 (HCons 0 (HCons 0 HNil))
   ]
  
 -- Tests for the 'Then' constructor
 thenCircuit
   :: Circuit
-       '[VariableStore]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
-       '[VariableStore]
+       '[Var Int]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
+       '[Var Int]
        N1
 thenCircuit = id <-> id
 
@@ -104,20 +127,22 @@ thenTests :: TestTree
 thenTests = testGroup
   "<-> should"
   [ testCase "return a return the same input value" $ do
-      let i = HCons' (Var 0) HNil'
-      o <- singleInputTest thenCircuit i
-      o @?= Right i
+      var <- varWith 0
+      let i = HCons' var HNil'
+      (Right o) <- singleInputTest thenCircuit i
+      out <- fetch' o
+      out @?= HCons 0 HNil
   ]
 
 -- Tests for the 'Beside' constructor
 besideCircuit
   :: Circuit
-       '[VariableStore , VariableStore]
+       '[Var , Var]
        '[Int , String]
-       '[VariableStore Int , VariableStore String]
-       '[VariableStore , VariableStore]
+       '[Var Int , Var String]
+       '[Var , Var]
        '[Int , String]
-       '[VariableStore Int , VariableStore String]
+       '[Var Int , Var String]
        N2
 besideCircuit = id <> id
 
@@ -125,21 +150,24 @@ besideTests :: TestTree
 besideTests = testGroup
   "<> should"
   [ testCase "return a return the same input value" $ do
-      let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
-      o <- singleInputTest besideCircuit i
-      o @?= Right i
+      var1 <- varWith 0
+      var2 <- varWith "abc"
+      let i = HCons' var1 (HCons' var2 HNil')
+      (Right o) <- singleInputTest besideCircuit i
+      out <- fetch' o
+      out @?= HCons 0 (HCons "abc" HNil)
   ]
 
 
 -- Tests for the 'Swap' constructor
 swapCircuit
   :: Circuit
-       '[VariableStore , VariableStore]
+       '[Var , Var]
        '[Int , String]
-       '[VariableStore Int , VariableStore String]
-       '[VariableStore , VariableStore]
+       '[Var Int , Var String]
+       '[Var , Var]
        '[String , Int]
-       '[VariableStore String , VariableStore Int]
+       '[Var String , Var Int]
        N2
 swapCircuit = swap
 
@@ -147,21 +175,24 @@ swapTests :: TestTree
 swapTests = testGroup
   "swap should"
   [ testCase "return a return the same input value" $ do
-      let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
-      o <- singleInputTest swapCircuit i
-      o @?= Right (HCons' (Var "abc") (HCons' (Var 0) HNil'))
+      var1 <- varWith 0
+      var2 <- varWith "abc"
+      let i = HCons' var1 (HCons' var2 HNil')
+      (Right o) <- singleInputTest swapCircuit i
+      out <- fetch' o
+      out @?= HCons "abc" (HCons 0 HNil)
   ]
 
 
 -- Tests for the 'DropL' constructor
 dropLCircuit
   :: Circuit
-       '[VariableStore , VariableStore]
+       '[Var , Var]
        '[Int , String]
-       '[VariableStore Int , VariableStore String]
-       '[VariableStore]
+       '[Var Int , Var String]
+       '[Var]
        '[String]
-       '[VariableStore String]
+       '[Var String]
        N2
 dropLCircuit = dropL
 
@@ -169,20 +200,23 @@ dropLTests :: TestTree
 dropLTests = testGroup
   "dropL should"
   [ testCase "return the input with the left side dropped" $ do
-      let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
-      o <- singleInputTest dropLCircuit i
-      o @?= Right (HCons' (Var "abc") HNil')
+      var1 <- varWith 0
+      var2 <- varWith "abc"
+      let i = HCons' var1 (HCons' var2 HNil')
+      (Right o) <- singleInputTest dropLCircuit i
+      out <- fetch' o
+      out @?= HCons "abc" HNil
   ]
 
 -- Tests for the 'DropR' constructor
 dropRCircuit
   :: Circuit
-       '[VariableStore , VariableStore]
+       '[Var , Var]
        '[Int , String]
-       '[VariableStore Int , VariableStore String]
-       '[VariableStore]
+       '[Var Int , Var String]
+       '[Var]
        '[Int]
-       '[VariableStore Int]
+       '[Var Int]
        N2
 dropRCircuit = dropR
 
@@ -190,9 +224,12 @@ dropRTests :: TestTree
 dropRTests = testGroup
   "dropR should"
   [ testCase "return a return the same input value" $ do
-      let i = HCons' (Var 0) (HCons' (Var "abc") HNil')
-      o <- singleInputTest dropRCircuit i
-      o @?= Right (HCons' (Var 0) HNil')
+      var1 <- varWith 0
+      var2 <- varWith "abc"
+      let i = HCons' var1 (HCons' var2 HNil')
+      (Right o) <- singleInputTest dropRCircuit i
+      out <- fetch' o
+      out @?= HCons 0 HNil
   ]
 
 
@@ -201,9 +238,11 @@ functionTaskTests :: TestTree
 functionTaskTests = testGroup
   "functionTask should"
   [ testCase "apply the function to the input value" $ do
-      let i = HCons' (Var 0) HNil'
-      o <- singleInputTest functionTaskCircuit i
-      o @?= Right (HCons' (Var 1) HNil')
+      var <- varWith 0
+      let i = HCons' var HNil'
+      (Right o) <- singleInputTest functionTaskCircuit i
+      out <- fetch' o
+      out @?= HCons 1 HNil
   ]
 
 
@@ -211,27 +250,32 @@ multiInputTaskTests :: TestTree
 multiInputTaskTests = testGroup
   "swap should"
   [ testCase "apply the function to the input values" $ do
-      let i = HCons' (Var 3) (HCons' (Var 5) HNil')
-      o <- singleInputTest multiInputTaskCircuit i
-      o @?= Right (HCons' (Var 8) HNil')
+      var1 <- varWith 3
+      var2 <- varWith 5
+      let i = HCons' var1 (HCons' var2 HNil')
+      (Right o) <- singleInputTest multiInputTaskCircuit i
+      out <- fetch' o
+      out @?= HCons 8 HNil
   ]
 
 mapCircuit
   :: Circuit
-       '[VariableStore]
+       '[Var]
        '[[Int]]
-       '[VariableStore [Int]]
-       '[VariableStore]
+       '[Var [Int]]
+       '[Var]
        '[[Int]]
-       '[VariableStore [Int]]
+       '[Var [Int]]
        N1
-mapCircuit = mapC functionTaskCircuit Empty
+mapCircuit = mapC functionTaskCircuit
 
 mapTests :: TestTree
 mapTests = testGroup
   "map should"
   [ testCase "map a circuit on the input values" $ do
-      let i = HCons' (Var [0, 1, 2, 3, 4, 5, 6, 7, 8]) HNil'
-      o <- singleInputTest mapCircuit i
-      o @?= Right (HCons' (Var [1, 2, 3, 4, 5, 6, 7, 8, 9]) HNil')
+      var <- varWith [0, 1, 2, 3, 4, 5, 6, 7, 8] 
+      let i = HCons' var HNil'
+      (Right o) <- singleInputTest mapCircuit i
+      out <- fetch' o
+      out @?= HCons [1, 2, 3, 4, 5, 6, 7, 8, 9] HNil
   ]

@@ -11,6 +11,7 @@ import           Data.List.Unique (count_)
 import qualified Data.Vector      as V (fromList)
 import           GHC.Generics
 import           Pipeline
+import           Pipeline.Internal.Core.UUID
 import           Prelude          hiding (id, replicate, (<>))
 import           Text.Printf
 
@@ -67,7 +68,7 @@ data Listen = Listen
   , storeCountryName            :: String
   , utcOffsetInSeconds          :: Float
   }
-  deriving (Generic, NFData)
+  deriving (Generic, NFData, Eq)
 
 instance FromNamedRecord Listen where
   parseNamedRecord r =
@@ -197,17 +198,16 @@ instance ToField Bool where
   toField False = "FALSE"
 
 top10Task
-  :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a, NFData a)
-  => FilePath
-  -> Circuit
-       '[VariableStore]
+  :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a, NFData a, Eq a)
+  => Circuit
+       '[Var]
        '[[a]]
-       '[VariableStore [a]]
+       '[Var [a]]
        '[NamedCSVStore]
        '[[a]]
        '[NamedCSVStore [a]]
        N1
-top10Task fname = functionTask f (NamedCSVStore fname)
+top10Task = functionTask f
  where
   f :: [a] -> [a]
   f = take 10
@@ -217,16 +217,15 @@ aggArtistsTask
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
-       '[VariableStore]
+       '[Var]
        '[[ArtistCount]]
-       '[VariableStore [ArtistCount]]
+       '[Var [ArtistCount]]
        N3
-aggArtistsTask = multiInputTask f Empty
+aggArtistsTask = multiInputTask f
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [ArtistCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
     (map (uncurry ArtistCount) . reverse . count_ . map (artist . track)) (day1 ++ day2 ++ day3)
-
 
 
 aggSongsTask
@@ -234,11 +233,11 @@ aggSongsTask
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
-       '[VariableStore]
+       '[Var]
        '[[TrackCount]]
-       '[VariableStore [TrackCount]]
+       '[Var [TrackCount]]
        N3
-aggSongsTask = multiInputTask f Empty
+aggSongsTask = multiInputTask f
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [TrackCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
@@ -254,8 +253,7 @@ pipeline
        '[[ArtistCount] , [TrackCount]]
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
        N3
-pipeline =
-  replicate2
+pipeline = replicate2
     <>  replicate2
     <>  replicate2
     <-> id
@@ -269,8 +267,8 @@ pipeline =
     <>  id
     <-> aggArtistsTask
     <>  aggSongsTask
-    <-> top10Task "output/top10Artists.csv"
-    <>  top10Task "output/top10Songs.csv"
+    <-> top10Task
+    <>  top10Task
 
 addUser
   :: BasicNetwork
@@ -280,7 +278,7 @@ addUser
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
-  -> UUID
+  -> JobUUID
   -> IO ()
 addUser n uuid = write
   uuid
@@ -300,7 +298,7 @@ getUserTop10
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
-  -> UUID
+  -> JobUUID
   -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
 getUserTop10 n _ = do
   (Right (HCons' ac (HCons' tc HNil'))) <- output_ n
@@ -312,7 +310,7 @@ benchMain n = do
   -- startTime          <- getTime clock
   net <- startNetwork pipeline
   -- networkStartedTime <- getTime clock
-  let users = [ show x | x <- [0 .. (n - 1)] ]
+  users <- sequence [ genJobUUID | _ <- [0 .. (n - 1)] ]
 
   -- Input values into network
   forM_ users (addUser net)

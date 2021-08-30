@@ -16,11 +16,9 @@ module Pipeline.DataStore
     DataStore'(..)
   ,
   -- * Pre-Defined DataStores
-  -- ** VariableStore
-    VariableStore(..)
-  ,
-  -- ** IOStore
-    IOStore(..)
+  -- ** Var
+    Var
+  , emptyVar
   ,
   -- ** FileStore
     FileStore(..)
@@ -35,9 +33,9 @@ module Pipeline.DataStore
 
 
 import           Pipeline.Internal.Core.DataStore (DataStore (..),
-                                                   DataStore' (..),
-                                                   VariableStore (..))
-import           Pipeline.Internal.Core.UUID      (UUID)
+                                                   DataStore' (..), Var, emptyVar)
+import           Pipeline.Internal.Core.UUID      (JobUUID)
+import           Pipeline.Internal.Backend.FileGen (createNewFile)
 
 import           Control.DeepSeq                  (NFData)
 import qualified Data.ByteString.Lazy             as B (readFile, writeFile)
@@ -52,108 +50,74 @@ import           GHC.Generics                     (Generic)
 import           System.FilePath                  (splitFileName, (</>))
 
 
-
-{-|
-  An 'IOStore' is a simple in memory 'DataStore', with some extra features.
-
-  Fetching from an empty store will read input from stdin and writing to a
-  store will cause the output to be wrote to stdout.
--}
-data IOStore a = IOVar a | IOEmpty deriving (Eq, Show, Generic, NFData)
-
-{-|
-  An instance is only defined for String types
--}
-instance DataStore IOStore String where
-  fetch _ (IOVar x) = return x
-  fetch _ IOEmpty   = do
-    putStr "Input: "
-    getLine
-
-  save _ _ x = do
-    print x
-    return (IOVar x)
-
-addUUIDToFileName :: String -> UUID -> String
-addUUIDToFileName fpath uuid =
-  let (directory, fname) = splitFileName fpath in directory </> uuid ++ "-" ++ fname
-
-
 {-|
   A 'FileStore' is able to write a string to a file for intermediate
   between tasks
 -}
-newtype FileStore a = FileStore String deriving (Eq, Show, Generic, NFData)
+newtype FileStore a = FileStore FilePath deriving (Eq, Show, Generic, NFData)
 
 {-|
   You are able to write a String to a FileStore.
 -}
 instance DataStore FileStore String where
-  fetch _ (FileStore fname) = readFile fname
-  save uuid (FileStore fname) x = do
-    let fname' = addUUIDToFileName fname uuid
-    writeFile fname' x
-    return (FileStore fname')
+  fetch (FileStore fname) = readFile fname
+  save (FileStore fname) = writeFile fname
+  empty taskUUID jobUUID = FileStore <$> createNewFile taskUUID jobUUID ".txt"
 
 {-|
   It is possible to write a list of strings to a 'FileStore'.
   A new line is added between each string in the list.
 -}
 instance DataStore FileStore [String] where
-  fetch _ (FileStore fname) = do
+  fetch (FileStore fname) = do
     f <- readFile fname
     return (lines f)
-  save uuid (FileStore fname) x = do
+  save (FileStore fname) x = do
     let x'     = unlines x
-        fname' = addUUIDToFileName fname uuid
-    writeFile fname' x'
-    return (FileStore fname')
+    writeFile fname x'
+  empty taskUUID jobUUID = FileStore <$> createNewFile taskUUID jobUUID ".txt"
 
 
 {-|
   A 'CSVStore' is able to write data to a csv file.
 -}
-newtype CSVStore a = CSVStore String deriving (Eq, Show, Generic, NFData)
+newtype CSVStore a = CSVStore FilePath deriving (Eq, Show, Generic, NFData)
 
 {-|
   A list of any type can be wrote to a CSV as long as it has a 'ToRecord'
   and 'FromRecord' instance defined.
 -}
 instance (ToRecord a, FromRecord a) => DataStore CSVStore [a] where
-  fetch _ (CSVStore fname) = do
+  fetch (CSVStore fname) = do
     f <- B.readFile fname
     let dec = decode NoHeader f
         x'  = case dec of
           Right x   -> x
           Left  err -> error err
     return (V.toList x')
-
-  save uuid (CSVStore fname) x = do
+  save (CSVStore fname) x = do
     let enc    = encode x
-        fname' = addUUIDToFileName fname uuid
-    B.writeFile fname' enc
-    return (CSVStore fname')
+    B.writeFile fname enc
+  empty taskUUID jobUUID = CSVStore <$> createNewFile taskUUID jobUUID ".csv"
 
 {-|
   A 'NamedCSVStore' is able to write data to a csv file, with a header.
 -}
-newtype NamedCSVStore a = NamedCSVStore String deriving (Eq, Show, Generic, NFData)
+newtype NamedCSVStore a = NamedCSVStore FilePath deriving (Eq, Show, Generic, NFData)
 
 {-|
   A list of any type can be wrote to a CSV as long as it has a 'ToNamedRecord',
  'FromNamedRecord', and 'DefaultOrdered' instance defined.
 -}
 instance (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a) => DataStore NamedCSVStore [a] where
-  fetch _ (NamedCSVStore fname) = do
+  fetch (NamedCSVStore fname) = do
     f <- B.readFile fname
     let dec = decodeByName f
         x'  = case dec of
           Right (_, x) -> x
           Left  err    -> error err
     return (V.toList x')
-
-  save uuid (NamedCSVStore fname) x = do
+  save (NamedCSVStore fname) x = do
     let enc    = encodeDefaultOrderedByName x
-        fname' = addUUIDToFileName fname uuid
-    B.writeFile fname' enc
-    return (NamedCSVStore fname')
+    B.writeFile fname enc
+  empty taskUUID jobUUID = NamedCSVStore <$> createNewFile taskUUID jobUUID ".csv"

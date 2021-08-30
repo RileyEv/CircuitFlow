@@ -15,7 +15,7 @@ import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
 import           Pipeline.Internal.Core.CircuitAST         (Circuit)
 import           Pipeline.Internal.Core.Error              (TaskError)
 import           Pipeline.Internal.Core.PipeList           (PipeList (..))
-import           Pipeline.Internal.Core.UUID               (UUID)
+import           Pipeline.Internal.Core.UUID               (JobUUID)
 import           Prelude                                   hiding (read)
 
 -- | Network typeclass
@@ -31,9 +31,9 @@ class Network n where
   --
   --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
   read :: n inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to retrieve inputs from
-    -> IO (UUID, Either TaskError (HList' outputsS outputsT)) -- ^ The identifier for the output and the output values
+    -> IO (JobUUID, Either TaskError (HList' outputsS outputsT)) -- ^ The identifier for the output and the output values
   -- | Write a set of inputs into the network
-  write :: UUID -- ^ A unique identifier for the input values
+  write :: JobUUID -- ^ A unique identifier for the input values
     -> HList' inputsS inputsT -- ^ The input values
     -> n inputsS inputsT inputsA outputsS outputsT outputsA -- ^ The network to input the values in to
     -> IO ()
@@ -43,9 +43,9 @@ class Network n where
 class InitialPipes (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type]) where
   initialPipes :: IO (PipeList inputsS inputsT inputsA)
 
-instance (InitialPipes fs as xs, Eq (f a), Show (f a)) => InitialPipes (f ': fs) (a ': as) (f a ': xs) where
+instance (InitialPipes fs as xs, Eq (f a)) => InitialPipes (f ': fs) (a ': as) (f a ': xs) where
   initialPipes = do
-    c <- newChan :: IO (Chan (UUID, Either TaskError (f a)))
+    c <- newChan :: IO (Chan (JobUUID, Either TaskError (f a)))
     PipeCons c <$> (initialPipes :: IO (PipeList fs as xs))
 
 instance InitialPipes '[] '[] '[] where

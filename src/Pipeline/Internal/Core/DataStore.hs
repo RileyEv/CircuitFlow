@@ -1,26 +1,28 @@
 module Pipeline.Internal.Core.DataStore
   ( DataStore(..)
   , DataStore'(..)
-  , VariableStore(..)
+  , Var
+  , emptyVar
   ) where
 
-import           Control.DeepSeq                   (NFData)
 import           Data.Kind                         (Type)
-import           GHC.Generics                      (Generic)
-import           Pipeline.Internal.Common.HList    (HList (..), HList' (..),
-                                                    IOList (..))
-import           Pipeline.Internal.Common.TypeList (Apply)
-import           Pipeline.Internal.Core.UUID       (UUID)
+import           Pipeline.Internal.Common.HList    (HList (..), HList' (..))
+import           Pipeline.Internal.Core.UUID       (JobUUID, TaskUUID)
+import           Control.Concurrent.MVar           (MVar, putMVar, readMVar, newEmptyMVar)
+
 
 -- | DataStore that can be defined for each datastore needed to be used.
 class DataStore f a where
   -- | Fetch the value stored in the 'DataStore'
-  fetch :: UUID -> f a -> IO a
+  fetch :: f a -> IO a
   -- | Save a value into the 'DataStore'
   --
   --   The first argument depends on the instance.
   --   It may be \"empty\" or it could be a pointer to a storage location.
-  save :: UUID -> f a -> a -> IO (f a)
+  save :: f a -> a -> IO ()
+  -- | Returns a new empty store
+  empty :: TaskUUID -> JobUUID -> IO (f a)
+
 
 -- | When tasks require multiple inputs, they also require a joint DataStore.
 --   This class provides this ability.
@@ -29,30 +31,32 @@ class DataStore f a where
 --   however it is useful when defining your own tasks.
 class DataStore' (fs :: [Type -> Type]) (as :: [Type]) where
   -- | Fetch the value stored in the 'DataStore''
-  fetch' :: UUID -> HList' fs as -> IOList as
+  fetch' :: HList' fs as -> IO (HList as)
   -- | Save a value into the 'DataStore''
   --
   --   The first argument depends on the instance.
   --   It may be \"empty\" or it could be a pointer to a storage location.
-  save' :: UUID -> HList' fs as -> HList as -> IOList (Apply fs as)
+  save' :: HList' fs as -> HList as -> IO ()
+  empty' :: TaskUUID -> JobUUID -> IO (HList' fs as)
+
+instance {-# OVERLAPPING #-} (DataStore f a, Eq a, Eq (f a)) => DataStore' '[f] '[a] where
+  fetch' (HCons' x HNil') = fetch x >>= \y -> return (HCons y HNil)
+  save' (HCons' ref HNil') (HCons x HNil) = save ref x
+  empty' taskUUID jobUUID = HCons' <$> empty taskUUID jobUUID <*> return HNil'
+
+instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as, Eq a, Eq (f a)) => DataStore' (f ': fs) (a ': as)  where
+  fetch' (HCons' x xs) = HCons <$> fetch x <*> fetch' xs
+  save' (HCons' ref rs) (HCons x xs) = save ref x >> save' rs xs
+  empty' taskUUID jobUUID = HCons' <$> empty taskUUID jobUUID <*> empty' taskUUID jobUUID
 
 
-instance {-# OVERLAPPING #-} (DataStore f a) => DataStore' '[f] '[a] where
-  fetch' uuid (HCons' x HNil') = IOCons (fetch uuid x) IONil
-  save' uuid (HCons' ref HNil') (HCons x HNil) = IOCons (save uuid ref x) IONil
+-- | Simple in memory variable store, and unmutable.
+newtype Var a = Var {unVar :: MVar a} deriving (Eq)
 
-instance {-# OVERLAPPABLE #-} (DataStore f a, DataStore' fs as) => DataStore' (f ': fs) (a ': as)  where
-  fetch' uuid (HCons' x xs) = IOCons (fetch uuid x) (fetch' uuid xs)
-  save' uuid (HCons' ref rs) (HCons x xs) = IOCons (save uuid ref x) (save' uuid rs xs)
+emptyVar :: IO (Var a)
+emptyVar = Var <$> newEmptyMVar
 
-
-{-|
-  A 'VariableStore' is a simple in memory 'DataStore'.
--}
-data VariableStore a = Var a | Empty deriving (Eq, Show, Generic, NFData)
-
-
-instance DataStore VariableStore a where
-  fetch _ (Var x) = return x
-  fetch _ Empty   = error "empty source"
-  save _ _ x = return (Var x)
+instance DataStore Var a where
+  fetch = readMVar . unVar
+  save = putMVar . unVar
+  empty _ _ = emptyVar

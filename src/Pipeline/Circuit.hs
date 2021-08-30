@@ -34,8 +34,7 @@ import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
                                                             Take, Replicate, (:++))
 import qualified Pipeline.Internal.Core.CircuitAST as AST
 import           Pipeline.Internal.Core.DataStore          (DataStore,
-                                                            DataStore',
-                                                            VariableStore)
+                                                            DataStore', Var)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
 
 import           Prelude                                   hiding (id,
@@ -61,7 +60,7 @@ In diagram form it would look like,
 > /\
 
 -}
-replicate2 :: (DataStore' '[f] '[a]) => AST.Circuit '[f] '[a] '[f a] '[f , f] '[a , a] '[f a , f a] N1
+replicate2 :: DataStore' '[f] '[a] => AST.Circuit '[f] '[a] '[f a] '[f , f] '[a , a] '[f a , f a] N1
 replicate2 = (IIn7 . inj) AST.Replicate
 
 {-|
@@ -164,19 +163,18 @@ dropR = (IIn7 . inj) AST.DropR
 Maps a circuit on the inputs
 -}
 mapC
-  :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Show (g [b]), Eq a, Show a)
-  => AST.Circuit '[VariableStore] '[a] '[VariableStore a] '[VariableStore] '[b] '[VariableStore b] N1
-  -> g [b]
+  :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Eq a)
+  => AST.Circuit '[Var] '[a] '[Var a] '[Var] '[b] '[Var b] N1
   -> AST.Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
-mapC c o = (IIn7 . inj) (AST.Map c o)
+mapC c = (IIn7 . inj) (AST.Map c)
 
-class DataStore f a => ReplicateN n f a where
+class (DataStore f a, Eq (f a)) => ReplicateN n f a where
   replicateN :: SNat n -> AST.Circuit '[f] '[a] '[f a] (Replicate n f) (Replicate n a) (Apply (Replicate n f) (Replicate n a)) N1
 
-instance DataStore f a => ReplicateN ('Succ ('Succ 'Zero)) f a where
+instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ 'Zero)) f a where
   replicateN (SSucc (SSucc SZero)) = replicate2
 
-instance DataStore f a => ReplicateN ('Succ ('Succ ('Succ 'Zero))) f a where
+instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ ('Succ 'Zero))) f a where
   replicateN (SSucc n) = replicate2 <-> id <> replicateN n
 
 replicateMany :: SNat m -> AST.Circuit fs as (Apply fs as) (fs :++ fs) (as :++ as) (Apply (fs :++ fs) (as :++ as)) m

@@ -32,4 +32,4 @@ type family Apply (fs :: [Type -> Type]) (as :: [Type]) where
 
 type family Replicate (n :: Nat) (a :: k) :: [k] where
   Replicate 'Zero _ = '[]
-  Replicate ('Succ n) x = x ': (Replicate n x)
+  Replicate ('Succ n) x = x ': Replicate n x
