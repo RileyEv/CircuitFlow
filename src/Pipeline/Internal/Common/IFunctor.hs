@@ -13,6 +13,13 @@ class IFunctor2 iF where
 class IFunctor4 iF where
   imap4 :: (forall a b c d. f a b c d -> g a b c d) -> iF f a b c d -> iF g a b c d
 
+class IFunctor5 iF where
+  imap5 :: (forall a b c d e. f' a b c d e -> g' a b c d e) -> iF f' a b c d e -> iF g' a b c d e
+  imapM5 :: Monad m
+    => (forall a b c d e . f' a b c d e -> m (g' a b c d e))
+    -> iF f' a b c d e
+    -> m (iF g' a b c d e)
+
 class IFunctor6 iF where
   imap6 :: (forall a b c d e f. f' a b c d e f -> g' a b c d e f) -> iF f' a b c d e f -> iF g' a b c d e f
 
@@ -41,6 +48,13 @@ icata2 alg (IIn2 x) = alg (imap2 (icata2 alg) x)
 icata4
   :: IFunctor4 iF => (forall a b c d . iF f a b c d -> f a b c d) -> IFix4 iF a b c d -> f a b c d
 icata4 alg (IIn4 x) = alg (imap4 (icata4 alg) x)
+
+icataM5
+  :: (IFunctor5 iF, Monad m)
+  => (forall a b c d e . iF f' a b c d e -> m (f' a b c d e))
+  -> IFix5 iF a b c d e
+  -> m (f' a b c d e)
+icataM5 algM (IIn5 x) = algM =<< imapM5 (icataM5 algM) x
 
 icata7
   :: IFunctor7 iF
