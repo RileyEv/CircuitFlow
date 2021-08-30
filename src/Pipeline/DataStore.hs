@@ -61,8 +61,7 @@ newtype FileStore a = FileStore FilePath deriving (Eq, Show, Generic, NFData)
 -}
 instance DataStore FileStore String where
   fetch (FileStore fname) = readFile fname
-  save (FileStore fname) x = do
-    writeFile fname x
+  save (FileStore fname) = writeFile fname
   empty taskUUID jobUUID = FileStore <$> createNewFile taskUUID jobUUID ".txt"
 
 {-|

@@ -12,7 +12,7 @@ generateWords
        '[[String]]
        '[FileStore [String]]
        N1
-generateWords = functionTask (\_ -> ["apple", "banana", "grapefruit"]) (FileStore "fruit.txt")
+generateWords = functionTask (const ["apple", "banana", "grapefruit"]) (FileStore "fruit.txt")
 
 newtype CommaSepFile a = CommaSepFile String
 
@@ -27,7 +27,7 @@ countLetters
        '[FileStore [String]]
        N1
 countLetters = functionTask (map f) (FileStore "count.txt")
-  where f word = (concat [word, ":", show (length word)])
+  where f word = concat [word, ":", show (length word)]
 
 circuit
   :: Circuit

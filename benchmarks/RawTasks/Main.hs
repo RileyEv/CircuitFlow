@@ -210,14 +210,13 @@ aggSongs (HCons day1 (HCons day2 (HCons day3 HNil))) =
 main :: IO ()
 main = do
 
-  r <- (fetch'
+  r <- fetch'
       (HCons'
         (NamedCSVStore "benchmarks/data/jan.csv" :: NamedCSVStore [Listen])
         (HCons' (NamedCSVStore "benchmarks/data/feb.csv" :: NamedCSVStore [Listen])
                 (HCons' (NamedCSVStore "benchmarks/data/mar.csv" :: NamedCSVStore [Listen]) HNil')
         )
       )
-    )
 
   defaultMain
     [ bgroup

@@ -65,7 +65,7 @@ taskExecuter (Task f) taskUUID inPipes outPipes = forever
   (do
     (jobUUID, taskInputs) <- readPipes inPipes
     r                  <-
-      (runExceptT
+      runExceptT
         (do
           outputStore <- lift (empty taskUUID jobUUID)
           input <- (ExceptT . return) taskInputs
@@ -73,7 +73,7 @@ taskExecuter (Task f) taskUUID inPipes outPipes = forever
                  (throwE . TaskError . ExceptionMessage . displayException)
           return (HCons' outputStore HNil')
         )
-      )
+
     writePipes jobUUID r outPipes
   )
 
@@ -181,7 +181,7 @@ instance BuildNetworkAlg BasicNetwork Map where
               (do
                 (jobUUID, mapInputs) <- readPipes (outputs n)
                 r                 <-
-                  (runExceptT
+                  runExceptT
                     (do
                       inputs             <- (ExceptT . return) mapInputs
                       HCons inputs' HNil <- (lift . fetch') inputs
@@ -202,7 +202,7 @@ instance BuildNetworkAlg BasicNetwork Map where
                       lift (save outputStore mapOutput)
                       return (HCons' outputStore HNil')
                     )
-                  )
+
                 writePipes jobUUID r output
               )
             stopNetwork mapNetwork
