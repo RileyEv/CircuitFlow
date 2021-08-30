@@ -3,7 +3,7 @@ cabal-version:       2.0
 -- For further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                circuitflow
-version:             0.3.0.0
+version:             0.3.0.1
 -- synopsis:
 -- description:
 homepage: https://github.com/RileyEv/project

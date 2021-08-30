@@ -87,7 +87,7 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 
 -- | Constructor for a task
 task
-  :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b))
+  :: (DataStore' fs as, DataStore g b, Eq (g b))
   => (HList' fs as -> g b -> ExceptT SomeException IO ())  -- ^ The function a Task will execute.
   -> Circuit fs as '[g] '[b] (Length fs)
 task f = IIn5 (inj (Task f))
