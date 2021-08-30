@@ -183,8 +183,8 @@ instance BuildNetworkAlg BasicNetwork Map where
                 r                 <-
                   runExceptT
                     (do
-                      inputs             <- (ExceptT . return) mapInputs
-                      HCons inputs' HNil <- (lift . fetch') inputs
+                      mapInput             <- (ExceptT . return) mapInputs
+                      HCons inputs' HNil <- (lift . fetch') mapInput
                       mapM_ (\x -> do
                                 var <- lift emptyVar
                                 lift (save var x)
@@ -192,7 +192,7 @@ instance BuildNetworkAlg BasicNetwork Map where
                       -- input each value into the mapNetwork
                       mapOutput <- mapM
                         (\_ -> do
-                          (uuid, r)             <- lift (read mapNetwork)
+                          (_, r)             <- lift (read mapNetwork)
                           HCons' out HNil' <- (ExceptT . return) r -- Check for failure
                           lift (fetch out)
                         )

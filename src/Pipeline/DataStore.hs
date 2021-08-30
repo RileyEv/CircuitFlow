@@ -34,7 +34,6 @@ module Pipeline.DataStore
 
 import           Pipeline.Internal.Core.DataStore (DataStore (..),
                                                    DataStore' (..), Var, emptyVar)
-import           Pipeline.Internal.Core.UUID      (JobUUID)
 import           Pipeline.Internal.Backend.FileGen (createNewFile)
 
 import           Control.DeepSeq                  (NFData)
@@ -47,7 +46,6 @@ import           Data.Csv                         (DefaultOrdered,
                                                    encodeDefaultOrderedByName)
 import qualified Data.Vector                      as V (toList)
 import           GHC.Generics                     (Generic)
-import           System.FilePath                  (splitFileName, (</>))
 
 
 {-|

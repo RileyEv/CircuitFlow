@@ -29,7 +29,6 @@ import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
 import           Pipeline.Internal.Core.DataStore          (DataStore,
                                                             DataStore', Var)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
-import           Pipeline.Internal.Core.UUID               (JobUUID)
 
 data Id (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
