@@ -108,7 +108,7 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
            outputsS ~ '[g'], outputsT ~ '[b'], outputsA ~ '[g' b'],
            DataStore' inputsS inputsT,
            DataStore g' b', Eq (g' b'))
-       => (JobUUID -> HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO ())
+       => (HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO ())
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
 
 

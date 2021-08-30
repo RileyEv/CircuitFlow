@@ -69,7 +69,7 @@ taskExecuter (Task f) taskUUID inPipes outPipes = forever
         (do
           outputStore <- lift (empty taskUUID jobUUID)
           input <- (ExceptT . return) taskInputs
-          catchE (intercept (f jobUUID input outputStore))
+          catchE (intercept (f input outputStore))
                  (throwE . TaskError . ExceptionMessage . displayException)
           return (HCons' outputStore HNil')
         )

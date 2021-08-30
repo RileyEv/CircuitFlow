@@ -49,7 +49,7 @@ multiInputTask
 multiInputTask f = IIn7
   (inj
     (Task
-      (\uuid sources sink -> do
+      (\sources sink -> do
         input <- lift (fetch' sources)
         let outputValue   = f input
             !outputValue' = outputValue `deepseq` outputValue
@@ -89,6 +89,6 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 -- | Constructor for a task
 task
   :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b))
-  => (JobUUID -> HList' fs as -> g b -> ExceptT SomeException IO ())  -- ^ The function a Task will execute.
+  => (HList' fs as -> g b -> ExceptT SomeException IO ())  -- ^ The function a Task will execute.
   -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
 task f = IIn7 (inj (Task f))

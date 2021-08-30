@@ -324,8 +324,8 @@ computeResult inputs jobUUID = do
   aggArtistsEmptyVar <- empty aggATaskUUID jobUUID
   aggSongsEmptyVar <- empty aggSTaskUUID jobUUID
 
-  (Right aggArtists) <- runExceptT (aggArtistsF nilJobUUID inputs aggArtistsEmptyVar)
-  (Right aggSongs  ) <- runExceptT (aggSongsF nilJobUUID inputs aggSongsEmptyVar)
+  (Right aggArtists) <- runExceptT (aggArtistsF inputs aggArtistsEmptyVar)
+  (Right aggSongs  ) <- runExceptT (aggSongsF inputs aggSongsEmptyVar)
 
   let artists = HCons' aggArtistsEmptyVar HNil'
   let songs   = HCons' aggSongsEmptyVar HNil'
@@ -338,8 +338,8 @@ computeResult inputs jobUUID = do
   top10ArtistsEmptyVar <- empty top10ATaskUUID jobUUID
   top10SongsEmptyVar <- empty top10STaskUUID jobUUID
 
-  (Right ac) <- runExceptT (top10ArtistsF nilJobUUID artists top10ArtistsEmptyVar)
-  (Right tc) <- runExceptT (top10SongsF nilJobUUID songs top10SongsEmptyVar)
+  (Right ac) <- runExceptT (top10ArtistsF artists top10ArtistsEmptyVar)
+  (Right tc) <- runExceptT (top10SongsF songs top10SongsEmptyVar)
 
   return (top10ArtistsEmptyVar, top10SongsEmptyVar)
 
