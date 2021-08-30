@@ -48,10 +48,8 @@ idCircuit
   :: Circuit
        '[Var]
        '[Int]
-       '[Var Int]
        '[Var]
        '[Int]
-       '[Var Int]
        N1
 idCircuit = id
 
@@ -71,10 +69,8 @@ replicate2Circuit
   :: Circuit
        '[Var]
        '[Int]
-       '[Var Int]
        '[Var , Var]
        '[Int , Int]
-       '[Var Int , Var Int]
        N1
 replicate2Circuit = replicate2
 
@@ -93,10 +89,8 @@ replicate3Circuit
   :: Circuit
        '[Var]
        '[Int]
-       '[Var Int]
        '[Var , Var , Var]
        '[Int , Int , Int]
-       '[Var Int , Var Int , Var Int]
        N1
 replicate3Circuit = replicateN (SSucc (SSucc (SSucc SZero)))
 
@@ -116,10 +110,8 @@ thenCircuit
   :: Circuit
        '[Var]
        '[Int]
-       '[Var Int]
        '[Var]
        '[Int]
-       '[Var Int]
        N1
 thenCircuit = id <-> id
 
@@ -139,10 +131,8 @@ besideCircuit
   :: Circuit
        '[Var , Var]
        '[Int , String]
-       '[Var Int , Var String]
        '[Var , Var]
        '[Int , String]
-       '[Var Int , Var String]
        N2
 besideCircuit = id <> id
 
@@ -164,10 +154,8 @@ swapCircuit
   :: Circuit
        '[Var , Var]
        '[Int , String]
-       '[Var Int , Var String]
        '[Var , Var]
        '[String , Int]
-       '[Var String , Var Int]
        N2
 swapCircuit = swap
 
@@ -189,10 +177,8 @@ dropLCircuit
   :: Circuit
        '[Var , Var]
        '[Int , String]
-       '[Var Int , Var String]
        '[Var]
        '[String]
-       '[Var String]
        N2
 dropLCircuit = dropL
 
@@ -213,10 +199,8 @@ dropRCircuit
   :: Circuit
        '[Var , Var]
        '[Int , String]
-       '[Var Int , Var String]
        '[Var]
        '[Int]
-       '[Var Int]
        N2
 dropRCircuit = dropR
 
@@ -262,10 +246,8 @@ mapCircuit
   :: Circuit
        '[Var]
        '[[Int]]
-       '[Var [Int]]
        '[Var]
        '[[Int]]
-       '[Var [Int]]
        N1
 mapCircuit = mapC functionTaskCircuit
 

@@ -202,10 +202,8 @@ top10Task
   => Circuit
        '[Var]
        '[[a]]
-       '[Var [a]]
        '[NamedCSVStore]
        '[[a]]
-       '[NamedCSVStore [a]]
        N1
 top10Task = functionTask f
  where
@@ -216,10 +214,8 @@ aggArtistsTask
   :: Circuit
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
-       '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[Var]
        '[[ArtistCount]]
-       '[Var [ArtistCount]]
        N3
 aggArtistsTask = multiInputTask f
  where
@@ -232,10 +228,8 @@ aggSongsTask
   :: Circuit
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
-       '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[Var]
        '[[TrackCount]]
-       '[Var [TrackCount]]
        N3
 aggSongsTask = multiInputTask f
  where
@@ -248,10 +242,8 @@ pipeline
   :: Circuit
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
-       '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
-       '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
        N3
 pipeline = replicate2
     <>  replicate2
@@ -274,10 +266,8 @@ addUser
   :: BasicNetwork
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
-       '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
-       '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
   -> JobUUID
   -> IO ()
 addUser n uuid = write
@@ -294,10 +284,8 @@ getUserTop10
   :: BasicNetwork
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
-       '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
-       '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
   -> JobUUID
   -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
 getUserTop10 n _ = do

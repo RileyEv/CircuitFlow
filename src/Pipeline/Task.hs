@@ -30,7 +30,7 @@ import           Control.Monad.Except                      (ExceptT)
 import           Control.Monad.Trans                       (lift)
 import           Pipeline.Internal.Common.HList            (HList (..),
                                                             HList' (..))
-import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))
+import           Pipeline.Internal.Common.IFunctor         (IFix5 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (Nat (..))
 import           Pipeline.Internal.Common.TypeList         (Apply, Length)
@@ -44,8 +44,8 @@ This allows a function with multiple inputs to be converted into a 'Task'.
 multiInputTask
   :: (DataStore' fs as, DataStore g b, Eq (g b), NFData b)
   => (HList as -> b) -- ^ The function to execute
-  -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
-multiInputTask f = IIn7
+  -> Circuit fs as '[g] '[b] (Length fs)
+multiInputTask f = IIn5
   (inj
     (Task
       (\sources sink -> do
@@ -64,7 +64,7 @@ This allows a single @a -> b@ to be converted into a 'Task'.
 functionTask
   :: (DataStore f a, DataStore g b, Eq (g b), Eq a, Eq (f a), NFData b)
   => (a -> b) -- ^ The function to execute
-  -> Circuit '[f] '[a] '[f a] '[g] '[b] '[g b] ( 'Succ 'Zero)
+  -> Circuit '[f] '[a] '[g] '[b] ( 'Succ 'Zero)
 -- It is okay to pattern match the hlist to just one value, as the type states that it only consumes one element.
 functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 
@@ -89,5 +89,5 @@ functionTask f = multiInputTask (\(HCons inp HNil) -> f inp)
 task
   :: (DataStore' fs as, DataStore g b, Eq (g b), Show (g b), NFData (g b))
   => (HList' fs as -> g b -> ExceptT SomeException IO ())  -- ^ The function a Task will execute.
-  -> Circuit fs as (Apply fs as) '[g] '[b] '[g b] (Length fs)
-task f = IIn7 (inj (Task f))
+  -> Circuit fs as '[g] '[b] (Length fs)
+task f = IIn5 (inj (Task f))

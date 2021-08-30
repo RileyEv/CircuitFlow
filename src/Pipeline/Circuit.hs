@@ -26,7 +26,7 @@ module Pipeline.Circuit
   ) where
 
 
-import           Pipeline.Internal.Common.IFunctor         (IFix7 (..))
+import           Pipeline.Internal.Common.IFunctor         (IFix5 (..))
 import           Pipeline.Internal.Common.IFunctor.Modular ((:<:) (..))
 import           Pipeline.Internal.Common.Nat              (IsNat, N1, N2,
                                                             Nat (..), SNat (..), (:+))
@@ -49,8 +49,8 @@ In diagram form it would look like,
 > |
 
 -}
-id :: (DataStore' '[f] '[a]) => AST.Circuit '[f] '[a] '[f a] '[f] '[a] '[f a] N1
-id = (IIn7 . inj) AST.Id
+id :: (DataStore' '[f] '[a]) => AST.Circuit '[f] '[a] '[f] '[a] N1
+id = (IIn5 . inj) AST.Id
 
 {-|
 Duplicates an input.
@@ -60,8 +60,8 @@ In diagram form it would look like,
 > /\
 
 -}
-replicate2 :: DataStore' '[f] '[a] => AST.Circuit '[f] '[a] '[f a] '[f , f] '[a , a] '[f a , f a] N1
-replicate2 = (IIn7 . inj) AST.Replicate
+replicate2 :: DataStore' '[f] '[a] => AST.Circuit '[f] '[a] '[f , f] '[a , a] N1
+replicate2 = (IIn5 . inj) AST.Replicate
 
 {-|
 Usually referred to as \"then\", this operator joins two levels of a circuit together.
@@ -77,10 +77,10 @@ A diagram representing @a \<-\> b@ or \"a then b\" can be seen below,
 -}
 (<->)
   :: (DataStore' fs as, DataStore' gs bs, DataStore' hs cs)
-  => AST.Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ First circuit (@a@)
-  -> AST.Circuit gs bs (Apply gs bs) hs cs (Apply hs cs) ngs -- ^ Second circuit (@b@)
-  -> AST.Circuit fs as (Apply fs as) hs cs (Apply hs cs) nfs
-(<->) l r = IIn7 (inj (AST.Then l r))
+  => AST.Circuit fs as gs bs nfs -- ^ First circuit (@a@)
+  -> AST.Circuit gs bs hs cs ngs -- ^ Second circuit (@b@)
+  -> AST.Circuit fs as hs cs nfs
+(<->) l r = IIn5 (inj (AST.Then l r))
 infixr 4 <->
 
 
@@ -103,32 +103,24 @@ A diagram representing @a \<\> b@ or \"a next to b\" can be seen below,
      , IsNat nfs
      , IsNat nhs
      , Length fs ~ Length as
-     , Length fs ~ Length (Apply fs as)
      , Length gs ~ Length bs
-     , Length gs ~ Length (Apply gs bs)
      , Length hs ~ Length cs
-     , Length hs ~ Length (Apply hs cs)
      , Length is ~ Length ds
-     , Length is ~ Length (Apply is ds)
-     , Take (Length as) (Apply fs as :++ Apply hs cs) ~ Apply fs as
      , Take (Length as) (as :++ cs) ~ as
      , Take (Length as) (fs :++ hs) ~ fs
-     , Drop (Length as) (Apply fs as :++ Apply hs cs) ~ Apply hs cs
      , Drop (Length as) (as :++ cs) ~ cs
      , Drop (Length as) (fs :++ hs) ~ hs
-     , AppendP gs bs (Apply gs bs) is ds (Apply is ds)
+     , AppendP gs bs is ds
      )
-  => AST.Circuit fs as (Apply fs as) gs bs (Apply gs bs) nfs -- ^ Left circuit
-  -> AST.Circuit hs cs (Apply hs cs) is ds (Apply is ds) nhs -- ^ Right circuit
+  => AST.Circuit fs as gs bs nfs -- ^ Left circuit
+  -> AST.Circuit hs cs is ds nhs -- ^ Right circuit
   -> AST.Circuit
        (fs :++ hs)
        (as :++ cs)
-       (Apply fs as :++ Apply hs cs)
        (gs :++ is)
        (bs :++ ds)
-       (Apply gs bs :++ Apply is ds)
        (nfs :+ nhs)
-(<>) l r = IIn7 (inj (AST.Beside l r))
+(<>) l r = IIn5 (inj (AST.Beside l r))
 infixr 5 <>
 
 {-|
@@ -142,34 +134,34 @@ In diagram form this would look like,
 -}
 swap
   :: (DataStore' '[f , g] '[a , b])
-  => AST.Circuit '[f , g] '[a , b] '[f a , g b] '[g , f] '[b , a] '[g b , f a] N2
-swap = (IIn7 . inj) AST.Swap
+  => AST.Circuit '[f , g] '[a , b] '[g , f] '[b , a] N2
+swap = (IIn5 . inj) AST.Swap
 
 {-|
 Takes two values as input and drops the left input.
 -}
 dropL
-  :: (DataStore' '[f , g] '[a , b]) => AST.Circuit '[f , g] '[a , b] '[f a , g b] '[g] '[b] '[g b] N2
-dropL = (IIn7 . inj) AST.DropL
+  :: (DataStore' '[f , g] '[a , b]) => AST.Circuit '[f , g] '[a , b] '[g] '[b] N2
+dropL = (IIn5 . inj) AST.DropL
 
 {-|
 Takes two values as input and drops the right input.
 -}
 dropR
-  :: (DataStore' '[f , g] '[a , b]) => AST.Circuit '[f , g] '[a , b] '[f a , g b] '[f] '[a] '[f a] N2
-dropR = (IIn7 . inj) AST.DropR
+  :: (DataStore' '[f , g] '[a , b]) => AST.Circuit '[f , g] '[a , b] '[f] '[a] N2
+dropR = (IIn5 . inj) AST.DropR
 
 {-|
 Maps a circuit on the inputs
 -}
 mapC
   :: (DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Eq a)
-  => AST.Circuit '[Var] '[a] '[Var a] '[Var] '[b] '[Var b] N1
-  -> AST.Circuit '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
-mapC c = (IIn7 . inj) (AST.Map c)
+  => AST.Circuit '[Var] '[a] '[Var] '[b] N1
+  -> AST.Circuit '[f] '[[a]] '[g] '[[b]] N1
+mapC c = (IIn5 . inj) (AST.Map c)
 
 class (DataStore f a, Eq (f a)) => ReplicateN n f a where
-  replicateN :: SNat n -> AST.Circuit '[f] '[a] '[f a] (Replicate n f) (Replicate n a) (Apply (Replicate n f) (Replicate n a)) N1
+  replicateN :: SNat n -> AST.Circuit '[f] '[a] (Replicate n f) (Replicate n a)  N1
 
 instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ 'Zero)) f a where
   replicateN (SSucc (SSucc SZero)) = replicate2
@@ -177,5 +169,5 @@ instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ 'Zero)) f a
 instance (DataStore f a, Eq a, Eq (f a)) => ReplicateN ('Succ ('Succ ('Succ 'Zero))) f a where
   replicateN (SSucc n) = replicate2 <-> id <> replicateN n
 
-replicateMany :: SNat m -> AST.Circuit fs as (Apply fs as) (fs :++ fs) (as :++ as) (Apply (fs :++ fs) (as :++ as)) m
+replicateMany :: SNat m -> AST.Circuit fs as (fs :++ fs) (as :++ as) m
 replicateMany = undefined

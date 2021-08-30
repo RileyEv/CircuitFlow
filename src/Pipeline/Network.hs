@@ -44,7 +44,7 @@ import           Prelude                                hiding (read)
 input
   :: Network n
   => HList' inputsS inputsT -- ^ Inputs to the network
-  -> n inputsS inputsT inputsA outputsS outputsT outputsA -- ^ Network to insert the values in
+  -> n inputsS inputsT outputsS outputsT -- ^ Network to insert the values in
   -> IO JobUUID -- ^ Randomly generated identifier
 input x n = do
   uuid <- genJobUUID
@@ -54,8 +54,9 @@ input x n = do
 
 -- | A variant of 'input', however it will not return the randomly generated identifier.
 input_
-  :: HList' inputsS inputsT
-  -> BasicNetwork inputsS inputsT inputsA outputsS outputsT outputsA
+  :: Network n
+  => HList' inputsS inputsT
+  -> n inputsS inputsT outputsS outputsT
   -> IO ()
 input_ x n = do
   _ <- input x n
@@ -67,6 +68,6 @@ input_ x n = do
 --   /This is a blocking call, therefore if there are no outputs to be read then the program will deadlock./
 output_
   :: Network n
-  => n inputsS inputsT inputsA outputsS outputsT outputsA
+  => n inputsS inputsT outputsS outputsT
   -> IO (Either TaskError (HList' outputsS outputsT))
 output_ n = read n >>= (\(_, x) -> return x)
