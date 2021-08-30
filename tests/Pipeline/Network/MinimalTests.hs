@@ -7,6 +7,7 @@ import           Pipeline
 import           Pipeline.Nat (SNat (..))
 import           Pipeline.Network.Helper
 import           Pipeline.Network.HelperCircuit
+import           Pipeline.Internal.Core.UUID
 import           Prelude                        hiding (id, replicate, (<>))
 import           Test.Tasty
 import           Test.Tasty.HUnit
@@ -38,7 +39,7 @@ minimalTests = testGroup
 varWith :: a -> IO (Var a)
 varWith x = do
   var <- emptyVar
-  save "" var x
+  save var x
   return var 
 
 
@@ -61,7 +62,7 @@ idTests = testGroup
       var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest idCircuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons 0 HNil
   ]
 
@@ -84,7 +85,7 @@ replicate2Tests = testGroup
       var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest replicate2Circuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons 0 (HCons 0 HNil)
   ]
 
@@ -106,7 +107,7 @@ replicate3Tests = testGroup
       var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest replicate3Circuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons 0 (HCons 0 (HCons 0 HNil))
   ]
  
@@ -129,7 +130,7 @@ thenTests = testGroup
       var <- varWith 0
       let i = HCons' var HNil'
       (Right o) <- singleInputTest thenCircuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons 0 HNil
   ]
 
@@ -153,7 +154,7 @@ besideTests = testGroup
       var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest besideCircuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons 0 (HCons "abc" HNil)
   ]
 
@@ -178,7 +179,7 @@ swapTests = testGroup
       var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest swapCircuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons "abc" (HCons 0 HNil)
   ]
 
@@ -203,7 +204,7 @@ dropLTests = testGroup
       var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest dropLCircuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons "abc" HNil
   ]
 
@@ -227,7 +228,7 @@ dropRTests = testGroup
       var2 <- varWith "abc"
       let i = HCons' var1 (HCons' var2 HNil')
       (Right o) <- singleInputTest dropRCircuit i
-      out <- fetch' "" o
+      out <- fetch' o
       out @?= HCons 0 HNil
   ]
 
@@ -239,9 +240,8 @@ functionTaskTests = testGroup
   [ testCase "apply the function to the input value" $ do
       var <- varWith 0
       let i = HCons' var HNil'
-      cir <- functionTaskCircuit
-      (Right o) <- singleInputTest cir i
-      out <- fetch' "" o
+      (Right o) <- singleInputTest functionTaskCircuit i
+      out <- fetch' o
       out @?= HCons 1 HNil
   ]
 
@@ -253,25 +253,21 @@ multiInputTaskTests = testGroup
       var1 <- varWith 3
       var2 <- varWith 5
       let i = HCons' var1 (HCons' var2 HNil')
-      cir <- multiInputTaskCircuit
-      (Right o) <- singleInputTest cir i
-      out <- fetch' "" o
+      (Right o) <- singleInputTest multiInputTaskCircuit i
+      out <- fetch' o
       out @?= HCons 8 HNil
   ]
 
 mapCircuit
-  :: IO (Circuit
+  :: Circuit
        '[Var]
        '[[Int]]
        '[Var [Int]]
        '[Var]
        '[[Int]]
        '[Var [Int]]
-       N1)
-mapCircuit = do
-  var <- emptyVar
-  cir <- functionTaskCircuit
-  return $ mapC cir var
+       N1
+mapCircuit = mapC functionTaskCircuit
 
 mapTests :: TestTree
 mapTests = testGroup
@@ -279,8 +275,7 @@ mapTests = testGroup
   [ testCase "map a circuit on the input values" $ do
       var <- varWith [0, 1, 2, 3, 4, 5, 6, 7, 8] 
       let i = HCons' var HNil'
-      cir <- mapCircuit
-      (Right o) <- singleInputTest cir i
-      out <- fetch' "" o
+      (Right o) <- singleInputTest mapCircuit i
+      out <- fetch' o
       out @?= HCons [1, 2, 3, 4, 5, 6, 7, 8, 9] HNil
   ]

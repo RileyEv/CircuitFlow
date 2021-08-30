@@ -12,6 +12,7 @@ import           Data.List.Unique               (count_)
 import qualified Data.Vector                    as V (fromList)
 import           GHC.Generics
 import           Pipeline
+import           Pipeline.Internal.Core.UUID
 import           Prelude                        hiding (id, replicate, (<>))
 
 
@@ -210,7 +211,6 @@ main :: IO ()
 main = do
 
   r <- (fetch'
-      "0"
       (HCons'
         (NamedCSVStore "benchmarks/data/jan.csv" :: NamedCSVStore [Listen])
         (HCons' (NamedCSVStore "benchmarks/data/feb.csv" :: NamedCSVStore [Listen])

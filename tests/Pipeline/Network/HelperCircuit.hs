@@ -4,23 +4,23 @@ import           Pipeline
 
 
 functionTaskCircuit
-  :: IO (Circuit
+  :: Circuit
        '[Var]
        '[Int]
        '[Var Int]
        '[Var]
        '[Int]
        '[Var Int]
-       N1)
-functionTaskCircuit = functionTask (+ 1) <$> emptyVar
+       N1
+functionTaskCircuit = functionTask (+ 1)
 
 multiInputTaskCircuit
-  :: IO (Circuit
+  :: Circuit
        '[Var , Var]
        '[Int , Int]
        '[Var Int , Var Int]
        '[Var]
        '[Int]
        '[Var Int]
-       N2)
-multiInputTaskCircuit = multiInputTask (\(HCons x (HCons y HNil)) -> x + y) <$> emptyVar
+       N2
+multiInputTaskCircuit = multiInputTask (\(HCons x (HCons y HNil)) -> x + y)

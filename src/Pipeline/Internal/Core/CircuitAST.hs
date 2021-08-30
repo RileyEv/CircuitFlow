@@ -14,7 +14,6 @@ module Pipeline.Internal.Core.CircuitAST
   , Map(..)
   ) where
 
-import           Control.DeepSeq                           (NFData)
 import           Control.Exception                         (SomeException)
 import           Control.Monad.Except                      (ExceptT)
 import           Data.Kind                                 (Type)
@@ -30,7 +29,7 @@ import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
 import           Pipeline.Internal.Core.DataStore          (DataStore,
                                                             DataStore', Var)
 import           Pipeline.Internal.Core.PipeList           (AppendP)
-import           Pipeline.Internal.Core.UUID               (UUID)
+import           Pipeline.Internal.Core.UUID               (JobUUID)
 
 data Id (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -> [Type] -> Nat -> Type)
         (inputsS :: [Type -> Type]) (inputsT :: [Type]) (inputsA :: [Type])
@@ -109,8 +108,7 @@ data Task (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] 
            outputsS ~ '[g'], outputsT ~ '[b'], outputsA ~ '[g' b'],
            DataStore' inputsS inputsT,
            DataStore g' b', Eq (g' b'))
-       => (UUID -> HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO ())
-       -> g' b'
+       => (JobUUID -> HList' inputsS inputsT -> g' b' -> ExceptT SomeException IO ())
        -> Task iF inputsS inputsT (Apply inputsS inputsT) outputsS outputsT outputsA (Length inputsS)
 
 
@@ -119,7 +117,6 @@ data Map (iF :: [Type -> Type] -> [Type] -> [Type] -> [Type -> Type] -> [Type] -
          (outputsS :: [Type -> Type]) (outputsT :: [Type]) (outputsA :: [Type]) (ninputs :: Nat) where
   Map ::(DataStore' '[f] '[[a]], DataStore g [b], Eq (g [b]), Eq a)
     => Circuit '[Var] '[a] '[Var a] '[Var] '[b] '[Var b] N1
-    -> g [b]
     -> Map iF '[f] '[[a]] '[f [a]] '[g] '[[b]] '[g [b]] N1
 
 
@@ -159,12 +156,12 @@ instance IFunctor7 DropR where
   imapM7 _ DropR = return DropR
 
 instance IFunctor7 Task where
-  imap7 _ (Task f output) = Task f output
-  imapM7 _ (Task f output) = return $ Task f output
+  imap7 _ (Task f) = Task f
+  imapM7 _ (Task f) = return $ Task f
 
 instance IFunctor7 Map where
-  imap7 _ (Map c out) = Map c out
-  imapM7 _ (Map c out) = return $ Map c out
+  imap7 _ (Map c) = Map c
+  imapM7 _ (Map c) = return $ Map c
 
 type CircuitF = Id :+: Replicate :+: Then :+: Beside :+: Swap :+: DropL :+: DropR :+: Task :+: Map
 

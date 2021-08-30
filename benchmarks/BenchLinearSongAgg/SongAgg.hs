@@ -22,6 +22,7 @@ import           Control.Monad.Trans.Except                (runExceptT)
 import           Pipeline.Internal.Common.IFunctor
 import           Pipeline.Internal.Common.IFunctor.Modular
 import           Pipeline.Internal.Core.CircuitAST
+import           Pipeline.Internal.Core.UUID
 
 
 newtype Artist = Artist {artistName :: String} deriving (Eq, Show, Generic, Ord, NFData)
@@ -206,8 +207,7 @@ instance ToField Bool where
 
 top10Task
   :: (ToNamedRecord a, FromNamedRecord a, DefaultOrdered a, NFData a, Eq a)
-  => FilePath
-  -> Circuit
+  => Circuit
        '[Var]
        '[[a]]
        '[Var [a]]
@@ -215,21 +215,21 @@ top10Task
        '[[a]]
        '[NamedCSVStore [a]]
        N1
-top10Task fname = functionTask f (NamedCSVStore fname)
+top10Task = functionTask f
  where
   f :: [a] -> [a]
   f = take 10
 
 aggArtistsTask
-  :: IO (Circuit
+  :: Circuit
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[Var]
        '[[ArtistCount]]
        '[Var [ArtistCount]]
-       N3)
-aggArtistsTask = multiInputTask f <$> emptyVar
+       N3
+aggArtistsTask = multiInputTask f
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [ArtistCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
@@ -238,15 +238,15 @@ aggArtistsTask = multiInputTask f <$> emptyVar
 
 
 aggSongsTask
-  :: IO (Circuit
+  :: Circuit
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[Var]
        '[[TrackCount]]
        '[Var [TrackCount]]
-       N3)
-aggSongsTask = multiInputTask f  <$> emptyVar
+       N3
+aggSongsTask = multiInputTask f
  where
   f :: HList '[[Listen] , [Listen] , [Listen]] -> [TrackCount]
   f (HCons day1 (HCons day2 (HCons day3 HNil))) =
@@ -254,18 +254,15 @@ aggSongsTask = multiInputTask f  <$> emptyVar
 
 
 pipeline
-  :: IO (Circuit
+  :: Circuit
        '[NamedCSVStore , NamedCSVStore , NamedCSVStore]
        '[[Listen] , [Listen] , [Listen]]
        '[NamedCSVStore [Listen] , NamedCSVStore [Listen] , NamedCSVStore [Listen]]
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
-       N3)
-pipeline = do
-  aggArtists <- aggArtistsTask
-  aggSongs <- aggSongsTask
-  return $ replicate2
+       N3
+pipeline = replicate2
     <>  replicate2
     <>  replicate2
     <-> id
@@ -277,10 +274,10 @@ pipeline = do
     <>  swap
     <>  id
     <>  id
-    <-> aggArtists
-    <>  aggSongs
-    <-> top10Task "output/top10Artists.csv"
-    <>  top10Task "output/top10Songs.csv"
+    <-> aggArtistsTask
+    <>  aggSongsTask
+    <-> top10Task
+    <>  top10Task
 
 addUser
   :: BasicNetwork
@@ -290,7 +287,7 @@ addUser
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
-  -> UUID
+  -> JobUUID
   -> IO ()
 addUser n uuid = write
   uuid
@@ -308,7 +305,7 @@ getUserTop10
        '[NamedCSVStore , NamedCSVStore]
        '[[ArtistCount] , [TrackCount]]
        '[NamedCSVStore [ArtistCount] , NamedCSVStore [TrackCount]]
-  -> UUID
+  -> JobUUID
   -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
 getUserTop10 n _ = do
   (Right (HCons' ac (HCons' tc HNil'))) <- output_ n
@@ -317,40 +314,47 @@ getUserTop10 n _ = do
 
 computeResult
   :: HList' '[NamedCSVStore , NamedCSVStore , NamedCSVStore] '[[Listen] , [Listen] , [Listen]]
+  -> JobUUID
   -> IO (NamedCSVStore [ArtistCount], NamedCSVStore [TrackCount])
-computeResult inputs = do
-  (IIn7 (R (R (R (R (R (R (R (L (Task aggArtistsF aggArtistsemptyVar)))))))))) <- aggArtistsTask
-  (IIn7 (R (R (R (R (R (R (R (L (Task aggSongsF aggSongsemptyVar))))))))))     <- aggSongsTask
+computeResult inputs jobUUID = do
+  let (IIn7 (R (R (R (R (R (R (R (L (Task aggArtistsF)))))))))) = aggArtistsTask
+  let (IIn7 (R (R (R (R (R (R (R (L (Task aggSongsF))))))))))   = aggSongsTask
+  aggATaskUUID <- genTaskUUID
+  aggSTaskUUID <- genTaskUUID
+  aggArtistsEmptyVar <- empty aggATaskUUID jobUUID
+  aggSongsEmptyVar <- empty aggSTaskUUID jobUUID
 
-  (Right aggArtists) <- runExceptT (aggArtistsF "test" inputs aggArtistsemptyVar)
-  (Right aggSongs  ) <- runExceptT (aggSongsF "test" inputs aggSongsemptyVar)
+  (Right aggArtists) <- runExceptT (aggArtistsF nilJobUUID inputs aggArtistsEmptyVar)
+  (Right aggSongs  ) <- runExceptT (aggSongsF nilJobUUID inputs aggSongsEmptyVar)
 
-  let artists = HCons' aggArtistsemptyVar HNil'
-  let songs   = HCons' aggSongsemptyVar HNil'
-  let (IIn7 (R (R (R (R (R (R (R (L (Task top10ArtistsF top10ArtistsemptyVar)))))))))) =
-        top10Task "output/top10Artists.csv"
-  let (IIn7 (R (R (R (R (R (R (R (L (Task top10SongsF top10SongsemptyVar)))))))))) =
-        top10Task "output/top10Songs.csv"
+  let artists = HCons' aggArtistsEmptyVar HNil'
+  let songs   = HCons' aggSongsEmptyVar HNil'
+  let (IIn7 (R (R (R (R (R (R (R (L (Task top10ArtistsF)))))))))) =
+        top10Task
+  let (IIn7 (R (R (R (R (R (R (R (L (Task top10SongsF)))))))))) =
+        top10Task
+  top10ATaskUUID <- genTaskUUID
+  top10STaskUUID <- genTaskUUID
+  top10ArtistsEmptyVar <- empty top10ATaskUUID jobUUID
+  top10SongsEmptyVar <- empty top10STaskUUID jobUUID
 
-  (Right ac) <- runExceptT (top10ArtistsF "test" artists top10ArtistsemptyVar)
-  (Right tc) <- runExceptT (top10SongsF "test" songs top10SongsemptyVar)
+  (Right ac) <- runExceptT (top10ArtistsF nilJobUUID artists top10ArtistsEmptyVar)
+  (Right tc) <- runExceptT (top10SongsF nilJobUUID songs top10SongsEmptyVar)
 
-  return (top10ArtistsemptyVar, top10SongsemptyVar)
+  return (top10ArtistsEmptyVar, top10SongsEmptyVar)
 
 
 benchMain :: Int -> IO ()
 benchMain n = do
-  let users = [ show x | x <- [0 .. (n - 1)] ]
+  users <- sequence [ genJobUUID | _ <- [0 .. (n - 1)] ]
 
   forM_
     users
-    (const
-      (computeResult
-        (HCons'
-          (NamedCSVStore "benchmarks/data/jan.csv")
-          (HCons' (NamedCSVStore "benchmarks/data/feb.csv")
-                  (HCons' (NamedCSVStore "benchmarks/data/mar.csv") HNil')
-          )
+    (computeResult
+      (HCons'
+        (NamedCSVStore "benchmarks/data/jan.csv")
+        (HCons' (NamedCSVStore "benchmarks/data/feb.csv")
+                (HCons' (NamedCSVStore "benchmarks/data/mar.csv") HNil')
         )
       )
     )
