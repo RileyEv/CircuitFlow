@@ -110,12 +110,10 @@ replicate3Tests = testGroup
 
 replicateInputsCircuit
   :: Circuit
-       '[VariableStore, VariableStore]
-       '[Int, Int]
-       '[VariableStore Int, VariableStore Int]
-       '[VariableStore , VariableStore , VariableStore, VariableStore]
-       '[Int , Int , Int, Int]
-       '[VariableStore Int , VariableStore Int , VariableStore Int, VariableStore Int]
+       '[Var , Var]
+       '[Int , Int]
+       '[Var , Var , Var , Var]
+       '[Int , Int , Int , Int]
        N2
 replicateInputsCircuit = replicateInputs (SSucc (SSucc SZero))
 
@@ -123,9 +121,12 @@ replicateInputsTests :: TestTree
 replicateInputsTests = testGroup
   "(replicateN 3) should"
   [ testCase "return a trupled input value" $ do
-      let i = HCons' (Var 0) (HCons' (Var 2) HNil')
-      o <- singleInputTest replicateInputsCircuit i
-      o @?= Right (HCons' (Var 0) (HCons' (Var 0) (HCons' (Var 2) (HCons' (Var 2) HNil'))))
+      var1 <- varWith 0
+      var2 <- varWith 2
+      let i = HCons' var1 (HCons' var2 HNil')
+      (Right o) <- singleInputTest replicateInputsCircuit i
+      out <- fetch' o
+      out @?= HCons 0 (HCons 0 (HCons 2 (HCons 2 HNil)))
   ]
  
 -- Tests for the 'Then' constructor

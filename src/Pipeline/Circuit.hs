@@ -240,7 +240,6 @@ replicateMany :: ( 'Succ 'Zero :+ m ~ 'Succ m
                  , Length as ~ m
                  , Length (Apply fs as) ~ m
                  , Length (Duplicate fs) ~ Length (Duplicate as)
-                 , Length (Duplicate fs) ~ Length (Apply (Duplicate fs) (Duplicate as))
                  , (as :++ as) ~ Concat (Transpose (Pair (Duplicate as)))
                  , (fs :++ fs) ~ Concat (Transpose (Pair (Duplicate fs)))
                  , ReplicateInputs m fs as
