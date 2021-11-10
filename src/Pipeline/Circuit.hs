@@ -195,7 +195,6 @@ instance ( DataStore f a
          ) => ReplicateInputs ('Succ ('Succ n)) (f ': fs) (a ': as) where
   replicateInputs (SSucc (SSucc n)) = replicate2 <> replicateInputs (SSucc n)
 
-
 class DataStore' fs as => OrganiseInputs m fs as where
   organiseInputs :: SNat m
     -> AST.Circuit fs
@@ -207,14 +206,22 @@ class DataStore' fs as => OrganiseInputs m fs as where
 instance (DataStore f a, DataStore g b, Eq a, Eq (f a), Eq b, Eq (g b)) => OrganiseInputs ('Succ 'Zero) '[f, g] '[a, b] where
   organiseInputs (SSucc SZero) = id <> id
 
-
--- Problem with the type as I need it to be something like f ': fs ': '[g]
+-- Problem with the type as I need it to be something like f ': (fs :++ '[g])
 -- function peels one off each end of the list, which can't do with Haskell list!
 -- Any other way to write a function that does the same thing...?
 -- Currently its 'centre-recursive', a tail-recursive function would probably avoid the problem
 instance (DataStore f a, DataStore' fs as, Eq a, Eq (f a)) => OrganiseInputs ('Succ ('Succ n)) (f ': fs) (a ': as) where
   organiseInputs = undefined -- Stuck here
 
+-- organiseInputs :: (DataStore' fs as) => SNat n
+--  -> AST.Circuit fs
+--                 as
+--                 (Concat (Transpose (Pair fs)))
+--                 (Concat (Transpose (Pair as)))
+--                 (Length fs)
+-- organiseInputs (SSucc SZero) = id <> id
+-- organiseInputs (SSucc n) = (id <> swapInputs     n <> id
+--                         <-> id <> organiseInputs n <> id)
 
 class DataStore' fs as => SwapInputs n fs as where
   swapInputs :: SNat n -> AST.Circuit fs as (Swap n fs) (Swap n as) (Length fs)
@@ -253,14 +260,3 @@ replicateMany n = replicateInputs n
                   <->
                   organiseInputs n
   -- where
-  --   organiseInputs :: SNat n
-  --     -> AST.Circuit fs
-  --                    as
-  --                    (Apply fs as)
-  --                    (Concat (Transpose (Pair fs)))
-  --                    (Concat (Transpose (Pair as)))
-  --                    (Apply (Concat (Transpose (Pair fs))) (Concat (Transpose (Pair as))))
-  --                    (Length fs)
-  --   organiseInputs (SSucc SZero) = id <> id
-  --   organiseInputs (SSucc n) = (id <> swapInputs     n <> id
-  --                           <-> id <> organiseInputs n <> id)

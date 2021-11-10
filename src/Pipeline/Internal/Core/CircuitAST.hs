@@ -23,8 +23,8 @@ import           Pipeline.Internal.Common.IFunctor         (IFix5 (..),
 import           Pipeline.Internal.Common.IFunctor.Modular ((:+:) (..))
 import           Pipeline.Internal.Common.Nat              (IsNat (..), N1, N2,
                                                             Nat (..), (:+),
-                                                            (:=))
-import           Pipeline.Internal.Common.TypeList         (Apply, Drop, Length,
+                                                            (:=), SNat (..))
+import           Pipeline.Internal.Common.TypeList         (Drop, Length,
                                                             Take, (:++))
 import           Pipeline.Internal.Core.DataStore          (DataStore,
                                                             DataStore', Var)
@@ -41,6 +41,13 @@ data Replicate (iF :: [Type -> Type] -> [Type] -> [Type -> Type] -> [Type] -> Na
                (outputsS :: [Type -> Type]) (outputsT :: [Type]) (ninputs :: Nat) where
   Replicate ::(DataStore' '[f] '[a])
     => Replicate iF '[f] '[a] [f, f] '[a, a] N1
+
+data ReplicateManyN (iF :: [Type -> Type] -> [Type] -> [Type -> Type] -> [Type] -> Nat -> Type)
+               (inputsS :: [Type -> Type]) (inputsT :: [Type])
+               (outputsS :: [Type -> Type]) (outputsT :: [Type]) (ninputs :: Nat) where
+  ReplicateManyN ::(DataStore' '[f] '[a])
+    => SNat n -> SNat m -> ReplicateManyN iF '[f] '[a] [f, f] '[a, a] N1
+
 
 data Then (iF :: [Type -> Type] -> [Type] -> [Type -> Type] -> [Type] -> Nat -> Type)
           (inputsS :: [Type -> Type]) (inputsT :: [Type])
